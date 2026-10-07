@@ -1,0 +1,218 @@
+From 5b72f00eb06a29de21c415fba52d6bee5f1c0f3d Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Thu, 27 Aug 2026 15:03:48 +0200
+Subject: feat: delete contact details 30 days after delivery, the notification
+ log after 90 days
+
+---
+ docs/privacy.md                               | 15 +++++
+ .../Hosting/NotifierServices.cs               |  4 ++
+ .../Retention/RetentionOptions.cs             | 25 ++++++++
+ .../Retention/RetentionSweeper.cs             | 64 +++++++++++++++++++
+ .../Retention/RetentionSweeperTests.cs        | 50 +++++++++++++++
+ 5 files changed, 158 insertions(+)
+ create mode 100644 docs/privacy.md
+ create mode 100644 src/Quellbrook.Notifier/Retention/RetentionOptions.cs
+ create mode 100644 src/Quellbrook.Notifier/Retention/RetentionSweeper.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/Retention/RetentionSweeperTests.cs
+
+diff --git a/docs/privacy.md b/docs/privacy.md
+new file mode 100644
+index 0000000..bf9da58
+--- /dev/null
++++ b/docs/privacy.md
+@@ -0,0 +1,15 @@
++# Personal data in the notifier
++
++| Data | Why it is held | Where | Retention |
++|---|---|---|---|
++| Consignee name, e-mail address and phone number (as announced with the order) | to notify the consignee about this delivery | `recipients` | 30 days after the delivery; 60 days after the announcement when the order is never delivered |
++| What was sent, when and through which channel, with the recipient masked (`m***@post.example`, `+45***50`) | to answer "did you notify me?" and to send nothing twice | `notification_log` | 90 days |
++| Message ids of processed events | to process each event once | `processed_messages` | 30 days |
++
++The retention periods are enforced by `RetentionSweeper` every hour (`Retention__*` settings). Data is encrypted in transit (TLS to the database, broker and
++providers) and at rest by the managed database; the notifier adds no field-level encryption. There is no on-request
++erasure operation: a request goes to customer service, and the contact details are gone 30 days after the delivery at
++the latest.
++
++The e-mail provider and the SMS gateway receive the address or number of each message they deliver; they are
++processors under the platform's data-processing agreements.
+diff --git a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+index 8ebc5bc..cd5587a 100644
+--- a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
++++ b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+@@ -9,6 +9,7 @@ using Quellbrook.Notifier.Channels;
+ using Quellbrook.Notifier.Messaging;
+ using Quellbrook.Notifier.Notifications;
+ using Quellbrook.Notifier.Persistence;
++using Quellbrook.Notifier.Retention;
+ using RabbitMQ.Client;
+ 
+ namespace Quellbrook.Notifier.Hosting;
+@@ -42,6 +43,9 @@ public static class NotifierServices
+         services.AddScoped<OrderPlacedHandler>();
+         services.AddScoped<DeliveryHandlers>();
+ 
++        services.AddOptions<RetentionOptions>().BindConfiguration(RetentionOptions.SectionName).ValidateDataAnnotations().ValidateOnStart();
++        services.AddHostedService<RetentionSweeper>();
++
+         services.AddHealthChecks().AddDbContextCheck<NotifierDbContext>("database");
+         services.AddOptions<HeartbeatOptions>().BindConfiguration(HeartbeatOptions.SectionName);
+         services.AddHostedService<HeartbeatPublisher>();
+diff --git a/src/Quellbrook.Notifier/Retention/RetentionOptions.cs b/src/Quellbrook.Notifier/Retention/RetentionOptions.cs
+new file mode 100644
+index 0000000..4ceb1ab
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Retention/RetentionOptions.cs
+@@ -0,0 +1,25 @@
++using System.ComponentModel.DataAnnotations;
++
++namespace Quellbrook.Notifier.Retention;
++
++/// <summary>How long the notifier keeps what it stores (docs/privacy.md).</summary>
++public sealed class RetentionOptions
++{
++    public const string SectionName = "Retention";
++
++    /// <summary>Contact details are kept this long after the delivery.</summary>
++    [Range(typeof(TimeSpan), "1.00:00:00", "90.00:00:00")]
++    public TimeSpan RecipientAfterDelivery { get; set; } = TimeSpan.FromDays(30);
++
++    /// <summary>Contact details of an order that never completed (cancelled, lost) are kept this long after it was announced.</summary>
++    [Range(typeof(TimeSpan), "1.00:00:00", "180.00:00:00")]
++    public TimeSpan RecipientWithoutDelivery { get; set; } = TimeSpan.FromDays(60);
++
++    [Range(typeof(TimeSpan), "1.00:00:00", "365.00:00:00")]
++    public TimeSpan NotificationLog { get; set; } = TimeSpan.FromDays(90);
++
++    [Range(typeof(TimeSpan), "1.00:00:00", "90.00:00:00")]
++    public TimeSpan ProcessedMessages { get; set; } = TimeSpan.FromDays(30);
++
++    public TimeSpan Interval { get; set; } = TimeSpan.FromHours(1);
++}
+diff --git a/src/Quellbrook.Notifier/Retention/RetentionSweeper.cs b/src/Quellbrook.Notifier/Retention/RetentionSweeper.cs
+new file mode 100644
+index 0000000..5abe65f
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Retention/RetentionSweeper.cs
+@@ -0,0 +1,64 @@
++using System.Data.Common;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.Hosting;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Options;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.Retention;
++
++public sealed record PurgeResult(int Recipients, int NotificationLog, int ProcessedMessages);
++
++/// <summary>Deletes what has outlived its retention period, every hour (docs/privacy.md).</summary>
++public sealed partial class RetentionSweeper(
++    IServiceScopeFactory scopes,
++    TimeProvider time,
++    IOptions<RetentionOptions> options,
++    ILogger<RetentionSweeper> logger) : BackgroundService
++{
++    public async Task<PurgeResult> PurgeAsync(CancellationToken cancellationToken)
++    {
++        using var scope = scopes.CreateScope();
++        var db = scope.ServiceProvider.GetRequiredService<NotifierDbContext>();
++        var now = time.GetUtcNow();
++        var settings = options.Value;
++        var deliveredBefore = now - settings.RecipientAfterDelivery;
++        var announcedBefore = now - settings.RecipientWithoutDelivery;
++        var sentBefore = now - settings.NotificationLog;
++        var processedBefore = now - settings.ProcessedMessages;
++
++        var recipients = await db.Recipients
++            .Where(recipient => recipient.CompletedAt < deliveredBefore || (recipient.CompletedAt == null && recipient.ReceivedAt < announcedBefore))
++            .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
++        var log = await db.NotificationLog.Where(entry => entry.SentAt < sentBefore).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
++        var processed = await db.ProcessedMessages.Where(message => message.ProcessedAt < processedBefore).ExecuteDeleteAsync(cancellationToken)
++            .ConfigureAwait(false);
++        var result = new PurgeResult(recipients, log, processed);
++        LogPurged(result.Recipients, result.NotificationLog, result.ProcessedMessages);
++        return result;
++    }
++
++    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
++    {
++        using var timer = new PeriodicTimer(options.Value.Interval, time);
++        do
++        {
++            try
++            {
++                await PurgeAsync(stoppingToken).ConfigureAwait(false);
++            }
++            catch (DbException exception)
++            {
++                LogFailed(exception);
++            }
++        }
++        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "Retention: deleted {Recipients} recipients, {LogEntries} notification log entries, {Messages} processed-message ids")]
++    private partial void LogPurged(int recipients, int logEntries, int messages);
++
++    [LoggerMessage(Level = LogLevel.Error, Message = "Retention sweep failed; retrying at the next interval")]
++    private partial void LogFailed(Exception exception);
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Retention/RetentionSweeperTests.cs b/tests/Quellbrook.Notifier.UnitTests/Retention/RetentionSweeperTests.cs
+new file mode 100644
+index 0000000..ae91dd8
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/Retention/RetentionSweeperTests.cs
+@@ -0,0 +1,50 @@
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Options;
++using Quellbrook.Notifier.Persistence;
++using Quellbrook.Notifier.Retention;
++using Quellbrook.Notifier.UnitTests.TestSupport;
++
++namespace Quellbrook.Notifier.UnitTests.Retention;
++
++public sealed class RetentionSweeperTests : IDisposable
++{
++    private readonly TestDb _db = new();
++
++    [Fact]
++    public async Task ExpiredRecipientsLogEntriesAndMessageIdsAreDeletedAndCurrentOnesKept()
++    {
++        var now = TestDb.Now;
++        using (var context = _db.Context())
++        {
++            context.Recipients.AddRange(
++                Recipient(now.AddDays(-40), completedAt: now.AddDays(-31)),
++                Recipient(now.AddDays(-20), completedAt: now.AddDays(-2)),
++                Recipient(now.AddDays(-61), completedAt: null),
++                Recipient(now.AddDays(-10), completedAt: null));
++            context.NotificationLog.AddRange(LogEntry(now.AddDays(-91)), LogEntry(now.AddDays(-89)));
++            context.ProcessedMessages.AddRange(
++                new ProcessedMessage { MessageId = Guid.NewGuid(), Type = "t", ProcessedAt = now.AddDays(-31) },
++                new ProcessedMessage { MessageId = Guid.NewGuid(), Type = "t", ProcessedAt = now.AddDays(-1) });
++            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
++        }
++
++        var sweeper = new RetentionSweeper(_db.Services.GetRequiredService<IServiceScopeFactory>(), _db.Time,
++            Options.Create(new RetentionOptions()), NullLogger<RetentionSweeper>.Instance);
++        var result = await sweeper.PurgeAsync(TestContext.Current.CancellationToken);
++
++        Assert.Equal(new PurgeResult(2, 1, 1), result);
++        using var reading = _db.Context();
++        Assert.Equal(2, reading.Recipients.Count());
++        Assert.Single(reading.NotificationLog);
++        Assert.Single(reading.ProcessedMessages);
++    }
++
++    private static Recipient Recipient(DateTimeOffset receivedAt, DateTimeOffset? completedAt) =>
++        new() { OrderId = Guid.NewGuid(), Name = "Maja Holm", Email = "maja.holm@post.example", ReceivedAt = receivedAt, CompletedAt = completedAt };
++
++    private static NotificationLogEntry LogEntry(DateTimeOffset sentAt) =>
++        new() { Id = Guid.NewGuid(), OrderId = Guid.NewGuid(), Kind = "Delivered", Channel = "email", MaskedRecipient = "m***@post.example", SentAt = sentAt };
++
++    public void Dispose() => _db.Dispose();
++}

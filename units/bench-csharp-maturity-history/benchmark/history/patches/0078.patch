@@ -1,0 +1,57 @@
+From b33c0132e7f339b917c28273cfee981136c4ea91 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Thu, 4 Jun 2026 09:50:13 +0200
+Subject: fix: illness reason in responses and the portal feed
+
+---
+ src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs     | 1 +
+ .../PatientPortal/PortalAppointmentFeed.cs                    | 1 +
+ .../PatientPortal/PortalAppointmentFeedTests.cs               | 4 ++--
+ 3 files changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 4f306b2..98f493b 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -43,6 +43,7 @@ public sealed record AppointmentResponse(
+     private static string ReasonCode(Reason reason) => reason switch
+     {
+         Reason.PatientRequest => "patient-request",
++        Reason.PatientIllness => "patient-illness",
+         Reason.PractitionerUnavailable => "practitioner-unavailable",
+         Reason.ClinicClosed => "clinic-closed",
+         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index 25bf578..da5b1e1 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -59,6 +59,7 @@ public static class PortalAppointmentFeed
+     private static string Reason(CancellationReason reason) => reason switch
+     {
+         CancellationReason.PatientRequest => "patient-request",
++        CancellationReason.PatientIllness => "patient-illness",
+         CancellationReason.PractitionerUnavailable => "practitioner-unavailable",
+         CancellationReason.ClinicClosed => "clinic-closed",
+         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+index 1840ed9..7a1deb6 100644
+--- a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -15,7 +15,7 @@ public sealed class PortalAppointmentFeedTests
+     {
+         var early = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 9, 45)), false);
+         var late = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(7), 9), At(Monday.AddDays(7), 10)), true);
+-        late.Cancel(CancellationReason.PatientRequest, At(Monday.AddDays(6), 18));
++        late.Cancel(CancellationReason.PatientIllness, At(Monday.AddDays(6), 18));
+ 
+         using var feed = JsonDocument.Parse(PortalAppointmentFeed.Serialize(PatientId, [early, late]));
+ 
+@@ -24,7 +24,7 @@ public sealed class PortalAppointmentFeedTests
+         Assert.Equal(late.Id, items[0].GetProperty("id").GetGuid());
+         Assert.Equal("2026-03-09T09:00:00.0000000+00:00", items[0].GetProperty("startsAt").GetString());
+         Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
+-        Assert.Equal("patient-request", items[0].GetProperty("cancellationReason").GetString());
++        Assert.Equal("patient-illness", items[0].GetProperty("cancellationReason").GetString());
+         Assert.True(items[0].GetProperty("isTelehealth").GetBoolean());
+         Assert.Equal("booked", items[1].GetProperty("status").GetString());
+         Assert.Equal(0, items[1].GetProperty("rescheduleCount").GetInt32());

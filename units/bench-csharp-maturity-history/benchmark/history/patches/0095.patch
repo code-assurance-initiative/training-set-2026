@@ -1,0 +1,59 @@
+From 88e948c54170b56cc625bb37735de2038a74fc23 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 23 Jul 2026 09:55:07 +0200
+Subject: fix(availability): never search further ahead than allowed
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs |  3 ++-
+ .../Availability/SlotSearchOptions.cs                  |  2 ++
+ .../Availability/SlotFinderTests.cs                    | 10 ++++++++++
+ 3 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 63fe893..3a47a8d 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -36,9 +36,10 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+ 
+         var now = time.GetUtcNow();
+         var today = DateOnly.FromDateTime(now.UtcDateTime);
++        var lastDay = today.AddDays(options.MaxDaysAhead);
+         var slots = new List<Slot>();
+ 
+-        for (var day = query.From; day <= query.To; day = day.AddDays(1))
++        for (var day = query.From; day <= query.To && day <= lastDay; day = day.AddDays(1))
+         {
+             if (day < today || holidays.IsHoliday(schedule.CountryCode, day))
+             {
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+index e0d99ed..2fd0f65 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -16,4 +16,6 @@ public sealed record SlotSearchOptions
+ 
+     /// <summary>After this local time no more same-day slots are offered.</summary>
+     public TimeOnly SameDayCutoff { get; init; } = new(14, 0);
++
++    public int MaxDaysAhead { get; init; } = 60;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 1d88ea5..88d7ccd 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -98,6 +98,16 @@ public sealed class SlotFinderTests
+         Assert.All(slots, s => Assert.True(s.IsTelehealth));
+     }
+ 
++    [Fact]
++    public void NeverLooksFurtherAheadThanAllowed()
++    {
++        var query = new SlotQuery(Monday.AddDays(1), Monday.AddDays(30), HalfHour);
++
++        var slots = Finder().FindOpenSlots(Schedule(), [], query, new SlotSearchOptions { MaxDaysAhead = 2 });
++
++        Assert.All(slots, s => Assert.True(s.Start < At(Monday.AddDays(3), 0)));
++    }
++
+     [Fact]
+     public void RejectsEmptyQueries()
+     {

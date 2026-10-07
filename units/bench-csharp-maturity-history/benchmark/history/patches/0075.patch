@@ -1,0 +1,65 @@
+From 4fa7b2393df8365056093362268ce9a16982e788 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 28 May 2026 10:45:35 +0200
+Subject: feat(notifications): cancellation-fee note in day-before reminders
+
+---
+ .../Notifications/ReminderComposer.cs                         | 4 +++-
+ .../Notifications/ReminderTexts.cs                            | 3 +++
+ .../Notifications/ReminderComposerTests.cs                    | 1 +
+ 3 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+index 86e7aa0..e3806fb 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+@@ -34,6 +34,8 @@ public static class ReminderComposer
+         var local = TimeZoneInfo.ConvertTime(appointment.Time.Start, schedule.TimeZone);
+         var when = reminder.Kind == ReminderKind.SameDay ? local.ToString("t", culture) : local.ToString("g", culture);
+         var body = string.Format(culture, texts[key], practitionerName, when, clinicPhone);
+-        return $"{body} {texts["signature"]}";
++        return reminder.Kind == ReminderKind.DayBefore
++            ? $"{body} {texts["cancellation-fee"]} {texts["signature"]}"
++            : $"{body} {texts["signature"]}";
+     }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 1309cf2..60a19eb 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -22,6 +22,7 @@ public static class ReminderTexts
+                 [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
+                 [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
+                 [SameDayVideo] = "Your video appointment with {0} starts at {1}. Please open the link from your patient portal a few minutes early.",
++                ["cancellation-fee"] = "Late cancellations are charged.",
+                 ["signature"] = "Best regards, your physiotherapy clinic",
+             },
+             ["da"] = new Dictionary<string, string>
+@@ -30,6 +31,7 @@ public static class ReminderTexts
+                 [SameDay] = "Vi ses snart: din tid hos {0} er i dag kl. {1}.",
+                 [DayBeforeVideo] = "Påmindelse: din videokonsultation med {0} er den {1}. Linket kommer en time før.",
+                 [SameDayVideo] = "Din videokonsultation med {0} starter kl. {1}. Åbn linket fra patientportalen.",
++                ["cancellation-fee"] = "Afbud senere end 24 timer før tiden opkræves.",
+                 ["signature"] = "Venlig hilsen din fysioterapiklinik",
+             },
+             ["de"] = new Dictionary<string, string>
+@@ -38,6 +40,7 @@ public static class ReminderTexts
+                 [SameDay] = "Bis gleich: Ihr Termin bei {0} ist heute um {1}.",
+                 [DayBeforeVideo] = "Erinnerung: Ihre Videosprechstunde bei {0} ist am {1}. Den Link erhalten Sie eine Stunde vorher.",
+                 [SameDayVideo] = "Ihre Videosprechstunde bei {0} beginnt um {1}. Öffnen Sie den Link im Patientenportal.",
++                ["cancellation-fee"] = "Absagen weniger als 24 Stunden vor dem Termin werden berechnet.",
+                 ["signature"] = "Mit freundlichen Grüßen, Ihre Physiotherapiepraxis",
+             },
+         };
+diff --git a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+index b71b230..9ddb8af 100644
+--- a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+@@ -25,6 +25,7 @@ public sealed class ReminderComposerTests
+ 
+         Assert.StartsWith("Påmindelse: du har tid hos Ida den ", text, StringComparison.Ordinal);
+         Assert.Contains("+45 11 22 33 44", text, StringComparison.Ordinal);
++        Assert.Contains(ReminderTexts.ByLanguage["da"]["cancellation-fee"], text, StringComparison.Ordinal);
+     }
+ 
+     [Fact]

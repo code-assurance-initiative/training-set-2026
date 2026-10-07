@@ -1,0 +1,32 @@
+From 851262782802eff68bb5909e953e4595ba886979 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Tue, 25 Aug 2026 11:50:32 +0200
+Subject: fix(availability): same-day cut-off in the practitioner's local time
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index a81e49e..5cba44e 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -35,7 +35,8 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+         }
+ 
+         var now = time.GetUtcNow();
+-        var today = DateOnly.FromDateTime(now.UtcDateTime);
++        var localNow = TimeZoneInfo.ConvertTime(now, schedule.TimeZone);
++        var today = DateOnly.FromDateTime(localNow.DateTime);
+         var lastDay = today.AddDays(options.MaxDaysAhead);
+         var slots = new List<Slot>();
+ 
+@@ -46,7 +47,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                 continue;
+             }
+ 
+-            if (day == today && TimeOnly.FromDateTime(now.UtcDateTime) >= options.SameDayCutoff)
++            if (day == today && TimeOnly.FromDateTime(localNow.DateTime) >= options.SameDayCutoff)
+             {
+                 continue;
+             }

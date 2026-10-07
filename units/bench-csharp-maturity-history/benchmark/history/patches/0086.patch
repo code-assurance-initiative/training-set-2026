@@ -1,0 +1,24 @@
+From 2c420581614a602ed62b6c840cff664afb432101 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 29 Jun 2026 09:15:06 +0200
+Subject: ci: cancel superseded runs of the same branch
+
+---
+ .github/workflows/ci.yml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 3768dcb..4a6f632 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -13,6 +13,10 @@ on:
+ permissions:
+   contents: read
+ 
++concurrency:
++  group: ci-${{ github.ref }}
++  cancel-in-progress: true
++
+ jobs:
+   build-and-test:
+     runs-on: ubuntu-latest

@@ -1,0 +1,36 @@
+.gallery {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.gallery-photo {
+    width: 100%;
+    max-width: 50rem;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+.gallery-thumbs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.gallery-thumb {
+    padding: 0.125rem;
+    border: 2px solid transparent;
+    border-radius: 0.375rem;
+    background: none;
+}
+
+.gallery-thumb[aria-pressed="true"] {
+    border-color: #0b5394;
+}
+
+.room-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}

@@ -1,0 +1,30 @@
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.chip {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid #6e7781;
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.chip[aria-checked="true"] {
+    color: #ffffff;
+    background-color: #0b5394;
+    border-color: #0b5394;
+}
+
+.chip:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.chip:focus-visible {
+    outline: 3px solid #b45309;
+    outline-offset: 2px;
+}

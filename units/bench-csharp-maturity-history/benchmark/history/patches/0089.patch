@@ -1,0 +1,22 @@
+From 8e2a89c0a6c3ec9583071f3b41662d9f91e9f01d Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Tue, 7 Jul 2026 09:30:12 +0200
+Subject: chore: debug logging in development
+
+---
+ src/ClinicScheduling.Api/appsettings.Development.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Api/appsettings.Development.json b/src/ClinicScheduling.Api/appsettings.Development.json
+index dca576a..f8e4e98 100644
+--- a/src/ClinicScheduling.Api/appsettings.Development.json
++++ b/src/ClinicScheduling.Api/appsettings.Development.json
+@@ -1,7 +1,7 @@
+ {
+   "Logging": {
+     "LogLevel": {
+-      "Default": "Information",
++      "Default": "Debug",
+       "Microsoft.AspNetCore": "Information"
+     }
+   },

@@ -1,0 +1,8 @@
+namespace Rentals.Lending.Domain.Members;
+
+public enum MemberStatus
+{
+    Active = 0,
+    Suspended = 1,
+    Closed = 2,
+}

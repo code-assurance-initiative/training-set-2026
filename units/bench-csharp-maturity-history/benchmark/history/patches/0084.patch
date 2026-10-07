@@ -1,0 +1,547 @@
+From d774c8586292cfbfaff07118363d515da3b9c0a5 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 25 Jun 2026 16:20:44 +0200
+Subject: refactor: remove the waitlist module
+
+---
+ ClinicScheduling.slnx                         |  1 -
+ docs/architecture.md                          |  4 -
+ .../ClinicScheduling.Api.csproj               |  1 -
+ .../Contracts/JoinWaitlistRequest.cs          | 10 --
+ .../Endpoints/AppointmentEndpoints.cs         |  8 +-
+ .../Endpoints/WaitlistEndpoints.cs            | 31 ------
+ .../ApiApplicationBuilderExtensions.cs        |  1 -
+ .../Hosting/ApiServiceCollectionExtensions.cs |  2 -
+ src/ClinicScheduling.Api/packages.lock.json   |  6 --
+ .../ClinicScheduling.Waitlist.csproj          | 11 ---
+ .../WaitlistBackfill.cs                       | 29 ------
+ .../WaitlistEntry.cs                          | 10 --
+ .../WaitlistServiceCollectionExtensions.cs    | 13 ---
+ .../WaitlistStore.cs                          | 25 -----
+ .../packages.lock.json                        | 96 -------------------
+ .../packages.lock.json                        |  7 --
+ .../ClinicScheduling.UnitTests.csproj         |  1 -
+ .../Waitlist/WaitlistBackfillTests.cs         | 49 ----------
+ .../packages.lock.json                        |  6 --
+ 19 files changed, 1 insertion(+), 310 deletions(-)
+ delete mode 100644 src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
+ delete mode 100644 src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+ delete mode 100644 src/ClinicScheduling.Waitlist/ClinicScheduling.Waitlist.csproj
+ delete mode 100644 src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+ delete mode 100644 src/ClinicScheduling.Waitlist/WaitlistEntry.cs
+ delete mode 100644 src/ClinicScheduling.Waitlist/WaitlistServiceCollectionExtensions.cs
+ delete mode 100644 src/ClinicScheduling.Waitlist/WaitlistStore.cs
+ delete mode 100644 src/ClinicScheduling.Waitlist/packages.lock.json
+ delete mode 100644 tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+
+diff --git a/ClinicScheduling.slnx b/ClinicScheduling.slnx
+index afe6883..f887059 100644
+--- a/ClinicScheduling.slnx
++++ b/ClinicScheduling.slnx
+@@ -4,7 +4,6 @@
+     <Project Path="src/ClinicScheduling.Application/ClinicScheduling.Application.csproj" />
+     <Project Path="src/ClinicScheduling.Infrastructure/ClinicScheduling.Infrastructure.csproj" />
+     <Project Path="src/ClinicScheduling.Api/ClinicScheduling.Api.csproj" />
+-    <Project Path="src/ClinicScheduling.Waitlist/ClinicScheduling.Waitlist.csproj" />
+   </Folder>
+   <Folder Name="/tests/">
+     <Project Path="tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj" />
+diff --git a/docs/architecture.md b/docs/architecture.md
+index b01f2f1..81de35b 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -11,8 +11,6 @@ flowchart LR
+     subgraph Service[ClinicScheduling service]
+         Api[ClinicScheduling.Api<br/>Minimal API endpoints] --> Application[ClinicScheduling.Application<br/>use cases, ports]
+         Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays, reminders, portal feed]
+-        Api --> Waitlist[ClinicScheduling.Waitlist<br/>waitlist, back-fill]
+-        Waitlist --> Application
+         Infrastructure --> Application
+         Application --> Domain[ClinicScheduling.Domain<br/>slots, appointments, policies, recurrence]
+         Worker[ReminderDispatchWorker<br/>hosted service] --> Infrastructure
+@@ -34,8 +32,6 @@ flowchart LR
+   (ADR 0005). Texts live in `ReminderTexts` (English, Danish, German).
+ - **Patient portal** - the portal polls `/api/patients/{id}/feed` (JSON written by `PortalAppointmentFeed`) and
+   subscribes to `/api/patients/{id}/calendar.ics` (written by `IcsCalendarWriter`).
+-- **Waitlist** - when the API cancels an appointment, `WaitlistBackfill` offers the freed slot to the first waiting
+-  patient whose window fits.
+ 
+ ## Decisions
+ 
+diff --git a/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj b/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
+index 8c435bf..0e10363 100644
+--- a/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
++++ b/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
+@@ -7,7 +7,6 @@
+   <ItemGroup>
+     <ProjectReference Include="..\ClinicScheduling.Application\ClinicScheduling.Application.csproj" />
+     <ProjectReference Include="..\ClinicScheduling.Infrastructure\ClinicScheduling.Infrastructure.csproj" />
+-    <ProjectReference Include="..\ClinicScheduling.Waitlist\ClinicScheduling.Waitlist.csproj" />
+   </ItemGroup>
+ 
+   <ItemGroup>
+diff --git a/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs b/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
+deleted file mode 100644
+index 58ede49..0000000
+--- a/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
++++ /dev/null
+@@ -1,10 +0,0 @@
+-namespace ClinicScheduling.Api.Contracts;
+-
+-public sealed record JoinWaitlistRequest(Guid PatientId, Guid PractitionerId, DateOnly Earliest, DateOnly Latest)
+-{
+-    public RequestErrors Validate() =>
+-        new RequestErrors()
+-            .Require(PatientId != Guid.Empty, nameof(PatientId), "A patient is required.")
+-            .Require(PractitionerId != Guid.Empty, nameof(PractitionerId), "A practitioner is required.")
+-            .Require(Latest >= Earliest, nameof(Latest), "The window must end on or after its first day.");
+-}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index 126cd4b..fdbc5ff 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -3,7 +3,6 @@ using ClinicScheduling.Api.Security;
+ using ClinicScheduling.Application;
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Application.Booking;
+-using ClinicScheduling.Waitlist;
+ 
+ namespace ClinicScheduling.Api.Endpoints;
+ 
+@@ -42,7 +41,7 @@ public static class AppointmentEndpoints
+         return appointment is null ? Results.NotFound() : Results.Ok(AppointmentResponse.From(appointment));
+     }
+ 
+-    private static async Task<IResult> CancelAsync(Guid id, CancelAppointmentRequest request, CancelAppointmentHandler handler, IAppointmentRepository appointments, WaitlistBackfill backfill, CancellationToken cancellationToken)
++    private static async Task<IResult> CancelAsync(Guid id, CancelAppointmentRequest request, CancelAppointmentHandler handler, CancellationToken cancellationToken)
+     {
+         var errors = request.Validate();
+         if (errors.Any || request.ParsedReason is not { } reason)
+@@ -51,11 +50,6 @@ public static class AppointmentEndpoints
+         }
+ 
+         var result = await handler.HandleAsync(new CancelAppointmentCommand(id, reason), cancellationToken).ConfigureAwait(false);
+-        if (result.Status == OperationStatus.Ok && await appointments.FindAsync(id, cancellationToken).ConfigureAwait(false) is { } cancelled)
+-        {
+-            backfill.OfferFreedSlot(cancelled);
+-        }
+-
+         return result is { Status: OperationStatus.Ok, Value: { } decision }
+             ? Results.Ok(CancellationResponse.From(decision))
+             : EndpointResults.Problem(result);
+diff --git a/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+deleted file mode 100644
+index aacfe22..0000000
+--- a/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
++++ /dev/null
+@@ -1,31 +0,0 @@
+-using ClinicScheduling.Api.Contracts;
+-using ClinicScheduling.Api.Security;
+-using ClinicScheduling.Waitlist;
+-
+-namespace ClinicScheduling.Api.Endpoints;
+-
+-public static class WaitlistEndpoints
+-{
+-    public static IEndpointRouteBuilder MapWaitlistEndpoints(this IEndpointRouteBuilder app)
+-    {
+-        var group = app.MapGroup("/api/waitlist").WithTags("Waitlist");
+-        group.MapPost("/", Join).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+-        group.MapGet("/{practitionerId:guid}", List).RequireAuthorization(AuthorizationPolicies.AppointmentsRead);
+-        return app;
+-    }
+-
+-    private static IResult Join(JoinWaitlistRequest request, WaitlistStore store, TimeProvider time)
+-    {
+-        var errors = request.Validate();
+-        if (errors.Any)
+-        {
+-            return Results.ValidationProblem(errors.ToDictionary());
+-        }
+-
+-        var entry = new WaitlistEntry(Guid.NewGuid(), request.PatientId, request.PractitionerId, request.Earliest, request.Latest, time.GetUtcNow());
+-        store.Join(entry);
+-        return Results.Ok(entry);
+-    }
+-
+-    private static IResult List(Guid practitionerId, WaitlistStore store) => Results.Ok(store.For(practitionerId));
+-}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index 7d86b7f..b494f9e 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -25,7 +25,6 @@ public static class ApiApplicationBuilderExtensions
+         app.MapScheduleEndpoints();
+         app.MapSeriesEndpoints();
+         app.MapPatientEndpoints();
+-        app.MapWaitlistEndpoints();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+index e4588ce..9c38cd1 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
+ using ClinicScheduling.Api.Security;
+ using ClinicScheduling.Application;
+ using ClinicScheduling.Infrastructure;
+-using ClinicScheduling.Waitlist;
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
+ 
+ namespace ClinicScheduling.Api.Hosting;
+@@ -13,7 +12,6 @@ public static class ApiServiceCollectionExtensions
+     {
+         services.AddSchedulingApplication();
+         services.AddSchedulingInfrastructure();
+-        services.AddWaitlist();
+         services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+         services.AddProblemDetails();
+         services.AddHealthChecks();
+diff --git a/src/ClinicScheduling.Api/packages.lock.json b/src/ClinicScheduling.Api/packages.lock.json
+index 0626588..e3ce62f 100644
+--- a/src/ClinicScheduling.Api/packages.lock.json
++++ b/src/ClinicScheduling.Api/packages.lock.json
+@@ -86,12 +86,6 @@
+         "dependencies": {
+           "ClinicScheduling.Application": "[0.3.0, )"
+         }
+-      },
+-      "clinicscheduling.waitlist": {
+-        "type": "Project",
+-        "dependencies": {
+-          "ClinicScheduling.Application": "[0.3.0, )"
+-        }
+       }
+     }
+   }
+diff --git a/src/ClinicScheduling.Waitlist/ClinicScheduling.Waitlist.csproj b/src/ClinicScheduling.Waitlist/ClinicScheduling.Waitlist.csproj
+deleted file mode 100644
+index f6d8cfd..0000000
+--- a/src/ClinicScheduling.Waitlist/ClinicScheduling.Waitlist.csproj
++++ /dev/null
+@@ -1,11 +0,0 @@
+-<Project Sdk="Microsoft.NET.Sdk">
+-
+-  <PropertyGroup>
+-    <RootNamespace>ClinicScheduling.Waitlist</RootNamespace>
+-  </PropertyGroup>
+-
+-  <ItemGroup>
+-    <ProjectReference Include="..\ClinicScheduling.Application\ClinicScheduling.Application.csproj" />
+-  </ItemGroup>
+-
+-</Project>
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs b/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+deleted file mode 100644
+index 876c47e..0000000
+--- a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
++++ /dev/null
+@@ -1,29 +0,0 @@
+-using ClinicScheduling.Domain.Appointments;
+-
+-namespace ClinicScheduling.Waitlist;
+-
+-/// <summary>
+-/// Offers the slot of a cancelled appointment to the first patient on the practitioner's waitlist whose window
+-/// contains the day.
+-/// </summary>
+-public sealed class WaitlistBackfill(WaitlistStore store, TimeProvider time)
+-{
+-    /// <summary>How long an offer is held for one patient before the slot is offered to the next.</summary>
+-    public static readonly TimeSpan OfferHold = TimeSpan.FromMinutes(30);
+-
+-    public WaitlistOffer? OfferFreedSlot(Appointment cancelled)
+-    {
+-        ArgumentNullException.ThrowIfNull(cancelled);
+-        var day = DateOnly.FromDateTime(cancelled.Time.Start.UtcDateTime);
+-        var next = store.For(cancelled.PractitionerId).FirstOrDefault(e => e.Accepts(day) && e.PatientId != cancelled.PatientId);
+-        if (next is null || cancelled.Time.Start <= time.GetUtcNow())
+-        {
+-            return null;
+-        }
+-
+-        var offer = new WaitlistOffer(next.Id, next.PatientId, cancelled.Time.Start, cancelled.Time.End, time.GetUtcNow() + OfferHold);
+-        store.Offer(offer);
+-        store.Remove(next.Id);
+-        return offer;
+-    }
+-}
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistEntry.cs b/src/ClinicScheduling.Waitlist/WaitlistEntry.cs
+deleted file mode 100644
+index 8324309..0000000
+--- a/src/ClinicScheduling.Waitlist/WaitlistEntry.cs
++++ /dev/null
+@@ -1,10 +0,0 @@
+-namespace ClinicScheduling.Waitlist;
+-
+-/// <summary>A patient waiting for an earlier appointment with a practitioner, on any day in [Earliest, Latest].</summary>
+-public sealed record WaitlistEntry(Guid Id, Guid PatientId, Guid PractitionerId, DateOnly Earliest, DateOnly Latest, DateTimeOffset JoinedAt)
+-{
+-    public bool Accepts(DateOnly day) => day >= Earliest && day <= Latest;
+-}
+-
+-/// <summary>A freed slot offered to a waiting patient, held for them until <see cref="ExpiresAt"/>.</summary>
+-public sealed record WaitlistOffer(Guid EntryId, Guid PatientId, DateTimeOffset SlotStart, DateTimeOffset SlotEnd, DateTimeOffset ExpiresAt);
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistServiceCollectionExtensions.cs b/src/ClinicScheduling.Waitlist/WaitlistServiceCollectionExtensions.cs
+deleted file mode 100644
+index 640e272..0000000
+--- a/src/ClinicScheduling.Waitlist/WaitlistServiceCollectionExtensions.cs
++++ /dev/null
+@@ -1,13 +0,0 @@
+-using Microsoft.Extensions.DependencyInjection;
+-
+-namespace ClinicScheduling.Waitlist;
+-
+-public static class WaitlistServiceCollectionExtensions
+-{
+-    public static IServiceCollection AddWaitlist(this IServiceCollection services)
+-    {
+-        services.AddSingleton<WaitlistStore>();
+-        services.AddSingleton<WaitlistBackfill>();
+-        return services;
+-    }
+-}
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistStore.cs b/src/ClinicScheduling.Waitlist/WaitlistStore.cs
+deleted file mode 100644
+index 512ef0d..0000000
+--- a/src/ClinicScheduling.Waitlist/WaitlistStore.cs
++++ /dev/null
+@@ -1,25 +0,0 @@
+-using System.Collections.Concurrent;
+-
+-namespace ClinicScheduling.Waitlist;
+-
+-/// <summary>Process-memory waitlist, in the order patients joined it.</summary>
+-public sealed class WaitlistStore
+-{
+-    private readonly ConcurrentDictionary<Guid, WaitlistEntry> _entries = new();
+-    private readonly ConcurrentQueue<WaitlistOffer> _offers = new();
+-
+-    public IReadOnlyList<WaitlistOffer> Offers => [.. _offers];
+-
+-    public void Join(WaitlistEntry entry)
+-    {
+-        ArgumentNullException.ThrowIfNull(entry);
+-        _entries[entry.Id] = entry;
+-    }
+-
+-    public IReadOnlyList<WaitlistEntry> For(Guid practitionerId) =>
+-        [.. _entries.Values.Where(e => e.PractitionerId == practitionerId).OrderBy(e => e.JoinedAt)];
+-
+-    public void Remove(Guid entryId) => _entries.TryRemove(entryId, out _);
+-
+-    public void Offer(WaitlistOffer offer) => _offers.Enqueue(offer);
+-}
+diff --git a/src/ClinicScheduling.Waitlist/packages.lock.json b/src/ClinicScheduling.Waitlist/packages.lock.json
+deleted file mode 100644
+index 4ef555c..0000000
+--- a/src/ClinicScheduling.Waitlist/packages.lock.json
++++ /dev/null
+@@ -1,96 +0,0 @@
+-{
+-  "version": 2,
+-  "dependencies": {
+-    "net10.0": {
+-      "Microsoft.Extensions.Configuration": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "e3IPP32CRNL031VZJAUTlCTG0YN7WFh4mN3fsSHTDQCJB+3+f0jGycv4fXk3rrftaY3B85XrQaj7sRthrOsavg==",
+-        "dependencies": {
+-          "Microsoft.Extensions.Configuration.Abstractions": "10.0.12",
+-          "Microsoft.Extensions.Primitives": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.Configuration.Abstractions": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "8xaGcvS/qZ1otoxPQCEJkNva389CVL/plNcvIETZhQTETYdRkYDPEYhUMoAGONo4FU45ufdfE0j29AfWVVj0wA==",
+-        "dependencies": {
+-          "Microsoft.Extensions.Primitives": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.Configuration.Binder": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "dAgIf1TOr8KLs+aBRIbXUZBjHoSH4rDG8+XkX/Q6AZwkQdMA0+yPDKTHsieeXdZDfpOpZVHzOnuAb5Z2nX3KsA==",
+-        "dependencies": {
+-          "Microsoft.Extensions.Configuration": "10.0.12",
+-          "Microsoft.Extensions.Configuration.Abstractions": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.DependencyInjection.Abstractions": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "9/qymSh7hVDMGTGwrLz8MRp5zRyXy9adGDOs4HwRdnLil3oZGYuWeZjbmHgCQ9BL1qBroVfgUK3U/nb61617Cw=="
+-      },
+-      "Microsoft.Extensions.Options": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "TDYD33TSRpXKZWlmTXNlj5kCihxatmv2Ec1u6C+bMYLphCS7PoSLE9Pjd/nunDoE7yETk+LLKjVJX78HYtWjpA==",
+-        "dependencies": {
+-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12",
+-          "Microsoft.Extensions.Primitives": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.Primitives": {
+-        "type": "Transitive",
+-        "resolved": "10.0.12",
+-        "contentHash": "dYfCLR52UA+3DL7C4I/pvSaRPkNqxrUAQmbFL2u0zvYKKzqgrFCJl08Df+F1aYc8leu9JvpC9bsURUdpExcBXQ=="
+-      },
+-      "clinicscheduling.application": {
+-        "type": "Project",
+-        "dependencies": {
+-          "ClinicScheduling.Domain": "[0.3.0, )",
+-          "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+-          "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )",
+-          "Microsoft.Extensions.Options.DataAnnotations": "[10.0.12, )"
+-        }
+-      },
+-      "clinicscheduling.domain": {
+-        "type": "Project"
+-      },
+-      "Microsoft.Extensions.Logging.Abstractions": {
+-        "type": "CentralTransitive",
+-        "requested": "[10.0.12, )",
+-        "resolved": "10.0.12",
+-        "contentHash": "+24lC4plfbEDNfLAdTV/SWKS7dW+16X4HdydO3R++134kSNTzcbYA4KpR1Hdh6uWisB8Za3AzwyOn+K+NxWIug==",
+-        "dependencies": {
+-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.Options.ConfigurationExtensions": {
+-        "type": "CentralTransitive",
+-        "requested": "[10.0.12, )",
+-        "resolved": "10.0.12",
+-        "contentHash": "rqpu4qj5WE9x1IHGXSIgHBKi7IUlQaHyp4aXCYIanG2OghlUMFZpZTgExaXwcvmLAJHsxKQWMPpc7D2WIbCVtA==",
+-        "dependencies": {
+-          "Microsoft.Extensions.Configuration.Abstractions": "10.0.12",
+-          "Microsoft.Extensions.Configuration.Binder": "10.0.12",
+-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12",
+-          "Microsoft.Extensions.Options": "10.0.12",
+-          "Microsoft.Extensions.Primitives": "10.0.12"
+-        }
+-      },
+-      "Microsoft.Extensions.Options.DataAnnotations": {
+-        "type": "CentralTransitive",
+-        "requested": "[10.0.12, )",
+-        "resolved": "10.0.12",
+-        "contentHash": "rPqU/cnDMmL4Gx7sglNnYwh/upWxSLTwVe0ysT88WH9HEE3OfZgaT7TyM86C4GeXwDsDQaj95fUGL5jEB3vxng==",
+-        "dependencies": {
+-          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.12",
+-          "Microsoft.Extensions.Options": "10.0.12"
+-        }
+-      }
+-    }
+-  }
+-}
+\ No newline at end of file
+diff --git a/tests/ClinicScheduling.IntegrationTests/packages.lock.json b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+index 21ba23d..e6895d8 100644
+--- a/tests/ClinicScheduling.IntegrationTests/packages.lock.json
++++ b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+@@ -468,7 +468,6 @@
+         "dependencies": {
+           "ClinicScheduling.Application": "[0.3.0, )",
+           "ClinicScheduling.Infrastructure": "[0.3.0, )",
+-          "ClinicScheduling.Waitlist": "[0.3.0, )",
+           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.12, )"
+         }
+       },
+@@ -493,12 +492,6 @@
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )"
+         }
+       },
+-      "clinicscheduling.waitlist": {
+-        "type": "Project",
+-        "dependencies": {
+-          "ClinicScheduling.Application": "[0.3.0, )"
+-        }
+-      },
+       "Microsoft.AspNetCore.Authentication.JwtBearer": {
+         "type": "CentralTransitive",
+         "requested": "[10.0.12, )",
+diff --git a/tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj b/tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj
+index 14320dd..beeafe7 100644
+--- a/tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj
++++ b/tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj
+@@ -10,7 +10,6 @@
+     <ProjectReference Include="..\..\src\ClinicScheduling.Domain\ClinicScheduling.Domain.csproj" />
+     <ProjectReference Include="..\..\src\ClinicScheduling.Application\ClinicScheduling.Application.csproj" />
+     <ProjectReference Include="..\..\src\ClinicScheduling.Infrastructure\ClinicScheduling.Infrastructure.csproj" />
+-    <ProjectReference Include="..\..\src\ClinicScheduling.Waitlist\ClinicScheduling.Waitlist.csproj" />
+   </ItemGroup>
+ 
+   <ItemGroup>
+diff --git a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+deleted file mode 100644
+index f8c0da7..0000000
+--- a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
++++ /dev/null
+@@ -1,49 +0,0 @@
+-using ClinicScheduling.Domain.Appointments;
+-using ClinicScheduling.Domain.Availability;
+-using ClinicScheduling.Waitlist;
+-using Microsoft.Extensions.Time.Testing;
+-using static ClinicScheduling.UnitTests.TestData;
+-
+-namespace ClinicScheduling.UnitTests.Waitlist;
+-
+-public sealed class WaitlistBackfillTests
+-{
+-    private readonly WaitlistStore _store = new();
+-
+-    private static Appointment Cancelled(int day)
+-    {
+-        var appointment = Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(day), 9), At(Monday.AddDays(day), 10)), false);
+-        appointment.Cancel(CancellationReason.PatientRequest, Now);
+-        return appointment;
+-    }
+-
+-    private WaitlistEntry Join(int earliest, int latest, int minutesAgo)
+-    {
+-        var entry = new WaitlistEntry(Guid.NewGuid(), Guid.NewGuid(), PractitionerId, Monday.AddDays(earliest), Monday.AddDays(latest), Now.AddMinutes(-minutesAgo));
+-        _store.Join(entry);
+-        return entry;
+-    }
+-
+-    [Fact]
+-    public void OffersTheSlotToTheFirstMatchingPatient()
+-    {
+-        Join(5, 9, minutesAgo: 30);
+-        var first = Join(1, 4, minutesAgo: 20);
+-        Join(1, 4, minutesAgo: 10);
+-
+-        var offer = new WaitlistBackfill(_store, new FakeTimeProvider(Now)).OfferFreedSlot(Cancelled(2));
+-
+-        Assert.NotNull(offer);
+-        Assert.Equal(first.PatientId, offer.PatientId);
+-        Assert.Equal(Now + WaitlistBackfill.OfferHold, offer.ExpiresAt);
+-        Assert.DoesNotContain(_store.For(PractitionerId), e => e.Id == first.Id);
+-    }
+-
+-    [Fact]
+-    public void OffersNothingWhenNobodyFits()
+-    {
+-        Join(5, 9, minutesAgo: 30);
+-
+-        Assert.Null(new WaitlistBackfill(_store, new FakeTimeProvider(Now)).OfferFreedSlot(Cancelled(2)));
+-    }
+-}
+diff --git a/tests/ClinicScheduling.UnitTests/packages.lock.json b/tests/ClinicScheduling.UnitTests/packages.lock.json
+index 358e1ec..8e01f9b 100644
+--- a/tests/ClinicScheduling.UnitTests/packages.lock.json
++++ b/tests/ClinicScheduling.UnitTests/packages.lock.json
+@@ -211,12 +211,6 @@
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )"
+         }
+       },
+-      "clinicscheduling.waitlist": {
+-        "type": "Project",
+-        "dependencies": {
+-          "ClinicScheduling.Application": "[0.3.0, )"
+-        }
+-      },
+       "Microsoft.Extensions.Hosting.Abstractions": {
+         "type": "CentralTransitive",
+         "requested": "[10.0.12, )",

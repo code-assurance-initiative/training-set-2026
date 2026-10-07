@@ -1,0 +1,98 @@
+.loans-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.loans-toolbar__filter {
+  flex: 1;
+  min-width: 14rem;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #6b7280;
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.loans-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.loans-table caption {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.loans-table th,
+.loans-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table-sort {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.due-badge {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+.due-badge--overdue {
+  color: #7f1d1d;
+  background-color: #fee2e2;
+}
+
+.due-badge--due-soon {
+  color: #713f12;
+  background-color: #fef3c7;
+}
+
+.due-badge--on-loan {
+  color: #14532d;
+  background-color: #dcfce7;
+}
+
+.loan-row__note {
+  color: #52606d;
+}
+
+.renewal-results {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.fines__list {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.fines__entry {
+  display: flex;
+  justify-content: space-between;
+  max-width: 28rem;
+}
+
+.fines__entry dd {
+  margin: 0;
+}
+
+.fines__entry--total {
+  font-weight: 700;
+}

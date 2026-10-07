@@ -1,0 +1,19 @@
+From 44ca0ceff26f858e86c2f6809f30c709bdc47587 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Wed, 11 Feb 2026 09:20:31 +0100
+Subject: chore: ignore test results and build artifacts
+
+---
+ .gitignore | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.gitignore b/.gitignore
+index 4af7187..862827c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -3,3 +3,5 @@ obj/
+ .vs/
+ .idea/
+ *.user
++TestResults/
++artifacts/

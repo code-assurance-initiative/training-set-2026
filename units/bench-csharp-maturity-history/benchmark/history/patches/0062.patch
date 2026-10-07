@@ -1,0 +1,27 @@
+From 11d429c4a36be8a00c68327c667d349d258e63d1 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Wed, 15 Apr 2026 10:30:20 +0200
+Subject: chore(deps): group Microsoft and xunit updates
+
+---
+ .github/dependabot.yml | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+index d88aaaf..cb05dc6 100644
+--- a/.github/dependabot.yml
++++ b/.github/dependabot.yml
+@@ -4,6 +4,13 @@ updates:
+     directory: /
+     schedule:
+       interval: weekly
++    groups:
++      microsoft-extensions:
++        patterns:
++          - "Microsoft.*"
++      xunit:
++        patterns:
++          - "xunit*"
+ 
+   - package-ecosystem: github-actions
+     directory: /

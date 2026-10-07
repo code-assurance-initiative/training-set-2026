@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Depot.Slots.Api/Depot.Slots.Api.csproj" />
+    <Project Path="src/Depot.Slots.Core/Depot.Slots.Core.csproj" />
+    <Project Path="src/Depot.Slots.Infrastructure/Depot.Slots.Infrastructure.csproj" />
+    <Project Path="src/Depot.Slots.Reminders/Depot.Slots.Reminders.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Depot.Slots.IntegrationTests/Depot.Slots.IntegrationTests.csproj" />
+    <Project Path="tests/Depot.Slots.UnitTests/Depot.Slots.UnitTests.csproj" />
+  </Folder>
+</Solution>

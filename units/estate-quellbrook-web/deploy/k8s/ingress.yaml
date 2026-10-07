@@ -1,0 +1,28 @@
+# The console on its host. TLS terminates at the ingress controller; the authentication proxy signs operators in before
+# the console loads (the gateway's ingress puts /api behind the same proxy).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: quellbrook-web
+  namespace: quellbrook-edge
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/auth-url: http://oauth2-proxy.auth.svc.cluster.local/oauth2/auth
+    nginx.ingress.kubernetes.io/auth-signin: https://ops.quellbrook.example/oauth2/start?rd=$escaped_request_uri
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [ops.quellbrook.example]
+      secretName: ops-quellbrook-tls
+  rules:
+    - host: ops.quellbrook.example
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quellbrook-web
+                port:
+                  name: http

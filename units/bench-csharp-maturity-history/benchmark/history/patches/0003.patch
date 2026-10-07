@@ -1,0 +1,52 @@
+From d4172317d7be005cd9ac043e9a576ec2391ebc6a Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 5 Jan 2026 15:05:47 +0100
+Subject: ci: build and test on every push and pull request
+
+---
+ .github/workflows/ci.yml | 36 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+ create mode 100644 .github/workflows/ci.yml
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+new file mode 100644
+index 0000000..5ac22a2
+--- /dev/null
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,36 @@
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++permissions:
++  contents: read
++
++jobs:
++  build-and-test:
++    runs-on: ubuntu-latest
++    timeout-minutes: 15
++    env:
++      DOTNET_NOLOGO: true
++      DOTNET_CLI_TELEMETRY_OPTOUT: true
++      ContinuousIntegrationBuild: true
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          persist-credentials: false
++
++      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
++        with:
++          global-json-file: global.json
++
++      - name: Restore (locked)
++        run: dotnet restore ClinicScheduling.slnx --locked-mode
++
++      - name: Build
++        run: dotnet build ClinicScheduling.slnx -c Release --no-restore
++
++      - name: Test
++        run: dotnet test ClinicScheduling.slnx -c Release --no-build

@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@parcel-tracking/webhooks": ["./packages/webhooks/src/index.ts"]
+    }
+  },
+  "include": [
+    "apps/*/src",
+    "apps/*/tests",
+    "apps/*/features",
+    "packages/*/src",
+    "packages/*/tests",
+    "vitest.config.ts"
+  ]
+}

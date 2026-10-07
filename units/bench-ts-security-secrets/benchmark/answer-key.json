@@ -1,0 +1,1184 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-ts-security-secrets",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "typescript"
+  ],
+  "theme": "Hardcoded secrets and their look-alikes in a small Node.js + TypeScript media upload and notification service",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "SEC-001",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/storage/objectStore.ts",
+      "lines": [
+        16,
+        17
+      ],
+      "rationale": "A live-format S3-compatible access key pair (key id + 40-char secret access key) as the `??` fallbacks of the object-store configuration; every environment that does not set the variables uploads with it. One credential pair, one entry: the key id alone is an identifier, the pair is the secret."
+    },
+    {
+      "id": "SEC-002",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "scripts/release.mjs",
+      "lines": [
+        8,
+        8
+      ],
+      "rationale": "A GitHub personal access token (ghp_ format with a valid checksum) written into the release script that creates GitHub releases; anyone who can read the repository can act as the token's owner."
+    },
+    {
+      "id": "SEC-003",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/auth/downloadTokens.ts",
+      "lines": [
+        7,
+        7
+      ],
+      "rationale": "The HS256 secret that signs media download tokens is a string literal (the fallback whenever JWT_SIGNING_SECRET is unset) in the module that issues and verifies them: whoever reads the source can mint a valid download token for any media object."
+    },
+    {
+      "id": "SEC-004",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/db/pool.ts",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "A `postgres://user:password@host` connection URI with the application role's 24-character alphanumeric password, used as the fallback whenever DATABASE_URL is unset. Alphanumeric on purpose: no punctuation makes it 'look' secret."
+    },
+    {
+      "id": "SEC-005",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": ".env",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "A committed `.env` (it is not ignored) whose `mongodb+srv://` audit URI carries the audit writer's punctuated password for the hosted cluster. dotenv loads this file in every environment that has no real environment variable set."
+    },
+    {
+      "id": "SEC-006",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": ".env.production",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The production download-token signing secret in a committed dotenv file that the production host passes to the container (`--env-file .env.production`)."
+    },
+    {
+      "id": "SEC-007",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": ".npmrc",
+      "lines": [
+        2,
+        2
+      ],
+      "rationale": "A GitHub personal access token as the `_authToken` of the organisation's package registry in the committed project `.npmrc`; every clone can read and publish the organisation's private packages."
+    },
+    {
+      "id": "SEC-008",
+      "label": "must-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "keys/webhook-signing.pem",
+      "lines": [
+        1,
+        3
+      ],
+      "rationale": "A PEM-encoded Ed25519 private key (with its body) that signs outbound webhook deliveries; anyone holding it can forge a webhook that subscribers will accept."
+    },
+    {
+      "id": "SEC-009",
+      "label": "must-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "config/firebase-service-account.json",
+      "lines": [
+        5,
+        5
+      ],
+      "rationale": "A Google Cloud service-account key file: its `private_key` is a PEM RSA private key that authenticates as the push-notification service account (contested concept - see benchmark/README.md)."
+    },
+    {
+      "id": "SEC-010",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/billing/usageReporter.ts",
+      "lines": [
+        5,
+        5
+      ],
+      "rationale": "A live-mode Stripe restricted key (`rk_live_`) as a module constant used to report metered storage usage; it authenticates to the billing account."
+    },
+    {
+      "id": "SEC-011",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/notify/slack.ts",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "A Slack incoming-webhook URL; the path segments ARE the credential (anyone holding the URL can post into the operations channel)."
+    },
+    {
+      "id": "SEC-012",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/notify/email.ts",
+      "lines": [
+        5,
+        5
+      ],
+      "rationale": "A SendGrid API key (`SG.<id>.<secret>`) as a module constant used to send transactional e-mail; it authenticates to the e-mail provider account."
+    },
+    {
+      "id": "SEC-013",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/transcode/transcoderClient.ts",
+      "lines": [
+        10,
+        10
+      ],
+      "rationale": "`Authorization: Bearer <token>` as an axios default header: the transcoding vendor's API token is a literal sent on every request."
+    },
+    {
+      "id": "SEC-014",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "requests/transcoder.http",
+      "lines": [
+        6,
+        16
+      ],
+      "rationale": "A committed REST-client request file with `Authorization: Bearer <token>` for the transcoding vendor's production API - a developer's personal token saved with the requests (the same token on both requests of the file, lines 6 and 16: one plant)."
+    },
+    {
+      "id": "SEC-015",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/media/thumbnailer.ts",
+      "lines": [
+        15,
+        16
+      ],
+      "rationale": "An object-storage access key pair pasted into a `//` comment (a note for reproducing against the live bucket). A comment is committed text: the pair is as readable as code. One pair, one entry."
+    },
+    {
+      "id": "SEC-016",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "web/vite.config.ts",
+      "lines": [
+        13,
+        13
+      ],
+      "rationale": "The HMAC secret that signs browser upload requests is injected into the client bundle with Vite `define`: it ships to every browser that loads the upload page, so anyone can sign uploads."
+    },
+    {
+      "id": "SEC-017",
+      "label": "must-fire",
+      "concept": "secret-in-version-history",
+      "cwe": "CWE-540",
+      "file": "src/config.ts",
+      "lines": [
+        27,
+        27
+      ],
+      "rationale": "A Slack bot token (xoxb-) was committed as the fallback of `slackBotToken` and removed in the next commit (the token moved to the SLACK_BOT_TOKEN environment variable). The working tree is clean; the token is still readable in history and was never rotated. Lines refer to the file as it was in the commit that added it. Added in commit 0d4ff97339736d3053447405f57049a915321c76, removed in commit dcfb3f3616a74db010c6fe98a5c339412b7fd956.",
+      "commit": "0d4ff97"
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/config.ts",
+      "lines": [
+        25,
+        27
+      ],
+      "rationale": "`env.X` lookups (`STRIPE_RESTRICTED_KEY`, `SENDGRID_API_KEY`, `SLACK_BOT_TOKEN`): credential-named properties whose values are read from the environment at run time; no secret is committed."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": ".env.example",
+      "lines": [
+        6,
+        7
+      ],
+      "rationale": "Explicit placeholders in the dotenv template (`YOUR_SENDGRID_KEY`, a Slack webhook URL made of `<team>/<channel>/<token>`)."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": ".env.example",
+      "lines": [
+        3,
+        4
+      ],
+      "rationale": "The dotenv template developers copy to `.env.local`: a format-realistic random object-store key pair showing the expected shape. A template, not configuration any process reads (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "docker-compose.yml",
+      "lines": [
+        10,
+        13
+      ],
+      "rationale": "`${OBJECTSTORE_ACCESS_KEY_ID}`, `${STRIPE_RESTRICTED_KEY}`, `${UPLOAD_SIGNING_SECRET}`: Compose interpolates the values from the developer's untracked environment at run time; the committed text holds only variable names."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "docker-compose.yml",
+      "lines": [
+        25,
+        25
+      ],
+      "rationale": "`POSTGRES_PASSWORD: postgres` - the password of a throwaway local Postgres container published on 127.0.0.1 only, holding only migration seed data. It guards nothing outside the developer's machine (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "tests/fixtures/storage.json",
+      "lines": [
+        4,
+        5
+      ],
+      "rationale": "Integration-test fixture configuration with a random access key pair; the tests replace the object store with an in-memory fake, so the pair is never sent anywhere."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/notify/__fixtures__/slackPayloads.ts",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "A random Slack-webhook-shaped URL in a `__fixtures__` module that only the unit tests import (fetch is stubbed); it posts nowhere."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "package-lock.json",
+      "rationale": "npm lock file: every `integrity` is a base64 SHA-512 of a public package tarball. High-entropy, not a secret. Whole file."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "web/index.html",
+      "lines": [
+        8,
+        8
+      ],
+      "rationale": "A Subresource Integrity `integrity=\"sha384-...\"` attribute: the published hash of a public CDN file, a security control, not a secret."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "config/secret-refs.json",
+      "lines": [
+        2,
+        5
+      ],
+      "rationale": "UUIDs under secret-ish names (`stripeKeySecretId`, `webhookSigningKeyId`, ...): ids of entries in the secret manager the deployment reads from. Identifiers of secrets, not secrets."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "keys/webhook-signing.pub.pem",
+      "lines": [
+        1,
+        3
+      ],
+      "rationale": "The PUBLIC half of the webhook signing key, published so subscribers can verify deliveries."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/storage/s3Client.ts",
+      "lines": [
+        7,
+        7
+      ],
+      "rationale": "The vendor-documented example access key pair (`AKIAIOSFODNN7EXAMPLE` / `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`) quoted in a TSDoc comment to describe the expected shape; it belongs to no account."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "web/src/checkout.ts",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "A Stripe PUBLISHABLE key (`pk_test_`) passed to `loadStripe`. Publishable keys are designed to be embedded in browser code; it can only tokenize card details and create test-mode objects the server must confirm (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "web/src/firebase.ts",
+      "lines": [
+        5,
+        12
+      ],
+      "rationale": "The Firebase web-app config (`apiKey` `AIza...`, sender and app ids) and the VAPID PUBLIC key for web push: public identifiers that every browser receives; access is governed by security rules and App Check, not by their secrecy (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-015",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "README.md",
+      "lines": [
+        57,
+        61
+      ],
+      "rationale": "README examples: an expired, single-object download token shown as the response shape, and `Authorization: Bearer <token>` / `_authToken=${NPM_TOKEN}` placeholders. Nothing that grants access today (contested for the expired token - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-016",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "Dockerfile",
+      "lines": [
+        1,
+        9
+      ],
+      "rationale": "Base images (both stages) pinned by their published sha256 manifest digests (64 hex chars) - good supply-chain practice, public values."
+    },
+    {
+      "id": "TRP-017",
+      "label": "must-not-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/auth/uploadSignature.ts",
+      "lines": [
+        10,
+        10
+      ],
+      "rationale": "`createHmac(\"sha256\", secret)` where `secret` comes from configuration (`UPLOAD_SIGNING_SECRET`): the key is not a literal. (That the same secret is baked into the browser bundle is the separate plant SEC-016.)"
+    },
+    {
+      "id": "TRP-018",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/config.ts",
+      "lines": [
+        22,
+        23
+      ],
+      "rationale": "`databaseUrl: env.DATABASE_URL`, `auditMongoUri: env.AUDIT_MONGO_URI`: the connection strings, passwords included, are read from the environment at run time."
+    },
+    {
+      "id": "TRP-019",
+      "label": "must-not-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "tests/fixtures/webhook-test-key.pem",
+      "lines": [
+        1,
+        3
+      ],
+      "rationale": "An Ed25519 private key generated for the webhook-signer unit tests and trusted by nothing but those tests (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-020",
+      "label": "must-not-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": ".env.example",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "`UPLOAD_SIGNING_SECRET=<generate: openssl rand -hex 32>` - a placeholder in the dotenv template."
+    },
+    {
+      "id": "TRP-021",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": ".env.example",
+      "lines": [
+        10,
+        11
+      ],
+      "rationale": "`mongodb+srv://<user>:<password>@<cluster>/audit` - a placeholder URI - and `postgres://media:postgres@127.0.0.1:5432/media`, the throwaway local Compose database (same truth as TRP-005), in the dotenv template."
+    },
+    {
+      "id": "TRP-022",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "tests/notify/email.test.ts",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "A random SendGrid-format key used only to assert that the e-mail client sends it in the Authorization header; fetch is stubbed, so it never leaves the process."
+    },
+    {
+      "id": "TRP-023",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "docker-compose.yml",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "`DATABASE_URL: postgres://media:postgres@db:5432/media` - the API container's connection string to the same throwaway local container as TRP-005. Same truth."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/app.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/server.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/nightly.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/jobs/nightly.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/audit/auditLog.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/billing/planUpgrades.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/db/mediaRepository.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/media/uploadRoutes.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/media/uploadService.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/notify/push.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/notify/slackDigest.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/notify/uploadEvents.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/webhooks/signer.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "web/src/main.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "web/src/env.d.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "web/tsconfig.json",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/auth/downloadTokens.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/auth/uploadSignature.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/billing/planUpgrades.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/billing/usageReporter.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/config.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/jobs/nightly.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/media/uploadRoutes.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/notify/slack.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/notify/slackDigest.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/notify/uploadEvents.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/storage/objectStoreConfig.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/support/inMemoryMediaRepository.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/support/inMemoryObjectStore.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/support/silentLogger.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/webhooks/signer.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "package.json",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tsconfig.json",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tsconfig.build.json",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "vitest.config.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".gitignore",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".editorconfig",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".nvmrc",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "db/migrations/001_media.sql",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "db/migrations/002_owners.sql",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "docs/adr/0001-signed-browser-uploads.md",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "docs/adr/0002-signed-webhooks.md",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "eslint.config.js",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/db/mediaRepository.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/db/pool.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/transcode/transcoderClient.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/media/thumbnailer.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/notify/push.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/storage/s3Client.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/support/requestBody.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/storage/s3ObjectStore.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/audit/mongoAuditLog.test.ts",
+      "rationale": "No committed credential, password, cryptographic key or private key; secrets this file needs come from configuration."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy",
+      "band": [
+        0,
+        10
+      ],
+      "rationale": "Deliberate presence/absence variant: unlike bench-ts-baseline-clean this repository has no SECURITY.md and no security.txt, so a disclosure-policy posture score must be at the bottom (a scanner that reports the property as not applicable rather than scoring it supplies no score)."
+    }
+  ]
+}

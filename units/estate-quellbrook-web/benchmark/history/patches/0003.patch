@@ -1,0 +1,468 @@
+From dade662580b56e9a15238d5e3c40735fd2cb109b Mon Sep 17 00:00:00 2001
+From: Ines Halvard <ines.halvard@example.invalid>
+Date: Wed, 29 Jul 2026 11:51:06 +0200
+Subject: feat: layout with skip link and main navigation, path routing
+
+---
+ public/icons/divider.svg        |   1 +
+ public/icons/logo.svg           |   1 +
+ public/icons/rigid.svg          |   1 +
+ public/icons/van.svg            |   1 +
+ src/App.tsx                     |  19 +++++
+ src/components/AppLink.tsx      |  26 ++++++
+ src/components/ErrorMessage.tsx |  15 ++++
+ src/components/Layout.tsx       |  32 ++++++++
+ src/components/StatusBadge.tsx  |  14 ++++
+ src/main.tsx                    |  13 +++
+ src/routing.ts                  |  40 +++++++++
+ src/styles/app.css              | 138 ++++++++++++++++++++++++++++++++
+ tests/shell.test.tsx            |  55 +++++++++++++
+ 13 files changed, 356 insertions(+)
+ create mode 100644 public/icons/divider.svg
+ create mode 100644 public/icons/logo.svg
+ create mode 100644 public/icons/rigid.svg
+ create mode 100644 public/icons/van.svg
+ create mode 100644 src/App.tsx
+ create mode 100644 src/components/AppLink.tsx
+ create mode 100644 src/components/ErrorMessage.tsx
+ create mode 100644 src/components/Layout.tsx
+ create mode 100644 src/components/StatusBadge.tsx
+ create mode 100644 src/main.tsx
+ create mode 100644 src/routing.ts
+ create mode 100644 src/styles/app.css
+ create mode 100644 tests/shell.test.tsx
+
+diff --git a/public/icons/divider.svg b/public/icons/divider.svg
+new file mode 100644
+index 0000000..95667e3
+--- /dev/null
++++ b/public/icons/divider.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 4"><rect width="200" height="4" fill="#d9e7ee"/></svg>
+diff --git a/public/icons/logo.svg b/public/icons/logo.svg
+new file mode 100644
+index 0000000..8cda940
+--- /dev/null
++++ b/public/icons/logo.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#0b4f6c"/><path d="M8 20l8-10 8 10h-5v5h-6v-5z" fill="#fff"/></svg>
+diff --git a/public/icons/rigid.svg b/public/icons/rigid.svg
+new file mode 100644
+index 0000000..35b83e3
+--- /dev/null
++++ b/public/icons/rigid.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 28"><rect x="2" y="2" width="38" height="18" fill="#7a3b0c"/><path d="M40 8h8l6 6v6H40z" fill="#7a3b0c"/><circle cx="12" cy="23" r="3"/><circle cx="22" cy="23" r="3"/><circle cx="46" cy="23" r="3"/></svg>
+diff --git a/public/icons/van.svg b/public/icons/van.svg
+new file mode 100644
+index 0000000..31b791e
+--- /dev/null
++++ b/public/icons/van.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 24"><rect x="2" y="4" width="30" height="14" rx="2" fill="#0b4f6c"/><path d="M32 8h8l6 6v4H32z" fill="#0b4f6c"/><circle cx="12" cy="20" r="3"/><circle cx="38" cy="20" r="3"/></svg>
+diff --git a/src/App.tsx b/src/App.tsx
+new file mode 100644
+index 0000000..052c72b
+--- /dev/null
++++ b/src/App.tsx
+@@ -0,0 +1,19 @@
++import { Layout } from './components/Layout';
++import { OrderDetailPage } from './features/orders/OrderDetailPage';
++import { OrdersPage } from './features/orders/OrdersPage';
++import { useRoute } from './routing';
++
++export function App() {
++  const route = useRoute();
++  return (
++    <Layout route={route}>
++      {route.name === 'orders' && <OrdersPage />}
++      {route.name === 'order' && <OrderDetailPage orderId={route.orderId} />}
++      {(route.name === 'not-found' || route.name === 'dispatch') && (
++        <section>
++          <h1>Page not found</h1>
++        </section>
++      )}
++    </Layout>
++  );
++}
+diff --git a/src/components/AppLink.tsx b/src/components/AppLink.tsx
+new file mode 100644
+index 0000000..2bacf70
+--- /dev/null
++++ b/src/components/AppLink.tsx
+@@ -0,0 +1,26 @@
++import type { MouseEvent, ReactNode } from 'react';
++import { navigate } from '../routing';
++
++/** An ordinary link that navigates inside the console without a page load. */
++export function AppLink({
++  to,
++  children,
++  current,
++}: {
++  to: string;
++  children: ReactNode;
++  current?: boolean;
++}) {
++  const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
++    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) {
++      return;
++    }
++    event.preventDefault();
++    navigate(to);
++  };
++  return (
++    <a href={to} onClick={onClick} aria-current={current ? 'page' : undefined}>
++      {children}
++    </a>
++  );
++}
+diff --git a/src/components/ErrorMessage.tsx b/src/components/ErrorMessage.tsx
+new file mode 100644
+index 0000000..b628541
+--- /dev/null
++++ b/src/components/ErrorMessage.tsx
+@@ -0,0 +1,15 @@
++import { ApiError } from '../api/http';
++
++export function ErrorMessage({ error }: { error: unknown }) {
++  const text =
++    error instanceof ApiError
++      ? error.status === 401
++        ? 'Your session has ended. Reload the page to sign in again.'
++        : error.detail || error.title
++      : 'Something went wrong. Try again in a moment.';
++  return (
++    <p className="error" role="alert">
++      {text}
++    </p>
++  );
++}
+diff --git a/src/components/Layout.tsx b/src/components/Layout.tsx
+new file mode 100644
+index 0000000..54132bc
+--- /dev/null
++++ b/src/components/Layout.tsx
+@@ -0,0 +1,32 @@
++import type { ReactNode } from 'react';
++import type { Route } from '../routing';
++import { AppLink } from './AppLink';
++
++export function Layout({ route, children }: { route: Route; children: ReactNode }) {
++  return (
++    <>
++      <a className="skip-link" href="#main">
++        Skip to content
++      </a>
++      <header className="site-header">
++        <div className="brand">
++          <img src="/icons/logo.svg" alt="Quellbrook Freight" width="32" height="32" />
++          <span className="brand-name">Operations</span>
++        </div>
++        <nav aria-label="Main">
++          <ul>
++            <li>
++              <AppLink to="/orders" current={route.name === 'orders' || route.name === 'order'}>
++                Orders
++              </AppLink>
++            </li>
++          </ul>
++        </nav>
++      </header>
++      <img className="divider" src="/icons/divider.svg" alt="" aria-hidden="true" />
++      <main id="main" tabIndex={-1}>
++        {children}
++      </main>
++    </>
++  );
++}
+diff --git a/src/components/StatusBadge.tsx b/src/components/StatusBadge.tsx
+new file mode 100644
+index 0000000..5ae2009
+--- /dev/null
++++ b/src/components/StatusBadge.tsx
+@@ -0,0 +1,14 @@
++const labels: Record<string, string> = {
++  placed: 'Placed',
++  cancelled: 'Cancelled',
++  AwaitingRoute: 'Waiting for a route',
++  Assigned: 'On a route',
++  OutForDelivery: 'Out for delivery',
++  Delivered: 'Delivered',
++  Cancelled: 'Cancelled',
++};
++
++/** A status in words; the colour only repeats what the text says. */
++export function StatusBadge({ status }: { status: string }) {
++  return <span className={`badge badge-${status.toLowerCase()}`}>{labels[status] ?? status}</span>;
++}
+diff --git a/src/main.tsx b/src/main.tsx
+new file mode 100644
+index 0000000..cbf28eb
+--- /dev/null
++++ b/src/main.tsx
+@@ -0,0 +1,13 @@
++import { StrictMode } from 'react';
++import { createRoot } from 'react-dom/client';
++import { App } from './App';
++import './styles/app.css';
++
++const root = document.getElementById('root');
++if (root) {
++  createRoot(root).render(
++    <StrictMode>
++      <App />
++    </StrictMode>,
++  );
++}
+diff --git a/src/routing.ts b/src/routing.ts
+new file mode 100644
+index 0000000..5fc2087
+--- /dev/null
++++ b/src/routing.ts
+@@ -0,0 +1,40 @@
++import { useEffect, useState } from 'react';
++
++export type Route =
++  | { readonly name: 'orders' }
++  | { readonly name: 'order'; readonly orderId: string }
++  | { readonly name: 'dispatch' }
++  | { readonly name: 'not-found' };
++
++export function parseRoute(pathname: string): Route {
++  if (pathname === '/' || pathname === '/orders') {
++    return { name: 'orders' };
++  }
++  const order = /^\/orders\/([0-9a-f-]{36})$/.exec(pathname);
++  if (order?.[1]) {
++    return { name: 'order', orderId: order[1] };
++  }
++  if (pathname === '/dispatch') {
++    return { name: 'dispatch' };
++  }
++  return { name: 'not-found' };
++}
++
++export function navigate(path: string): void {
++  window.history.pushState(null, '', path);
++  window.dispatchEvent(new PopStateEvent('popstate'));
++}
++
++export function useRoute(): Route {
++  const [route, setRoute] = useState(() => parseRoute(window.location.pathname));
++  useEffect(() => {
++    const update = () => {
++      setRoute(parseRoute(window.location.pathname));
++    };
++    window.addEventListener('popstate', update);
++    return () => {
++      window.removeEventListener('popstate', update);
++    };
++  }, []);
++  return route;
++}
+diff --git a/src/styles/app.css b/src/styles/app.css
+new file mode 100644
+index 0000000..c87c923
+--- /dev/null
++++ b/src/styles/app.css
+@@ -0,0 +1,138 @@
++:root {
++  --ink: #1b2a33;
++  --muted: #4a5a63;
++  --brand: #0b4f6c;
++  --surface: #ffffff;
++  --surface-alt: #f2f6f8;
++  --line: #c9d6dd;
++  --danger: #a3261b;
++  font-family: system-ui, sans-serif;
++  color: var(--ink);
++  background: var(--surface);
++  line-height: 1.5;
++}
++
++body {
++  margin: 0;
++}
++
++.skip-link {
++  position: absolute;
++  left: -999px;
++}
++
++.skip-link:focus {
++  left: 1rem;
++  top: 1rem;
++  background: var(--surface);
++  padding: 0.5rem;
++}
++
++.site-header {
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  padding: 0.75rem 1.5rem;
++}
++
++.brand {
++  display: flex;
++  align-items: center;
++  gap: 0.5rem;
++  font-weight: 600;
++}
++
++.site-header ul {
++  display: flex;
++  gap: 1.5rem;
++  list-style: none;
++  margin: 0;
++  padding: 0;
++}
++
++.site-header a {
++  color: var(--brand);
++}
++
++.site-header a[aria-current='page'] {
++  font-weight: 700;
++}
++
++.divider {
++  display: block;
++  width: 100%;
++  height: 4px;
++}
++
++main {
++  padding: 1.5rem;
++}
++
++.visually-hidden {
++  position: absolute;
++  width: 1px;
++  height: 1px;
++  overflow: hidden;
++  clip-path: inset(50%);
++  white-space: nowrap;
++}
++
++table.orders {
++  border-collapse: collapse;
++  width: 100%;
++}
++
++table.orders th,
++table.orders td {
++  border-bottom: 1px solid var(--line);
++  padding: 0.5rem;
++  text-align: left;
++}
++
++tr.clickable {
++  cursor: pointer;
++}
++
++tr.clickable:hover {
++  background: var(--surface-alt);
++}
++
++.badge {
++  border-radius: 0.25rem;
++  padding: 0.1rem 0.4rem;
++  background: var(--surface-alt);
++  color: var(--ink);
++}
++
++.badge-cancelled {
++  color: var(--danger);
++}
++
++.paging {
++  display: flex;
++  gap: 1rem;
++  align-items: center;
++  margin-top: 1rem;
++}
++
++.facts {
++  display: grid;
++  grid-template-columns: max-content 1fr;
++  gap: 0.25rem 1rem;
++}
++
++.facts dt {
++  color: var(--muted);
++}
++
++.error {
++  color: var(--danger);
++}
++
++button:focus-visible,
++a:focus-visible,
++input:focus-visible,
++select:focus-visible {
++  outline: 3px solid var(--brand);
++  outline-offset: 2px;
++}
+diff --git a/tests/shell.test.tsx b/tests/shell.test.tsx
+new file mode 100644
+index 0000000..969b179
+--- /dev/null
++++ b/tests/shell.test.tsx
+@@ -0,0 +1,55 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { App } from '../src/App';
++import { ErrorMessage } from '../src/components/ErrorMessage';
++import { parseRoute } from '../src/routing';
++import { fakeApi, json } from './support/fakeApi';
++
++describe('console shell', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals();
++  });
++
++  it.each([
++    ['/', { name: 'orders' }],
++    ['/orders', { name: 'orders' }],
++    [
++      '/orders/0198f1a2-0000-7000-8000-000000000001',
++      { name: 'order', orderId: '0198f1a2-0000-7000-8000-000000000001' },
++    ],
++    ['/dispatch', { name: 'dispatch' }],
++    ['/orders/123', { name: 'not-found' }],
++  ])('routes %s', (path, route) => {
++    expect(parseRoute(path)).toEqual(route);
++  });
++
++  it('has a skip link, a labelled navigation and an unknown-page message', () => {
++    fakeApi({});
++    window.history.replaceState(null, '', '/nowhere');
++    render(<App />);
++
++    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main');
++    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument();
++    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument();
++    expect(screen.getByRole('img', { name: 'Quellbrook Freight' })).toBeInTheDocument();
++  });
++
++  it('navigates without a page load from the main navigation', async () => {
++    fakeApi({
++      '/api/orders': () => json(200, { items: [], page: 1, pageSize: 25, totalCount: 0 }),
++    });
++    window.history.replaceState(null, '', '/nowhere');
++    render(<App />);
++
++    await userEvent.click(screen.getByRole('link', { name: 'Orders' }));
++
++    expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument();
++  });
++
++  it('explains an unexpected error in plain words', () => {
++    render(<ErrorMessage error={new TypeError('fetch failed')} />);
++
++    expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong');
++  });
++});

@@ -1,0 +1,29 @@
+From 767e33298b490791080562d06ff74fc69718e363 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Thu, 20 Aug 2026 11:08:35 +0200
+Subject: docs: dispatch board and order page in the README
+
+---
+ README.md | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/README.md b/README.md
+index 2cd252e..aaa1a5e 100644
+--- a/README.md
++++ b/README.md
+@@ -9,10 +9,11 @@ session is the ingress authentication proxy's cookie — the console never handl
+ 
+ ## Screens
+ 
+-| Path           | Screen                                 | Gateway routes         |
+-| -------------- | -------------------------------------- | ---------------------- |
+-| `/orders`      | Orders, newest first, a page at a time | `GET /api/orders`      |
+-| `/orders/{id}` | One order                              | `GET /api/orders/{id}` |
++| Path           | Screen                                                                          | Gateway routes                                                    |
++| -------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
++| `/orders`      | Orders, newest first, a page at a time                                          | `GET /api/orders`                                                 |
++| `/orders/{id}` | One order with its delivery status; cancelling it                               | `GET /api/shipments/{id}`, `POST /api/orders/{id}/cancellation`   |
++| `/dispatch`    | Dispatch board: the routes of a day, their vehicles and stops; starting a route | `GET /api/dispatch/board`, `POST /api/dispatch/routes/{id}/start` |
+ 
+ ## Build and run
+ 

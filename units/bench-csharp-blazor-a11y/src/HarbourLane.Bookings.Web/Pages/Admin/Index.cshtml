@@ -1,0 +1,34 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Rooms";
+}
+
+<h1>Rooms</h1>
+
+<p><a asp-page="/Admin/Notice">Edit the site notice</a></p>
+
+<table class="admin-table">
+    <caption>Rooms visitors can book</caption>
+    <thead>
+        <tr>
+            <th scope="col">Room</th>
+            <th scope="col">Floor</th>
+            <th scope="col">Capacity</th>
+            <th scope="col">Hourly rate</th>
+            <th scope="col"><span class="visually-hidden">Actions</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var room in Model.Rooms)
+        {
+            <tr>
+                <td>@room.Name</td>
+                <td>@room.Floor</td>
+                <td>@room.Capacity</td>
+                <td>@room.HourlyRate.ToString("C", IndexModel.Pounds)</td>
+                <td><a asp-page="/Admin/EditRoom" asp-route-id="@room.Id">Edit the @room.Name</a></td>
+            </tr>
+        }
+    </tbody>
+</table>

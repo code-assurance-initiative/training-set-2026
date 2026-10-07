@@ -1,0 +1,286 @@
+From 2efc1125eaa4d38f8c7320f9e786910602a80b66 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Wed, 11 Mar 2026 15:00:07 +0100
+Subject: feat(reminders): dispatch worker and SMS sender
+
+---
+ .../appsettings.Development.json              |  3 +
+ src/ClinicScheduling.Api/appsettings.json     |  4 ++
+ ...frastructureServiceCollectionExtensions.cs |  4 ++
+ .../Notifications/ISmsSender.cs               |  7 +++
+ .../Notifications/LoggingSmsSender.cs         | 17 +++++
+ .../Notifications/ReminderComposer.cs         | 33 ++++++++++
+ .../Notifications/ReminderDispatchOptions.cs  | 10 +++
+ .../Notifications/ReminderDispatchWorker.cs   | 63 +++++++++++++++++++
+ .../Notifications/ReminderComposerTests.cs    | 48 ++++++++++++++
+ 9 files changed, 189 insertions(+)
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/ISmsSender.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/LoggingSmsSender.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+
+diff --git a/src/ClinicScheduling.Api/appsettings.Development.json b/src/ClinicScheduling.Api/appsettings.Development.json
+index 16ee50f..dca576a 100644
+--- a/src/ClinicScheduling.Api/appsettings.Development.json
++++ b/src/ClinicScheduling.Api/appsettings.Development.json
+@@ -7,5 +7,8 @@
+   },
+   "Authentication": {
+     "Authority": "https://localhost:8443/realms/clinic"
++  },
++  "ReminderDispatch": {
++    "PollInterval": "00:00:05"
+   }
+ }
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+index 53b1aba..4b3e0c7 100644
+--- a/src/ClinicScheduling.Api/appsettings.json
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -12,5 +12,9 @@
+   "Reminders": {
+     "DayBeforeLead": "2.00:00:00",
+     "SameDayLead": "02:00:00"
++  },
++  "ReminderDispatch": {
++    "PollInterval": "00:00:30",
++    "ClinicPhone": "+45 70 00 00 00"
+   }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+index fde28ca..f6d4acc 100644
+--- a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+@@ -2,6 +2,7 @@ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Holidays;
+ using ClinicScheduling.Domain.Time;
+ using ClinicScheduling.Infrastructure.Holidays;
++using ClinicScheduling.Infrastructure.Notifications;
+ using ClinicScheduling.Infrastructure.Persistence;
+ using ClinicScheduling.Infrastructure.Time;
+ using Microsoft.Extensions.DependencyInjection;
+@@ -18,6 +19,9 @@ public static class InfrastructureServiceCollectionExtensions
+         services.AddSingleton<IScheduleRepository, InMemoryScheduleRepository>();
+         services.AddSingleton<IPatientStrikeLedger, InMemoryStrikeLedger>();
+         services.AddSingleton<IReminderOutbox, InMemoryReminderOutbox>();
++        services.AddSingleton<ISmsSender, LoggingSmsSender>();
++        services.AddOptions<ReminderDispatchOptions>().BindConfiguration(ReminderDispatchOptions.SectionName);
++        services.AddHostedService<ReminderDispatchWorker>();
+         return services;
+     }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ISmsSender.cs b/src/ClinicScheduling.Infrastructure/Notifications/ISmsSender.cs
+new file mode 100644
+index 0000000..6a8aa86
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ISmsSender.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++/// <summary>Delivers a text message to a patient. The production gateway resolves the patient's number itself.</summary>
++public interface ISmsSender
++{
++    Task SendAsync(Guid patientId, string text, CancellationToken cancellationToken);
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/LoggingSmsSender.cs b/src/ClinicScheduling.Infrastructure/Notifications/LoggingSmsSender.cs
+new file mode 100644
+index 0000000..9651fc8
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/LoggingSmsSender.cs
+@@ -0,0 +1,17 @@
++using Microsoft.Extensions.Logging;
++
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++/// <summary>The development stand-in for the SMS gateway: logs the message length instead of sending it.</summary>
++public sealed partial class LoggingSmsSender(ILogger<LoggingSmsSender> logger) : ISmsSender
++{
++    public Task SendAsync(Guid patientId, string text, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(text);
++        LogSent(patientId, text.Length);
++        return Task.CompletedTask;
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "SMS to patient {PatientId} ({Length} characters)")]
++    private partial void LogSent(Guid patientId, int length);
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+new file mode 100644
+index 0000000..f71d1e5
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+@@ -0,0 +1,33 @@
++using System.Globalization;
++using ClinicScheduling.Application.Reminders;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++/// <summary>Turns a planned reminder into the text that is sent, in the clinic's language.</summary>
++public static class ReminderComposer
++{
++    private static readonly Dictionary<string, string> LanguageByCountry = new(StringComparer.OrdinalIgnoreCase)
++    {
++        ["DK"] = "da",
++        ["DE"] = "de",
++    };
++
++    public static string Compose(PlannedReminder reminder, Appointment appointment, PractitionerSchedule schedule, string practitionerName, string clinicPhone)
++    {
++        ArgumentNullException.ThrowIfNull(reminder);
++        ArgumentNullException.ThrowIfNull(appointment);
++        ArgumentNullException.ThrowIfNull(schedule);
++
++        var language = LanguageByCountry.GetValueOrDefault(schedule.CountryCode, ReminderTexts.DefaultLanguage);
++        var texts = ReminderTexts.ByLanguage[language];
++        var key = reminder.Kind == ReminderKind.DayBefore ? ReminderTexts.DayBefore : ReminderTexts.SameDay;
++
++        var culture = CultureInfo.GetCultureInfo(language);
++        var local = TimeZoneInfo.ConvertTime(appointment.Time.Start, schedule.TimeZone);
++        var when = reminder.Kind == ReminderKind.SameDay ? local.ToString("t", culture) : local.ToString("g", culture);
++        var body = string.Format(culture, texts[key], practitionerName, when, clinicPhone);
++        return $"{body} {texts["signature"]}";
++    }
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
+new file mode 100644
+index 0000000..e20df46
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
+@@ -0,0 +1,10 @@
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++public sealed class ReminderDispatchOptions
++{
++    public const string SectionName = "ReminderDispatch";
++
++    public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(30);
++
++    public string ClinicPhone { get; set; } = "+45 70 00 00 00";
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+new file mode 100644
+index 0000000..1d13217
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+@@ -0,0 +1,63 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Time;
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.Hosting;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Options;
++
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++/// <summary>Sends due reminders from the outbox, outside any request (ADR 0005).</summary>
++public sealed partial class ReminderDispatchWorker(
++    IServiceScopeFactory scopes,
++    IOptions<ReminderDispatchOptions> options,
++    IClock clock,
++    ILogger<ReminderDispatchWorker> logger) : BackgroundService
++{
++    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
++    {
++        while (!stoppingToken.IsCancellationRequested)
++        {
++            try
++            {
++                await DispatchDueAsync(stoppingToken).ConfigureAwait(false);
++            }
++            catch (Exception ex) when (ex is not OperationCanceledException)
++            {
++                LogDispatchFailed(ex);
++            }
++
++            await Task.Delay(options.Value.PollInterval, stoppingToken).ConfigureAwait(false);
++        }
++    }
++
++    internal async Task<int> DispatchDueAsync(CancellationToken cancellationToken)
++    {
++        using var scope = scopes.CreateScope();
++        var services = scope.ServiceProvider;
++        var outbox = services.GetRequiredService<IReminderOutbox>();
++        var appointments = services.GetRequiredService<IAppointmentRepository>();
++        var schedules = services.GetRequiredService<IScheduleRepository>();
++        var sender = services.GetRequiredService<ISmsSender>();
++
++        var sent = 0;
++        foreach (var reminder in await outbox.DueAsync(clock.UtcNow, 50, cancellationToken).ConfigureAwait(false))
++        {
++            var appointment = await appointments.FindAsync(reminder.AppointmentId, cancellationToken).ConfigureAwait(false);
++            var schedule = appointment is null ? null : await schedules.FindAsync(appointment.PractitionerId, cancellationToken).ConfigureAwait(false);
++            if (appointment is not null && schedule is not null)
++            {
++                var text = ReminderComposer.Compose(reminder, appointment, schedule, "your physiotherapist", options.Value.ClinicPhone);
++                await sender.SendAsync(reminder.PatientId, text, cancellationToken).ConfigureAwait(false);
++                sent++;
++            }
++
++            await outbox.MarkSentAsync(reminder.Id, cancellationToken).ConfigureAwait(false);
++        }
++
++        return sent;
++    }
++
++    [LoggerMessage(Level = LogLevel.Error, Message = "Reminder dispatch failed; retrying on the next tick")]
++    private partial void LogDispatchFailed(Exception exception);
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+new file mode 100644
+index 0000000..005c8cc
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+@@ -0,0 +1,48 @@
++using ClinicScheduling.Application.Reminders;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Infrastructure.Notifications;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Notifications;
++
++public sealed class ReminderComposerTests
++{
++    private static readonly DateTimeOffset Start = At(Monday.AddDays(3), 9);
++
++    private static Appointment Booked() =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)));
++
++    private static PlannedReminder Reminder(Appointment appointment, ReminderKind kind) =>
++        new(Guid.NewGuid(), appointment.Id, appointment.PatientId, Start.AddHours(-2), kind);
++
++    [Fact]
++    public void WritesTheDayBeforeReminderInTheClinicsLanguage()
++    {
++        var appointment = Booked();
++
++        var text = ReminderComposer.Compose(Reminder(appointment, ReminderKind.DayBefore), appointment, Schedule(), "Ida", "+45 11 22 33 44");
++
++        Assert.StartsWith("Påmindelse: du har tid hos Ida den ", text, StringComparison.Ordinal);
++        Assert.Contains("+45 11 22 33 44", text, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public void FallsBackToEnglish()
++    {
++        var appointment = Booked();
++        var swedish = new PractitionerSchedule(PractitionerId, "SE", TimeZoneInfo.Utc, Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)), [], 8);
++
++        var text = ReminderComposer.Compose(Reminder(appointment, ReminderKind.SameDay), appointment, swedish, "Ida", "+46 8 00 00 00");
++
++        Assert.StartsWith("See you soon: your appointment with Ida is today at ", text, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public void EveryLanguageHasEveryText()
++    {
++        var keys = ReminderTexts.ByLanguage[ReminderTexts.DefaultLanguage].Keys.Order().ToList();
++
++        Assert.All(ReminderTexts.ByLanguage.Values, texts => Assert.Equal(keys, texts.Keys.Order()));
++    }
++}

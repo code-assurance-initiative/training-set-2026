@@ -1,0 +1,110 @@
+From 466e5ba6ced6afef902ed712a4d8004b95349e99 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 26 Mar 2026 16:00:09 +0100
+Subject: docs: README and architecture for reminders and the waitlist
+
+---
+ README.md            | 22 ++++++++++++++++++----
+ docs/architecture.md | 15 ++++++++++++---
+ 2 files changed, 30 insertions(+), 7 deletions(-)
+
+diff --git a/README.md b/README.md
+index 067acc5..b5e8f64 100644
+--- a/README.md
++++ b/README.md
+@@ -9,9 +9,13 @@ treatment series are booked in one go.
+ - **Slot search** per practitioner: opening hours and breaks, public holidays (Denmark, Germany, Norway, Sweden),
+   buffers between appointments, minimum notice, a same-day cut-off and a daily cap.
+ - **Booking, rescheduling and cancellation** with the clinic's cancellation policy: free until 24 hours before, a fee
+-  for late cancellations and no-shows.
++  for late cancellations and no-shows, and a deposit after two strikes within six months.
+ - **Treatment series**: a weekly recurrence (`WEEKLY;INTERVAL=1;COUNT=8;BYDAY=MO,TH`) booked as one request; sessions
+   that fall on a public holiday move to the next free weekday.
++- **Reminders** by SMS two days before and on the day of the appointment, in the clinic's language, never during the
++  night.
++- **Waitlist back-fill**: when an appointment is cancelled, the first matching patient on the practitioner's waitlist
++  is offered the freed slot automatically.
+ 
+ ## Getting started
+ 
+@@ -33,7 +37,8 @@ and the audience `clinic-scheduling-api`). In development the authority is a rea
+ dotnet test ClinicScheduling.slnx
+ ```
+ 
+-`tests/ClinicScheduling.UnitTests` covers the domain rules (slot search, cancellation policy, recurrence).
++`tests/ClinicScheduling.UnitTests` covers the domain rules (slot search, cancellation policy, recurrence), the
++reminder planner and composer and the booking handlers.
+ `tests/ClinicScheduling.IntegrationTests` hosts the API in memory with `WebApplicationFactory`, signs its own test
+ tokens and drives the endpoints over HTTPS.
+ 
+@@ -46,12 +51,21 @@ A layered solution (see [`docs/architecture.md`](docs/architecture.md) and the d
+ |---|---|
+ | `ClinicScheduling.Domain` | Appointments, slot search, cancellation policy, recurrence. No dependencies. |
+ | `ClinicScheduling.Application` | Use cases (book, cancel, reschedule, find slots, book a series) and their ports. |
+-| `ClinicScheduling.Infrastructure` | In-memory stores and the public-holiday table. |
++| `ClinicScheduling.Infrastructure` | In-memory stores, the public-holiday table and reminders. |
++| `ClinicScheduling.Waitlist` | The waitlist and the back-fill of cancelled slots. |
+ | `ClinicScheduling.Api` | The ASP.NET Core host: endpoints, authentication, security headers. |
+ 
+ The public-holiday table (`src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs`) is generated: edit
+ `tools/holidays/holidays.csv` and run `tools/holidays/generate-holidays.sh`.
+ 
++## Waitlist
++
++Patients who could not get a suitable time can join a practitioner's waitlist with
++`POST /api/waitlist` (patient, practitioner, earliest and latest acceptable date).
++`GET /api/waitlist/{practitionerId}` lists the queue in order. When an appointment is cancelled, the
++`ClinicScheduling.Waitlist` module offers the freed slot to the first patient whose window matches; the offer is held
++for 30 minutes before it moves on to the next patient.
++
+ ## API overview
+ 
+ | Method and path | Scope | Purpose |
+@@ -67,7 +81,7 @@ The public-holiday table (`src/ClinicScheduling.Infrastructure/Holidays/PublicHo
+ 
+ ## Persistence
+ 
+-Appointments and schedules are held in process memory and are lost on restart. A database
++Appointments, schedules, strikes and planned reminders are held in process memory and are lost on restart. A database
+ is planned; until then the service runs as a single instance.
+ 
+ ## Contributing
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 47106ae..a024c54 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -9,10 +9,14 @@ flowchart LR
+     FrontDesk[Front desk app] -->|bookings, schedules| Api
+     subgraph Service[ClinicScheduling service]
+         Api[ClinicScheduling.Api<br/>Minimal API endpoints] --> Application[ClinicScheduling.Application<br/>use cases, ports]
+-        Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays]
++        Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays, reminders]
++        Api --> Waitlist[ClinicScheduling.Waitlist<br/>waitlist, back-fill]
++        Waitlist --> Application
+         Infrastructure --> Application
+         Application --> Domain[ClinicScheduling.Domain<br/>slots, appointments, policies, recurrence]
++        Worker[ReminderDispatchWorker<br/>hosted service] --> Infrastructure
+     end
++    Worker -->|SMS| Gateway[SMS gateway]
+ ```
+ 
+ ## Main flows
+@@ -21,11 +25,16 @@ flowchart LR
+   for open slots: opening hours minus breaks, public holidays (the generated table in `Infrastructure/Holidays`),
+   booked appointments with their buffers, minimum notice, the same-day cut-off and the daily cap.
+ - **Book, reschedule, cancel** - handlers in `Application/Booking`. Booking re-checks the requested time against
+-  `SlotFinder`; cancelling asks `CancellationPolicy` for the fee and whether the cancellation is a strike.
++  `SlotFinder`; cancelling asks `CancellationPolicy` for the fee and whether the cancellation is a strike; two recent
++  strikes require a deposit before the next booking.
+ - **Treatment series** - `BookTreatmentSeriesHandler` expands a recurrence rule with `RecurrenceExpander` (holidays
+   move a session to the next free weekday) and books all sessions or none.
++- **Reminders** - planned on booking and stored in the reminder outbox; `ReminderDispatchWorker` sends due reminders
++  (ADR 0005). Texts live in `ReminderTexts` (English, Danish, German).
++- **Waitlist** - when the API cancels an appointment, `WaitlistBackfill` offers the freed slot to the first waiting
++  patient whose window fits.
+ 
+ ## Decisions
+ 
+ See [`adr/`](adr/): record keeping (0001), layering (0002), the clock (0003), Minimal API
+-endpoints (0004).
++endpoints (0004), reminders through an outbox (0005).

@@ -1,0 +1,52 @@
+From da9b3207ab8f8afcd1c212f47024ff04e3ae1af9 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 2 Mar 2026 10:00:19 +0100
+Subject: feat(notifications): reminder texts in English, Danish and German
+
+---
+ .../Notifications/ReminderTexts.cs            | 36 +++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+ create mode 100644 src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+new file mode 100644
+index 0000000..fb72c34
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -0,0 +1,36 @@
++namespace ClinicScheduling.Infrastructure.Notifications;
++
++/// <summary>
++/// Reminder message texts per language. Placeholders: {0} practitioner name, {1} local date and time, {2} clinic
++/// phone number.
++/// </summary>
++public static class ReminderTexts
++{
++    public const string DefaultLanguage = "en";
++
++    public const string DayBefore = "day-before";
++    public const string SameDay = "same-day";
++
++    public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ByLanguage =
++        new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase)
++        {
++            ["en"] = new Dictionary<string, string>
++            {
++                [DayBefore] = "Reminder: you have an appointment with {0} on {1}. To cancel or reschedule, please call {2}.",
++                [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
++                ["signature"] = "Best regards, your physiotherapy clinic",
++            },
++            ["da"] = new Dictionary<string, string>
++            {
++                [DayBefore] = "Påmindelse: du har tid hos {0} den {1}. Ring til {2}, hvis du vil aflyse eller flytte.",
++                [SameDay] = "Vi ses snart: din tid hos {0} er idag kl. {1}.",
++                ["signature"] = "Venlig hilsen din fysioterapiklinik",
++            },
++            ["de"] = new Dictionary<string, string>
++            {
++                [DayBefore] = "Erinnerung: Ihr Termin bei {0} ist am {1}. Zum Absagen oder Verschieben rufen Sie {2} an.",
++                [SameDay] = "Bis gleich: Ihr Termin bei {0} ist heute um {1}.",
++                ["signature"] = "Mit freundlichen Grüßen, Ihre Physiotherapiepraxis",
++            },
++        };
++}

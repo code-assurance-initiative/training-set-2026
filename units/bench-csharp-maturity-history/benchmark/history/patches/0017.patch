@@ -1,0 +1,54 @@
+From dc9a332bf928dd7fe5bc4bab87bf2b4f9df44250 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 20 Jan 2026 11:20:34 +0100
+Subject: feat(api): appointment status in responses
+
+---
+ src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs   | 2 ++
+ tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs | 1 +
+ tests/ClinicScheduling.IntegrationTests/Responses.cs        | 2 +-
+ 3 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 9987eab..3c29791 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -10,6 +10,7 @@ public sealed record AppointmentResponse(
+     Guid ClinicId,
+     DateTimeOffset Start,
+     DateTimeOffset End,
++    string Status,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId)
+ {
+     public static AppointmentResponse From(Appointment appointment)
+@@ -22,6 +23,7 @@ public sealed record AppointmentResponse(
+             appointment.ClinicId,
+             appointment.Time.Start,
+             appointment.Time.End,
++            appointment.Status.ToString().ToLowerInvariant(),
+             appointment.SeriesId);
+     }
+ }
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index 9b81f75..c2b39b0 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -20,6 +20,7 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+         Assert.Equal(slots[0].Start, appointment.Start);
+         Assert.Equal(patient, fetched.PatientId);
++        Assert.Equal("booked", fetched.Status);
+     }
+ 
+     [Fact]
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index 20bb797..17e386a 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -1,5 +1,5 @@
+ namespace ClinicScheduling.IntegrationTests;
+ 
+-public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start);
++public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start, string Status);
+ 
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);

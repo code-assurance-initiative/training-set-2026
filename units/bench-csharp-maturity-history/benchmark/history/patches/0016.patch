@@ -1,0 +1,69 @@
+From 67f1c99e121199280aacf68397ef67acff3f22d8 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 19 Jan 2026 09:50:58 +0100
+Subject: feat(domain): completed and missed appointments
+
+---
+ .../Appointments/Appointment.cs                     | 12 ++++++++++++
+ .../Appointments/AppointmentStatus.cs               |  2 ++
+ .../Appointments/AppointmentTests.cs                | 13 +++++++++++++
+ 3 files changed, 27 insertions(+)
+
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 0569e3a..1ed5517 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -54,6 +54,18 @@ public sealed class Appointment
+         CancelledAt = at;
+     }
+ 
++    public void Complete()
++    {
++        EnsureBooked();
++        Status = AppointmentStatus.Completed;
++    }
++
++    public void MarkNoShow()
++    {
++        EnsureBooked();
++        Status = AppointmentStatus.NoShow;
++    }
++
+     private void EnsureBooked()
+     {
+         if (Status != AppointmentStatus.Booked)
+diff --git a/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs b/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
+index 6e9058e..cfb4d8d 100644
+--- a/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
++++ b/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
+@@ -4,4 +4,6 @@ public enum AppointmentStatus
+ {
+     Booked,
+     Cancelled,
++    Completed,
++    NoShow,
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+index d10c38a..e4e8cbd 100644
+--- a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -21,6 +21,19 @@ public sealed class AppointmentTests
+         Assert.Throws<InvalidOperationException>(() => appointment.Cancel(Now));
+     }
+ 
++    [Fact]
++    public void OnlyABookedAppointmentCanBeCompletedOrMissed()
++    {
++        var completed = Booked();
++        completed.Complete();
++        var missed = Booked();
++        missed.MarkNoShow();
++
++        Assert.Equal(AppointmentStatus.Completed, completed.Status);
++        Assert.Equal(AppointmentStatus.NoShow, missed.Status);
++        Assert.Throws<InvalidOperationException>(missed.Complete);
++    }
++
+     [Fact]
+     public void ATimeRangeMustEndAfterItStarts()
+     {

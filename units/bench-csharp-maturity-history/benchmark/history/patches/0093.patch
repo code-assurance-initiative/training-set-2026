@@ -1,0 +1,43 @@
+From 97647efc6865d81f08da7c3928271ceb5d1b8d89 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Thu, 16 Jul 2026 10:35:41 +0200
+Subject: fix(availability): video visits need no room turnaround
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs   | 2 +-
+ .../Availability/SlotFinderTests.cs                      | 9 +++++++++
+ 2 files changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 5bcef95..63fe893 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -60,7 +60,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+             {
+                 var opens = At(day, hours.Opens, schedule.TimeZone);
+                 var closes = At(day, hours.Closes, schedule.TimeZone);
+-                var lastEnd = closes - options.RoomTurnaround;
++                var lastEnd = query.Telehealth ? closes : closes - options.RoomTurnaround;
+                 var cursor = opens;
+ 
+                 while (cursor + query.Duration <= lastEnd)
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index c88ef37..1d88ea5 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -89,6 +89,15 @@ public sealed class SlotFinderTests
+         Assert.Empty(Finder().FindOpenSlots(noVideo, [], Tuesday(telehealth: true), new SlotSearchOptions()));
+     }
+ 
++    [Fact]
++    public void VideoVisitsNeedNoRoomTurnaround()
++    {
++        var slots = Finder().FindOpenSlots(Schedule(), [], Tuesday(telehealth: true), new SlotSearchOptions());
++
++        Assert.Equal(At(Monday.AddDays(1), 16), slots[^1].End);
++        Assert.All(slots, s => Assert.True(s.IsTelehealth));
++    }
++
+     [Fact]
+     public void RejectsEmptyQueries()
+     {

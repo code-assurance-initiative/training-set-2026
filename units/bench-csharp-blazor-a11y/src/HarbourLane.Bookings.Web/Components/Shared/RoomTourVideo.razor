@@ -1,0 +1,15 @@
+<figure class="room-tour">
+    <video controls preload="metadata" width="640" height="360">
+        <source src="@Url" type="video/mp4" />
+        <p>Your browser cannot play this video. <a href="@Url">Download the tour of the @RoomName</a>.</p>
+    </video>
+    <figcaption>A narrated walk round the @RoomName.</figcaption>
+</figure>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired]
+    public string RoomName { get; set; } = string.Empty;
+}

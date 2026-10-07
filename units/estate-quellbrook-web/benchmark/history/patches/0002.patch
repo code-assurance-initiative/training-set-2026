@@ -1,0 +1,70 @@
+From 3c398af2ae3340057604cfd23dec9929be841153 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Tue, 28 Jul 2026 15:44:12 +0200
+Subject: docs: ADR 0001 and ADR 0002 (a static SPA behind the gateway and the
+ sign-in proxy)
+
+---
+ .../adr/0001-record-architecture-decisions.md | 20 +++++++++++++++
+ .../adr/0002-static-spa-behind-the-gateway.md | 25 +++++++++++++++++++
+ 2 files changed, 45 insertions(+)
+ create mode 100644 docs/adr/0001-record-architecture-decisions.md
+ create mode 100644 docs/adr/0002-static-spa-behind-the-gateway.md
+
+diff --git a/docs/adr/0001-record-architecture-decisions.md b/docs/adr/0001-record-architecture-decisions.md
+new file mode 100644
+index 0000000..137503d
+--- /dev/null
++++ b/docs/adr/0001-record-architecture-decisions.md
+@@ -0,0 +1,20 @@
++# 1. Record architecture decisions
++
++- Status: Accepted
++- Date: 2026-07-27
++- Deciders: Teodor Vasko, Mara Ellingsworth, Ines Halvard
++
++## Context
++
++The console is the face of the platform for every operator and depends on the gateway's routes and the platform's
++sign-in. Decisions about how it is built and served affect other teams.
++
++## Decision
++
++We record every decision that shapes the console's structure, its use of the platform or its delivery as an
++architecture decision record in `docs/adr`, numbered, with status, context, decision and consequences.
++
++## Consequences
++
++- Positive: newcomers can see why the console is built the way it is.
++- Negative: records take time and go stale unless superseded decisions are marked.
+diff --git a/docs/adr/0002-static-spa-behind-the-gateway.md b/docs/adr/0002-static-spa-behind-the-gateway.md
+new file mode 100644
+index 0000000..4390ff7
+--- /dev/null
++++ b/docs/adr/0002-static-spa-behind-the-gateway.md
+@@ -0,0 +1,25 @@
++# 2. A static single-page application behind the gateway and the sign-in proxy
++
++- Status: Accepted
++- Date: 2026-07-28
++- Deciders: Teodor Vasko, Mara Ellingsworth
++
++## Context
++
++Operators need a fast console that works with the platform's sign-in. Handling OAuth tokens in browser code means
++storing them somewhere scripts can read, and every XSS becomes a token theft.
++
++## Decision
++
++The console is a React application built by Vite into static files and served by nginx on the same host as the
++gateway (`/` and `/api`). The ingress's authentication proxy signs operators in and keeps the session in an
++HttpOnly cookie; the browser sends it with every same-origin request, and the gateway receives the operator's token
++from the proxy. The console calls only `/api` on its own origin with `credentials: 'same-origin'` and stores no
++token. nginx sends a strict Content-Security-Policy (`'self'` only).
++
++## Consequences
++
++- Positive: no token in browser storage; one origin, so no CORS in production; the static image is small and needs
++  no egress.
++- Negative: an expired session shows as 401 from the gateway and the console can only ask for a reload; the console
++  cannot be run against the gateway from another origin without the development proxy.

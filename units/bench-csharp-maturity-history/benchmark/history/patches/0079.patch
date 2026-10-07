@@ -1,0 +1,22 @@
+From a1ac1874f94b893de6015a007f0c92dd70c4308c Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Mon, 8 Jun 2026 11:30:57 +0200
+Subject: fix(notifications): cancellation-fee wording matches the policy
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 60a19eb..be599d5 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -22,7 +22,7 @@ public static class ReminderTexts
+                 [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
+                 [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
+                 [SameDayVideo] = "Your video appointment with {0} starts at {1}. Please open the link from your patient portal a few minutes early.",
+-                ["cancellation-fee"] = "Late cancellations are charged.",
++                ["cancellation-fee"] = "Cancellations less than 24 hours before the appointment are charged.",
+                 ["signature"] = "Best regards, your physiotherapy clinic",
+             },
+             ["da"] = new Dictionary<string, string>

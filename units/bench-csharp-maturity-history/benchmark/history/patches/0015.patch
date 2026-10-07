@@ -1,0 +1,324 @@
+From dc1e11be2611daab9b20837ecea1d9a0431a76e5 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Fri, 16 Jan 2026 10:30:12 +0100
+Subject: test: integration tests over HTTPS with signed test tokens
+
+---
+ .../ApiClient.cs                              | 38 ++++++++++
+ .../BookingFlowTests.cs                       | 49 +++++++++++++
+ .../HealthAndSecurityTests.cs                 | 49 +++++++++++++
+ .../Responses.cs                              |  5 ++
+ .../SchedulingApiFactory.cs                   | 71 +++++++++++++++++++
+ .../TestTokens.cs                             | 56 +++++++++++++++
+ 6 files changed, 268 insertions(+)
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/ApiClient.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/Responses.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/TestTokens.cs
+
+diff --git a/tests/ClinicScheduling.IntegrationTests/ApiClient.cs b/tests/ClinicScheduling.IntegrationTests/ApiClient.cs
+new file mode 100644
+index 0000000..d51c995
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/ApiClient.cs
+@@ -0,0 +1,38 @@
++using System.Net.Http.Json;
++
++namespace ClinicScheduling.IntegrationTests;
++
++public static class ApiClient
++{
++    public const string AllScopes = "appointments.read appointments.write schedules.write reports.read portal.read";
++
++    public static readonly Guid PractitionerId = Guid.Parse("2a8e4f1c-7b3d-4e9a-a6c5-1d0f8b2e3c47");
++    public static readonly Guid ClinicId = Guid.Parse("9c3b5d7e-1f2a-4b6c-8d0e-2f4a6b8c0d1e");
++
++    private static readonly string[] Weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
++    private static readonly string[] Skills = ["sports"];
++
++    public static CancellationToken Token => TestContext.Current.CancellationToken;
++
++    /// <summary>Gives the practitioner weekday hours 08:00-16:00 in Copenhagen.</summary>
++    public static async Task PutScheduleAsync(this HttpClient client)
++    {
++        var hours = Weekdays.Select(day => new { day, opens = "08:00:00", closes = "16:00:00", breakStarts = "12:00:00", breakEnds = "12:30:00", inClinicOnly = false });
++        var body = new { countryCode = "DK", timeZone = "Europe/Copenhagen", hours, skills = Skills, offersTelehealth = true, maxAppointmentsPerDay = 10 };
++        using var response = await client.PutAsJsonAsync($"api/practitioners/{PractitionerId}/schedule", body, Token);
++        Assert.True(response.IsSuccessStatusCode, $"PUT schedule returned {(int)response.StatusCode}");
++    }
++
++    public static async Task<HttpResponseMessage> BookAsync(this HttpClient client, Guid patientId, DateTimeOffset start, int minutes = 45) =>
++        await client.PostAsJsonAsync(
++            "api/appointments",
++            new { patientId, practitionerId = PractitionerId, clinicId = ClinicId, start, durationMinutes = minutes, telehealth = false },
++            Token);
++
++    public static async Task<T> ReadAsync<T>(this HttpResponseMessage response)
++    {
++        var body = await response.Content.ReadFromJsonAsync<T>(Token);
++        Assert.NotNull(body);
++        return body;
++    }
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+new file mode 100644
+index 0000000..9b81f75
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -0,0 +1,49 @@
++using System.Net;
++
++namespace ClinicScheduling.IntegrationTests;
++
++public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
++{
++    [Fact]
++    public async Task FindAndBook()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++        var patient = Guid.NewGuid();
++
++        var slots = await (await client.GetAsync(
++            $"api/practitioners/{ApiClient.PractitionerId}/slots?from=2026-03-05&to=2026-03-05&durationMinutes=45", ApiClient.Token)).ReadAsync<List<SlotDto>>();
++        using var booked = await client.BookAsync(patient, slots[0].Start);
++        var appointment = await booked.ReadAsync<AppointmentDto>();
++        var fetched = await (await client.GetAsync($"api/appointments/{appointment.Id}", ApiClient.Token)).ReadAsync<AppointmentDto>();
++
++        Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
++        Assert.Equal(slots[0].Start, appointment.Start);
++        Assert.Equal(patient, fetched.PatientId);
++    }
++
++    [Fact]
++    public async Task ATakenSlotIsAConflict()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++        var start = new DateTimeOffset(2026, 3, 6, 13, 0, 0, TimeSpan.FromHours(1));
++
++        using var first = await client.BookAsync(Guid.NewGuid(), start);
++        using var second = await client.BookAsync(Guid.NewGuid(), start);
++
++        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
++        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
++    }
++
++    [Fact]
++    public async Task InvalidRequestsAreValidationProblems()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++
++        using var response = await client.BookAsync(Guid.Empty, DateTimeOffset.UtcNow, minutes: 5);
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++        Assert.Contains("DurationMinutes", await response.Content.ReadAsStringAsync(ApiClient.Token), StringComparison.Ordinal);
++    }
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+new file mode 100644
+index 0000000..186e7c3
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+@@ -0,0 +1,49 @@
++using System.Net;
++
++namespace ClinicScheduling.IntegrationTests;
++
++public sealed class HealthAndSecurityTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
++{
++    [Fact]
++    public async Task HealthIsPublicAndHealthy()
++    {
++        using var client = factory.CreateClient(scopes: []);
++
++        using var response = await client.GetAsync("health", ApiClient.Token);
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        Assert.Equal("Healthy", await response.Content.ReadAsStringAsync(ApiClient.Token));
++    }
++
++    [Fact]
++    public async Task EveryResponseCarriesTheSecurityHeaders()
++    {
++        using var client = factory.CreateClient(scopes: []);
++
++        using var response = await client.GetAsync("health", ApiClient.Token);
++
++        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
++        Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
++    }
++
++    [Theory]
++    [InlineData("api/appointments/0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60")]
++    public async Task AnonymousCallersAreRejected(string path)
++    {
++        using var client = factory.CreateClient(scopes: []);
++
++        using var response = await client.GetAsync(path, ApiClient.Token);
++
++        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
++    }
++
++    [Fact]
++    public async Task AMissingScopeIsForbidden()
++    {
++        using var client = factory.CreateClient("appointments.read");
++
++        using var response = await client.BookAsync(Guid.NewGuid(), DateTimeOffset.UtcNow.AddDays(3));
++
++        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
++    }
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+new file mode 100644
+index 0000000..20bb797
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -0,0 +1,5 @@
++namespace ClinicScheduling.IntegrationTests;
++
++public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start);
++
++public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+diff --git a/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs b/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
+new file mode 100644
+index 0000000..68db0ff
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
+@@ -0,0 +1,71 @@
++using ClinicScheduling.Domain.Time;
++using Microsoft.AspNetCore.Authentication.JwtBearer;
++using Microsoft.AspNetCore.Hosting;
++using Microsoft.AspNetCore.Mvc.Testing;
++using Microsoft.AspNetCore.TestHost;
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.DependencyInjection.Extensions;
++using Microsoft.IdentityModel.Protocols;
++using Microsoft.IdentityModel.Protocols.OpenIdConnect;
++
++namespace ClinicScheduling.IntegrationTests;
++
++/// <summary>
++/// Hosts the real API in memory. Only two things are replaced: the clock (so expiry is deterministic) and the
++/// issuer metadata (so tokens from <see cref="TestTokens"/> validate without a network call).
++/// </summary>
++public sealed class SchedulingApiFactory : WebApplicationFactory<Program>
++{
++    public TestClock Clock { get; } = new(new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero));
++
++    public TestTokens Tokens { get; } = new();
++
++    /// <summary>A client over HTTPS (so HSTS and redirection behave as in production) with the given scopes.</summary>
++    public HttpClient CreateClient(params string[] scopes)
++    {
++        var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://scheduling.test") });
++        if (scopes.Length > 0)
++        {
++            client.DefaultRequestHeaders.Authorization = new("Bearer", Tokens.Create(scopes));
++        }
++
++        return client;
++    }
++
++    protected override void ConfigureWebHost(IWebHostBuilder builder)
++    {
++        builder.UseEnvironment("Testing");
++        builder.UseSetting("Authentication:Authority", TestTokens.Issuer);
++        builder.UseSetting("Authentication:Audience", TestTokens.Audience);
++        builder.UseSetting("https_port", "443");
++        builder.ConfigureTestServices(services =>
++        {
++            services.RemoveAll<IClock>();
++            services.AddSingleton<IClock>(Clock);
++            services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
++            {
++                var metadata = Tokens.Metadata();
++                options.Configuration = metadata;
++                options.ConfigurationManager = new StaticConfigurationManager<OpenIdConnectConfiguration>(metadata);
++            });
++        });
++    }
++
++    protected override void Dispose(bool disposing)
++    {
++        if (disposing)
++        {
++            Tokens.Dispose();
++        }
++
++        base.Dispose(disposing);
++    }
++}
++
++/// <summary>The test host's clock: it stands still until a test moves it.</summary>
++public sealed class TestClock(DateTimeOffset now) : IClock
++{
++    public DateTimeOffset UtcNow { get; private set; } = now;
++
++    public void SetUtcNow(DateTimeOffset value) => UtcNow = value;
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/TestTokens.cs b/tests/ClinicScheduling.IntegrationTests/TestTokens.cs
+new file mode 100644
+index 0000000..2e447a2
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/TestTokens.cs
+@@ -0,0 +1,56 @@
++using System.Security.Cryptography;
++using Microsoft.IdentityModel.JsonWebTokens;
++using Microsoft.IdentityModel.Protocols.OpenIdConnect;
++using Microsoft.IdentityModel.Tokens;
++
++namespace ClinicScheduling.IntegrationTests;
++
++/// <summary>
++/// A stand-in token issuer. Its RSA key is generated in memory for each test run and never leaves the process.
++/// Tokens are stamped with real time, because token lifetimes are validated against the real clock.
++/// </summary>
++public sealed class TestTokens : IDisposable
++{
++    public const string Issuer = "https://issuer.test/";
++    public const string Audience = "clinic-scheduling-api";
++
++    private readonly RSA _rsa = RSA.Create(2048);
++    private readonly RsaSecurityKey _key;
++
++    public TestTokens()
++    {
++        _key = new RsaSecurityKey(_rsa) { KeyId = "integration-tests" };
++    }
++
++    /// <summary>The issuer metadata the API would otherwise download from the authority.</summary>
++    public OpenIdConnectConfiguration Metadata()
++    {
++        var metadata = new OpenIdConnectConfiguration { Issuer = Issuer };
++        metadata.SigningKeys.Add(_key);
++        return metadata;
++    }
++
++    public string Create(params string[] scopes) => Create(Audience, scopes);
++
++    public string Create(string audience, params string[] scopes)
++    {
++        var now = DateTime.UtcNow;
++        var descriptor = new SecurityTokenDescriptor
++        {
++            Issuer = Issuer,
++            Audience = audience,
++            IssuedAt = now,
++            NotBefore = now,
++            Expires = now.AddMinutes(10),
++            Claims = new Dictionary<string, object>
++            {
++                ["sub"] = "front-desk-3",
++                ["scope"] = string.Join(' ', scopes),
++            },
++            SigningCredentials = new SigningCredentials(_key, SecurityAlgorithms.RsaSha256),
++        };
++        return new JsonWebTokenHandler().CreateToken(descriptor);
++    }
++
++    public void Dispose() => _rsa.Dispose();
++}

@@ -1,0 +1,22 @@
+From 4f73ee4438be86abdb43cb3d3ffee2e37e1819ed Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 18 Aug 2026 10:05:16 +0200
+Subject: chore(notifications): German texts reviewed by the Munich clinic
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 6738c00..44b7e84 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -36,7 +36,7 @@ public static class ReminderTexts
+             },
+             ["de"] = new Dictionary<string, string>
+             {
+-                [DayBefore] = "Erinnerung: Ihr Termin bei {0} ist am {1}. Zum Absagen oder Verschieben rufen Sie {2} an.",
++                [DayBefore] = "Erinnerung: Sie haben am {1} einen Termin bei {0}. Absagen oder verschieben unter {2}.",
+                 [SameDay] = "Bis gleich: Ihr Termin bei {0} ist heute um {1}.",
+                 [DayBeforeVideo] = "Erinnerung: Ihre Videosprechstunde bei {0} ist am {1}. Den Link erhalten Sie eine Stunde vorher.",
+                 [SameDayVideo] = "Ihre Videosprechstunde bei {0} beginnt um {1}. Öffnen Sie den Link im Patientenportal.",

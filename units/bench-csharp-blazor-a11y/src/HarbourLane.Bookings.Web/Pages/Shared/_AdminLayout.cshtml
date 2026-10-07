@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Staff area · Harbour Lane</title>
+    <link rel="stylesheet" href="~/app.css" asp-append-version="true" />
+    <style>
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid #d0d7de;
+        }
+
+        .admin-toolbar button {
+            border: 0;
+            outline: none;
+            background: transparent;
+            color: #0b5394;
+            font: inherit;
+            text-decoration: underline;
+        }
+
+        .admin-main {
+            max-width: 64rem;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="admin-header">
+        <a href="/Admin">Staff area</a>
+        <nav class="admin-toolbar" aria-label="Staff">
+            <a href="/">Public site</a>
+            <form method="post" action="/account/logout">
+                <button type="submit">Sign out</button>
+                @Html.AntiForgeryToken()
+            </form>
+        </nav>
+    </header>
+    <main class="admin-main">
+        @RenderBody()
+    </main>
+</body>
+</html>

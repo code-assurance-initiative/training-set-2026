@@ -1,0 +1,61 @@
+From 7aba5197e2be1942aa0b2a468b4c4a568edd3f6e Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Wed, 18 Feb 2026 15:20:08 +0100
+Subject: fix(availability): no same-day slots after the cut-off
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs       | 5 +++++
+ .../Availability/SlotSearchOptions.cs                        | 3 +++
+ .../Availability/SlotFinderTests.cs                          | 5 ++++-
+ 3 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 84640d3..f5cc699 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -33,6 +33,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                 continue;
+             }
+ 
++            if (day == today && TimeOnly.FromDateTime(now.UtcDateTime) >= options.SameDayCutoff)
++            {
++                continue;
++            }
++
+             foreach (var hours in schedule.HoursOn(day.DayOfWeek))
+             {
+                 var opens = At(day, hours.Opens, schedule.TimeZone);
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+index b23ff10..6998259 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -10,4 +10,7 @@ public sealed record SlotSearchOptions
+ 
+     /// <summary>The earliest a slot may start, measured from now.</summary>
+     public TimeSpan MinimumNotice { get; init; } = TimeSpan.FromHours(2);
++
++    /// <summary>After this local time no more same-day slots are offered.</summary>
++    public TimeOnly SameDayCutoff { get; init; } = new(14, 0);
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 5627cee..0ff065f 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -55,13 +55,16 @@ public sealed class SlotFinderTests
+     }
+ 
+     [Fact]
+-    public void RespectsMinimumNotice()
++    public void RespectsMinimumNoticeAndTheSameDayCutoff()
+     {
+         var today = new SlotQuery(Monday, Monday, HalfHour);
+ 
+         var morning = Finder().FindOpenSlots(Schedule(), [], today, new SlotSearchOptions());
++        _clock.UtcNow = At(Monday, 14, 5);
++        var afternoon = Finder().FindOpenSlots(Schedule(), [], today, new SlotSearchOptions());
+ 
+         Assert.All(morning, s => Assert.True(s.Start >= Now + TimeSpan.FromHours(2)));
++        Assert.Empty(afternoon);
+     }
+ 
+     [Fact]

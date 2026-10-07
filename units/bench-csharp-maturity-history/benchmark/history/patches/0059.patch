@@ -1,0 +1,55 @@
+From 67b5356e5de52b5b7b1ca97d4ad0154a636e73f0 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 9 Apr 2026 13:20:15 +0200
+Subject: feat: video appointments in responses and the portal feed
+
+---
+ src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs       | 2 ++
+ .../PatientPortal/PortalAppointmentFeed.cs                      | 1 +
+ .../PatientPortal/PortalAppointmentFeedTests.cs                 | 1 +
+ 3 files changed, 4 insertions(+)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index e2ae206..c669069 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -13,6 +13,7 @@ public sealed record AppointmentResponse(
+     string StartsAt,
+     string EndsAt,
+     string Status,
++    bool IsTelehealth,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancellationReason,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateTimeOffset? CancelledAt)
+@@ -28,6 +29,7 @@ public sealed record AppointmentResponse(
+             Timestamp(appointment.Time.Start),
+             Timestamp(appointment.Time.End),
+             appointment.Status.ToString().ToLowerInvariant(),
++            appointment.IsTelehealth,
+             appointment.SeriesId,
+             appointment.CancellationReason is { } reason ? ReasonCode(reason) : null,
+             appointment.CancelledAt);
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index a193b35..78bcf15 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -29,6 +29,7 @@ public static class PortalAppointmentFeed
+                 json.WriteString("startsAt", Timestamp(a.Time.Start));
+                 json.WriteString("endsAt", Timestamp(a.Time.End));
+                 json.WriteString("status", Status(a.Status));
++                json.WriteBoolean("isTelehealth", a.IsTelehealth);
+                 if (a.SeriesId is { } series)
+                 {
+                     json.WriteString("seriesId", series);
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+index f6ced6c..01361bb 100644
+--- a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -25,6 +25,7 @@ public sealed class PortalAppointmentFeedTests
+         Assert.Equal("2026-03-09T09:00:00.0000000+00:00", items[0].GetProperty("startsAt").GetString());
+         Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
+         Assert.Equal("patient-request", items[0].GetProperty("cancellationReason").GetString());
++        Assert.True(items[0].GetProperty("isTelehealth").GetBoolean());
+         Assert.Equal("booked", items[1].GetProperty("status").GetString());
+     }
+ 

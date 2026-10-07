@@ -1,0 +1,63 @@
+# Local development stack: PostgreSQL, the API and the reminder worker.
+#   cp .env.template .env   # then fill in the two values
+#   docker compose up --build
+name: depot-slots
+
+services:
+  postgres:
+    image: postgres:17.6-alpine@sha256:1a28b691e03b968176856f0d71b04eb9f29ff7756426ae4036f85ec5fcfa3c3c
+    environment:
+      POSTGRES_DB: slots
+      POSTGRES_USER: slots
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slots -d slots"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Depot.Slots.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Storage__Provider: Postgres
+      ConnectionStrings__Slots: Host=postgres;Database=slots;Username=slots;Password=${POSTGRES_PASSWORD}
+      Authentication__Authority: https://host.docker.internal:8443/realms/depot
+    ports:
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  reminders:
+    build:
+      context: .
+      dockerfile: src/Depot.Slots.Reminders/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Storage__Provider: Postgres
+      ConnectionStrings__Slots: Host=postgres;Database=slots;Username=slots;Password=${POSTGRES_PASSWORD}
+      Chat__BotToken: ${CHAT_BOT_TOKEN:?set CHAT_BOT_TOKEN in .env}
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

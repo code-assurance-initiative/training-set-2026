@@ -1,0 +1,46 @@
+From 327c0cabc020078d3198cb9c67e83ef966c5610e Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 4 May 2026 11:15:49 +0200
+Subject: fix(calendar): leave out an empty location
+
+---
+ .../Calendar/IcsCalendarWriter.cs                         | 6 +++++-
+ .../Calendar/IcsCalendarWriterTests.cs                    | 8 ++++++++
+ 2 files changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+index 99be9af..d9e9886 100644
+--- a/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
++++ b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+@@ -31,7 +31,11 @@ public static class IcsCalendarWriter
+             AppendLine(ics, "DTSTART:" + Utc(e.Start));
+             AppendLine(ics, "DTEND:" + Utc(e.End));
+             AppendLine(ics, "SUMMARY:" + Escape(e.Summary));
+-            AppendLine(ics, "LOCATION:" + Escape(e.Location ?? string.Empty));
++            if (!string.IsNullOrEmpty(e.Location))
++            {
++                AppendLine(ics, "LOCATION:" + Escape(e.Location));
++            }
++
+             AppendLine(ics, "END:VEVENT");
+         }
+ 
+diff --git a/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+index 11965d6..01a508a 100644
+--- a/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+@@ -20,6 +20,14 @@ public sealed class IcsCalendarWriterTests
+         Assert.DoesNotContain("\n", ics.Replace("\r\n", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
+     }
+ 
++    [Fact]
++    public void OmitsAnEmptyLocation()
++    {
++        var ics = IcsCalendarWriter.Write([new CalendarEvent("a1@test", Start, Start.AddHours(1), "Video", null, Start)]);
++
++        Assert.DoesNotContain("LOCATION", ics, StringComparison.Ordinal);
++    }
++
+     [Theory]
+     [InlineData("a,b", "a\\,b")]
+     [InlineData("a;b", "a\\;b")]

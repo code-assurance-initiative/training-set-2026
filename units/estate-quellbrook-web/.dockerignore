@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.git/
+.github/
+deploy/
+docs/
+tests/
+benchmark/
+nginx/README.md
+*.md
+.env*

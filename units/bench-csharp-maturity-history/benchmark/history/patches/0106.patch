@@ -1,0 +1,53 @@
+From 40788e85caf6818fd633ec78d9fb1e4893b70841 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 19 Aug 2026 13:30:40 +0200
+Subject: fix(policy): clinic-closed cancellations are free too
+
+---
+ .../Policies/CancellationPolicy.cs                        | 5 ++++-
+ .../Policies/CancellationPolicyTests.cs                   | 8 +++++---
+ 2 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 662590d..c86ca5d 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -19,7 +19,7 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+     {
+         ArgumentNullException.ThrowIfNull(appointment);
+ 
+-        if (reason == CancellationReason.PractitionerUnavailable)
++        if (IsClinicInitiated(reason))
+         {
+             return CancellationDecision.Free(ClinicInitiated);
+         }
+@@ -61,6 +61,9 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+ 
+     private bool IsLate(Appointment appointment, DateTimeOffset at) => at > FreeCancellationDeadline(appointment);
+ 
++    private static bool IsClinicInitiated(CancellationReason reason) =>
++        reason is CancellationReason.PractitionerUnavailable or CancellationReason.ClinicClosed;
++
+     private decimal Scaled(decimal fee, Appointment appointment) =>
+         appointment.IsTelehealth ? fee * options.TelehealthFeeFactor : fee;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 76854ee..c6923ee 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -47,10 +47,12 @@ public sealed class CancellationPolicyTests
+         Assert.Equal(CancellationPolicy.Illness, decision.Code);
+     }
+ 
+-    [Fact]
+-    public void ClinicInitiatedCancellationsNeverCostThePatient()
++    [Theory]
++    [InlineData(CancellationReason.PractitionerUnavailable)]
++    [InlineData(CancellationReason.ClinicClosed)]
++    public void ClinicInitiatedCancellationsNeverCostThePatient(CancellationReason reason)
+     {
+-        var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PractitionerUnavailable, Start.AddMinutes(-5));
++        var decision = _policy.EvaluateCancellation(Booked(), reason, Start.AddMinutes(-5));
+ 
+         Assert.Equal(CancellationDecision.Free(CancellationPolicy.ClinicInitiated), decision);
+     }

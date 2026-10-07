@@ -1,0 +1,435 @@
+From 0eb7d4b42c8bcde2ccab308a1fc87a523261105f Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 9 Mar 2026 10:50:25 +0100
+Subject: feat(reminders): plan reminders and keep them in an outbox
+
+---
+ src/ClinicScheduling.Api/appsettings.json     |  4 ++
+ .../Abstractions/IReminderOutbox.cs           | 16 ++++++++
+ .../ApplicationServiceCollectionExtensions.cs |  3 ++
+ .../Booking/BookAppointment.cs                |  4 ++
+ .../Booking/CancelAppointment.cs              |  2 +
+ .../Booking/RescheduleAppointment.cs          |  7 +++-
+ .../Reminders/PlannedReminder.cs              |  9 +++++
+ .../Reminders/ReminderOptions.cs              | 10 +++++
+ .../Reminders/ReminderPlanner.cs              | 29 ++++++++++++++
+ .../Series/BookTreatmentSeries.cs             |  6 ++-
+ ...frastructureServiceCollectionExtensions.cs |  1 +
+ .../Persistence/InMemoryReminderOutbox.cs     | 40 +++++++++++++++++++
+ .../Booking/BookingHandlersTests.cs           | 24 +++++++++--
+ .../Reminders/ReminderPlannerTests.cs         | 37 +++++++++++++++++
+ 14 files changed, 186 insertions(+), 6 deletions(-)
+ create mode 100644 src/ClinicScheduling.Application/Abstractions/IReminderOutbox.cs
+ create mode 100644 src/ClinicScheduling.Application/Reminders/PlannedReminder.cs
+ create mode 100644 src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
+ create mode 100644 src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Persistence/InMemoryReminderOutbox.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+index 046f8cd..53b1aba 100644
+--- a/src/ClinicScheduling.Api/appsettings.json
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -8,5 +8,9 @@
+   "Authentication": {
+     "Authority": "",
+     "Audience": "clinic-scheduling-api"
++  },
++  "Reminders": {
++    "DayBeforeLead": "2.00:00:00",
++    "SameDayLead": "02:00:00"
+   }
+ }
+diff --git a/src/ClinicScheduling.Application/Abstractions/IReminderOutbox.cs b/src/ClinicScheduling.Application/Abstractions/IReminderOutbox.cs
+new file mode 100644
+index 0000000..a04e42f
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Abstractions/IReminderOutbox.cs
+@@ -0,0 +1,16 @@
++using ClinicScheduling.Application.Reminders;
++
++namespace ClinicScheduling.Application.Abstractions;
++
++/// <summary>Planned reminders waiting to be sent by the dispatch worker (ADR 0005).</summary>
++public interface IReminderOutbox
++{
++    Task ScheduleAsync(IEnumerable<PlannedReminder> reminders, CancellationToken cancellationToken);
++
++    /// <summary>Withdraws every unsent reminder of the appointment.</summary>
++    Task WithdrawAsync(Guid appointmentId, CancellationToken cancellationToken);
++
++    Task<IReadOnlyList<PlannedReminder>> DueAsync(DateTimeOffset now, int max, CancellationToken cancellationToken);
++
++    Task MarkSentAsync(Guid reminderId, CancellationToken cancellationToken);
++}
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index 308da7d..d62f505 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -1,5 +1,6 @@
+ using ClinicScheduling.Application.Availability;
+ using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Application.Series;
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Policies;
+@@ -12,11 +13,13 @@ public static class ApplicationServiceCollectionExtensions
+ {
+     public static IServiceCollection AddSchedulingApplication(this IServiceCollection services)
+     {
++        services.AddOptions<ReminderOptions>().BindConfiguration(ReminderOptions.SectionName);
+         services.AddSingleton(new SlotSearchOptions());
+         services.AddSingleton(new CancellationPolicyOptions());
+         services.AddSingleton<SlotFinder>();
+         services.AddSingleton<CancellationPolicy>();
+         services.AddSingleton<RecurrenceExpander>();
++        services.AddSingleton<ReminderPlanner>();
+         services.AddScoped<BookAppointmentHandler>();
+         services.AddScoped<CancelAppointmentHandler>();
+         services.AddScoped<RescheduleAppointmentHandler>();
+diff --git a/src/ClinicScheduling.Application/Booking/BookAppointment.cs b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+index 15405bd..238a878 100644
+--- a/src/ClinicScheduling.Application/Booking/BookAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+@@ -1,4 +1,5 @@
+ using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Policies;
+@@ -14,9 +15,11 @@ public sealed partial class BookAppointmentHandler(
+     IScheduleRepository schedules,
+     IAppointmentRepository appointments,
+     IPatientStrikeLedger strikes,
++    IReminderOutbox reminders,
+     SlotFinder slotFinder,
+     SlotSearchOptions searchOptions,
+     CancellationPolicy policy,
++    ReminderPlanner planner,
+     IClock clock,
+     ILogger<BookAppointmentHandler> logger)
+ {
+@@ -47,6 +50,7 @@ public sealed partial class BookAppointmentHandler(
+             command.PatientId, command.PractitionerId, command.ClinicId,
+             new TimeRange(command.Start, command.Start + command.Duration));
+         await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
++        await reminders.ScheduleAsync(planner.Plan(appointment, schedule.TimeZone), cancellationToken).ConfigureAwait(false);
+         LogBooked(appointment.Id, appointment.PractitionerId, appointment.Time.Start);
+         return Operation.Ok<Appointment>(appointment);
+     }
+diff --git a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+index 6606e92..91ba32f 100644
+--- a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+@@ -11,6 +11,7 @@ public sealed record CancelAppointmentCommand(Guid AppointmentId, CancellationRe
+ public sealed partial class CancelAppointmentHandler(
+     IAppointmentRepository appointments,
+     IPatientStrikeLedger strikes,
++    IReminderOutbox reminders,
+     CancellationPolicy policy,
+     IClock clock,
+     ILogger<CancelAppointmentHandler> logger)
+@@ -33,6 +34,7 @@ public sealed partial class CancelAppointmentHandler(
+         var decision = policy.EvaluateCancellation(appointment, command.Reason, now);
+         appointment.Cancel(command.Reason, now);
+         await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        await reminders.WithdrawAsync(appointment.Id, cancellationToken).ConfigureAwait(false);
+         if (decision.CountsAsStrike)
+         {
+             await strikes.RecordAsync(appointment.PatientId, now, cancellationToken).ConfigureAwait(false);
+diff --git a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+index 9787a55..1346d4e 100644
+--- a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+@@ -1,4 +1,5 @@
+ using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ 
+@@ -9,8 +10,10 @@ public sealed record RescheduleAppointmentCommand(Guid AppointmentId, DateTimeOf
+ public sealed class RescheduleAppointmentHandler(
+     IAppointmentRepository appointments,
+     IScheduleRepository schedules,
++    IReminderOutbox reminders,
+     SlotFinder slotFinder,
+-    SlotSearchOptions searchOptions)
++    SlotSearchOptions searchOptions,
++    ReminderPlanner planner)
+ {
+     public async Task<OperationResult<Appointment>> HandleAsync(RescheduleAppointmentCommand command, CancellationToken cancellationToken)
+     {
+@@ -44,6 +47,8 @@ public sealed class RescheduleAppointmentHandler(
+ 
+         appointment.Reschedule(new TimeRange(command.NewStart, command.NewStart + appointment.Time.Duration));
+         await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        await reminders.WithdrawAsync(appointment.Id, cancellationToken).ConfigureAwait(false);
++        await reminders.ScheduleAsync(planner.Plan(appointment, schedule.TimeZone), cancellationToken).ConfigureAwait(false);
+         return Operation.Ok<Appointment>(appointment);
+     }
+ }
+diff --git a/src/ClinicScheduling.Application/Reminders/PlannedReminder.cs b/src/ClinicScheduling.Application/Reminders/PlannedReminder.cs
+new file mode 100644
+index 0000000..457a52d
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Reminders/PlannedReminder.cs
+@@ -0,0 +1,9 @@
++namespace ClinicScheduling.Application.Reminders;
++
++public enum ReminderKind
++{
++    DayBefore,
++    SameDay,
++}
++
++public sealed record PlannedReminder(Guid Id, Guid AppointmentId, Guid PatientId, DateTimeOffset SendAt, ReminderKind Kind);
+diff --git a/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs b/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
+new file mode 100644
+index 0000000..60fc3ac
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
+@@ -0,0 +1,10 @@
++namespace ClinicScheduling.Application.Reminders;
++
++public sealed record ReminderOptions
++{
++    public const string SectionName = "Reminders";
++
++    public TimeSpan DayBeforeLead { get; init; } = TimeSpan.FromHours(48);
++
++    public TimeSpan SameDayLead { get; init; } = TimeSpan.FromHours(2);
++}
+diff --git a/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+new file mode 100644
+index 0000000..73f6201
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+@@ -0,0 +1,29 @@
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Time;
++using Microsoft.Extensions.Options;
++
++namespace ClinicScheduling.Application.Reminders;
++
++/// <summary>Decides when an appointment's reminders go out.</summary>
++public sealed class ReminderPlanner(IOptions<ReminderOptions> options, IClock clock)
++{
++    public IReadOnlyList<PlannedReminder> Plan(Appointment appointment, TimeZoneInfo zone)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        ArgumentNullException.ThrowIfNull(zone);
++
++        var settings = options.Value;
++        var now = clock.UtcNow;
++        var plan = new List<PlannedReminder>(2);
++        foreach (var (kind, lead) in new[] { (ReminderKind.DayBefore, settings.DayBeforeLead), (ReminderKind.SameDay, settings.SameDayLead) })
++        {
++            var sendAt = appointment.Time.Start - lead;
++            if (sendAt > now && sendAt < appointment.Time.Start)
++            {
++                plan.Add(new PlannedReminder(Guid.NewGuid(), appointment.Id, appointment.PatientId, sendAt, kind));
++            }
++        }
++
++        return plan;
++    }
++}
+diff --git a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+index 5f93a88..70d999d 100644
+--- a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
++++ b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+@@ -1,4 +1,5 @@
+ using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Recurrence;
+ 
+@@ -11,7 +12,9 @@ public sealed record BookTreatmentSeriesCommand(
+ public sealed class BookTreatmentSeriesHandler(
+     IScheduleRepository schedules,
+     IAppointmentRepository appointments,
+-    RecurrenceExpander expander)
++    IReminderOutbox reminders,
++    RecurrenceExpander expander,
++    ReminderPlanner planner)
+ {
+     public async Task<OperationResult<IReadOnlyList<Appointment>>> HandleAsync(BookTreatmentSeriesCommand command, CancellationToken cancellationToken)
+     {
+@@ -37,6 +40,7 @@ public sealed class BookTreatmentSeriesHandler(
+         {
+             var appointment = Appointment.Book(command.PatientId, command.PractitionerId, command.ClinicId, session, seriesId);
+             await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
++            await reminders.ScheduleAsync(planner.Plan(appointment, schedule.TimeZone), cancellationToken).ConfigureAwait(false);
+             created.Add(appointment);
+         }
+ 
+diff --git a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+index 1bafaca..fde28ca 100644
+--- a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+@@ -17,6 +17,7 @@ public static class InfrastructureServiceCollectionExtensions
+         services.AddSingleton<IAppointmentRepository, InMemoryAppointmentRepository>();
+         services.AddSingleton<IScheduleRepository, InMemoryScheduleRepository>();
+         services.AddSingleton<IPatientStrikeLedger, InMemoryStrikeLedger>();
++        services.AddSingleton<IReminderOutbox, InMemoryReminderOutbox>();
+         return services;
+     }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryReminderOutbox.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryReminderOutbox.cs
+new file mode 100644
+index 0000000..8674bbc
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryReminderOutbox.cs
+@@ -0,0 +1,40 @@
++using System.Collections.Concurrent;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Application.Reminders;
++
++namespace ClinicScheduling.Infrastructure.Persistence;
++
++public sealed class InMemoryReminderOutbox : IReminderOutbox
++{
++    private readonly ConcurrentDictionary<Guid, PlannedReminder> _pending = new();
++
++    public Task ScheduleAsync(IEnumerable<PlannedReminder> reminders, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(reminders);
++        foreach (var reminder in reminders)
++        {
++            _pending[reminder.Id] = reminder;
++        }
++
++        return Task.CompletedTask;
++    }
++
++    public Task WithdrawAsync(Guid appointmentId, CancellationToken cancellationToken)
++    {
++        foreach (var reminder in _pending.Values.Where(r => r.AppointmentId == appointmentId))
++        {
++            _pending.TryRemove(reminder.Id, out _);
++        }
++
++        return Task.CompletedTask;
++    }
++
++    public Task<IReadOnlyList<PlannedReminder>> DueAsync(DateTimeOffset now, int max, CancellationToken cancellationToken) =>
++        Task.FromResult<IReadOnlyList<PlannedReminder>>([.. _pending.Values.Where(r => r.SendAt <= now).OrderBy(r => r.SendAt).Take(max)]);
++
++    public Task MarkSentAsync(Guid reminderId, CancellationToken cancellationToken)
++    {
++        _pending.TryRemove(reminderId, out _);
++        return Task.CompletedTask;
++    }
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+index 3dd2189..fe8a54a 100644
+--- a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+@@ -1,10 +1,12 @@
+ using ClinicScheduling.Application;
+ using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Policies;
+ using ClinicScheduling.Infrastructure.Persistence;
+ using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Options;
+ using static ClinicScheduling.UnitTests.TestData;
+ 
+ namespace ClinicScheduling.UnitTests.Booking;
+@@ -15,28 +17,30 @@ public sealed class BookingHandlersTests
+     private readonly InMemoryScheduleRepository _schedules = new();
+     private readonly InMemoryAppointmentRepository _appointments = new();
+     private readonly InMemoryStrikeLedger _strikes = new();
++    private readonly InMemoryReminderOutbox _outbox = new();
+     private readonly CancellationPolicy _policy = new(new CancellationPolicyOptions());
+ 
+     private static CancellationToken Token => TestContext.Current.CancellationToken;
+ 
+     private BookAppointmentHandler Booker() => new(
+-        _schedules, _appointments, _strikes, new SlotFinder(new FixedHolidays(), _clock), new SlotSearchOptions(), _policy,
+-        _clock, NullLogger<BookAppointmentHandler>.Instance);
++        _schedules, _appointments, _strikes, _outbox, new SlotFinder(new FixedHolidays(), _clock), new SlotSearchOptions(), _policy,
++        new ReminderPlanner(Options.Create(new ReminderOptions()), _clock), _clock, NullLogger<BookAppointmentHandler>.Instance);
+ 
+     private CancelAppointmentHandler Canceller() =>
+-        new(_appointments, _strikes, _policy, _clock, NullLogger<CancelAppointmentHandler>.Instance);
++        new(_appointments, _strikes, _outbox, _policy, _clock, NullLogger<CancelAppointmentHandler>.Instance);
+ 
+     private static BookAppointmentCommand Command(Guid patientId, DateTimeOffset start) =>
+         new(patientId, PractitionerId, Guid.NewGuid(), start, TimeSpan.FromMinutes(30));
+ 
+     [Fact]
+-    public async Task BooksAnOpenSlot()
++    public async Task BooksAnOpenSlotAndPlansItsReminders()
+     {
+         await _schedules.UpsertAsync(Schedule(), Token);
+ 
+         var result = await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
+ 
+         Assert.Equal(OperationStatus.Ok, result.Status);
++        Assert.Equal(2, (await _outbox.DueAsync(At(Monday.AddDays(4), 0), 10, Token)).Count);
+     }
+ 
+     [Fact]
+@@ -75,4 +79,16 @@ public sealed class BookingHandlersTests
+ 
+         Assert.Equal(OperationStatus.Invalid, third.Status);
+     }
++
++    [Fact]
++    public async Task CancellingWithdrawsTheReminders()
++    {
++        await _schedules.UpsertAsync(Schedule(), Token);
++        var booked = await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
++        Assert.NotNull(booked.Value);
++
++        await Canceller().HandleAsync(new CancelAppointmentCommand(booked.Value.Id, CancellationReason.PatientRequest), Token);
++
++        Assert.Empty(await _outbox.DueAsync(At(Monday.AddDays(4), 0), 10, Token));
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+new file mode 100644
+index 0000000..34227d7
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+@@ -0,0 +1,37 @@
++using ClinicScheduling.Application.Reminders;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using Microsoft.Extensions.Options;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Reminders;
++
++public sealed class ReminderPlannerTests
++{
++    private readonly ReminderPlanner _planner = new(Options.Create(new ReminderOptions()), new FixedClock(Now));
++
++    private static Appointment At(DateTimeOffset start) =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(start, start.AddHours(1)));
++
++    [Fact]
++    public void PlansADayBeforeAndASameDayReminder()
++    {
++        var appointment = At(TestData.At(Monday.AddDays(3), 14));
++
++        var plan = _planner.Plan(appointment, TimeZoneInfo.Utc);
++
++        Assert.Equal(
++            [(ReminderKind.DayBefore, TestData.At(Monday.AddDays(1), 14)), (ReminderKind.SameDay, TestData.At(Monday.AddDays(3), 12))],
++            plan.Select(r => (r.Kind, r.SendAt)));
++    }
++
++    [Fact]
++    public void SkipsRemindersThatAreAlreadyDue()
++    {
++        var appointment = At(Now.AddHours(5));
++
++        var plan = _planner.Plan(appointment, TimeZoneInfo.Utc);
++
++        Assert.Equal([ReminderKind.SameDay], plan.Select(r => r.Kind));
++    }
++}

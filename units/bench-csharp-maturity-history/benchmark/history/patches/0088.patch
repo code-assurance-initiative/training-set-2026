@@ -1,0 +1,22 @@
+From b5fa9307abeb85ea0ed719f9bdad55b5ba368ad7 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 2 Jul 2026 09:20:45 +0200
+Subject: chore(notifications): reminder signature
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index be599d5..67b3402 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -23,7 +23,7 @@ public static class ReminderTexts
+                 [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
+                 [SameDayVideo] = "Your video appointment with {0} starts at {1}. Please open the link from your patient portal a few minutes early.",
+                 ["cancellation-fee"] = "Cancellations less than 24 hours before the appointment are charged.",
+-                ["signature"] = "Best regards, your physiotherapy clinic",
++                ["signature"] = "Kind regards, your physiotherapy clinic",
+             },
+             ["da"] = new Dictionary<string, string>
+             {

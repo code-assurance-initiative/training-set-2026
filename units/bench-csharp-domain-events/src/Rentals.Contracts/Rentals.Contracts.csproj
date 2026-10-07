@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rentals.Contracts</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rentals.Lending.Domain\Rentals.Lending.Domain.csproj" />
+    <ProjectReference Include="..\Rentals.Messaging\Rentals.Messaging.csproj" />
+    <ProjectReference Include="..\Rentals.SharedKernel\Rentals.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DocumentExport.Api/DocumentExport.Api.csproj" />
+    <Project Path="src/DocumentExport.Contracts/DocumentExport.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DocumentExport.IntegrationTests/DocumentExport.IntegrationTests.csproj" />
+    <Project Path="tests/DocumentExport.UnitTests/DocumentExport.UnitTests.csproj" />
+  </Folder>
+</Solution>

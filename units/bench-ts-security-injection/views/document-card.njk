@@ -1,0 +1,9 @@
+<article class="document-card" data-document-id="{{ document.id }}">
+  <h3><a href="{{ link }}">{{ document.title }}</a></h3>
+  <p class="document-card__meta">
+    <span class="document-card__number">{{ document.number }}</span>
+    <span class="document-card__collection">{{ document.collection }}</span>
+    <time datetime="{{ created }}">{{ created }}</time>
+    {% if document.pageCount %}<span>{{ document.pageCount }} pages</span>{% endif %}
+  </p>
+</article>

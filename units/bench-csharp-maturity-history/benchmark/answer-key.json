@@ -1,0 +1,5239 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-csharp-maturity-history",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Engineering maturity read from a scripted git history and the documentation: hotspots, knowledge silos, stale knowledge, hidden change coupling, ADR conformance and documentation drift in a small appointment-scheduling API",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "HOT-001",
+      "label": "must-fire",
+      "concept": "churn-complexity-hotspot",
+      "file": "src/ClinicScheduling.Domain/Availability/SlotFinder.cs",
+      "rationale": "The slot search is the most complex code in the service (one method with a cyclomatic complexity well above 15: opening hours, breaks, holidays, buffers, practitioner skills, telehealth and same-day cut-offs in one loop) and the most frequently changed production file: it is edited by four people across the whole history and again and again in the last quarter, most of those edits bug fixes. Frequent change landing on complex code is the textbook hotspot. Keyed on the file: churn is a property of the file, the complex method is where it lands."
+    },
+    {
+      "id": "SIL-001",
+      "label": "must-fire",
+      "concept": "knowledge-concentration",
+      "file": "src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs",
+      "subject": "src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs",
+      "rationale": "The cancellation and no-show policy (late-cancellation fees, strike counting, practitioner-initiated exemptions) is core domain logic that every booking change passes through, and every one of its commits, from creation to the latest change, is by one active author. Nobody else has ever changed or reviewed it in the history: a knowledge silo in the core. The subject is the file path, because a scanner may report concentration per author and name the file only in its message."
+    },
+    {
+      "id": "STL-001",
+      "label": "must-fire",
+      "concept": "knowledge-freshness",
+      "file": "src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs",
+      "subject": "src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs",
+      "rationale": "The recurrence module (RecurrenceRule + RecurrenceExpander: expanding a treatment series into dated sessions, moving sessions off public holidays) was written in one commit at the start of the history by an author who left the team in May, and nobody has touched it since - almost nine months - while the code that uses it (the series booking handler) kept changing, in four commits by three other people. Nobody active has living knowledge of it. Keyed on the expander, the module's main file (RecurrenceRule.cs, its other file, carries no label for this concept: a result there is the same finding); the subject is its path because a scanner may name stale files only in a summary message."
+    },
+    {
+      "id": "CPL-001",
+      "label": "must-fire",
+      "concept": "change-coupling",
+      "file": "src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs",
+      "rationale": "AppointmentResponse (the API's public appointment shape, in the Api project) and PortalAppointmentFeed (src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs, the JSON feed pushed to the patient portal, in the Infrastructure project) encode the same public view of an appointment independently - field names, status vocabulary, time formatting - with no code dependency between them. Every field added to one has had to be added to the other in the same commit, across a module boundary: hidden change coupling. A pair is keyed on its lexicographically first path. PortalAppointmentFeed.cs carries no label for this concept: a result located there is the same pair."
+    },
+    {
+      "id": "ADR-001",
+      "label": "must-fire",
+      "concept": "adr-conformance",
+      "file": "docs/adr/0004-minimal-api-endpoints.md",
+      "rationale": "ADR 0004 (Accepted, never superseded) decides that HTTP endpoints are Minimal API route groups and that MVC controllers are not used. The code contradicts it: src/ClinicScheduling.Api/Controllers/ReportsController.cs is an MVC ControllerBase controller, registered with AddControllers/MapControllers. Keyed on the ADR whose decision is broken. ReportsController.cs carries no label for this concept: a result located there is the same violation."
+    },
+    {
+      "id": "DOC-001",
+      "label": "must-fire",
+      "concept": "documentation-accuracy",
+      "rationale": "README.md still describes the module for back-filling cancelled slots from a queue of waiting patients: a section of its own, two endpoints, and a row in the project map naming its project. That module was removed in release 0.4.0 (see the CHANGELOG's 'Removed' entry); no project, directory, type or endpoint of it exists any more. Repository-level, because a scanner may report README drift without a line; README.md carries no clean label for this concept, so a README-located result lands here too. (The module's name is deliberately not spelled out in this key: a JSON file in the tree that names it would read as evidence that it exists.)"
+    },
+    {
+      "id": "REL-001",
+      "label": "must-fire",
+      "concept": "release-hygiene",
+      "file": "CHANGELOG.md",
+      "rationale": "The changelog stops at 0.4.0, but the project has since released 0.5.0 and 0.6.0 (git tags v0.5.0 and v0.6.0 on main; <Version>0.6.0</Version> in Directory.Build.props). The two latest releases are undocumented: a reader of the changelog cannot learn what changed in them."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "churn-complexity-hotspot",
+      "file": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "rationale": "A large generated file (a public-holiday table emitted by tools/holidays/generate-holidays.sh from tools/holidays/holidays.csv, with an auto-generated banner), committed once and never changed. Size is not complexity, and a file nobody edits has no churn: not a hotspot."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "knowledge-freshness",
+      "file": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "subject": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "rationale": "The same generated table was committed nine months ago by an author who has since left, so by age and authorship it looks orphaned. But nobody needs living knowledge of generated output: what there is to know lives in the generator script and its CSV, and regenerating it is a documented one-liner. Not lost knowledge."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "knowledge-concentration",
+      "file": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "subject": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "rationale": "Single-author because it is generated in one go; ownership of a generated file is ownership of its generator, not a knowledge silo."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "churn-complexity-hotspot",
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs",
+      "rationale": "The reminder text catalogue (English, Danish and German message strings in dictionaries) is one of the most frequently changed production files - ten commits by four people: wording fixes, new message keys with each feature - but it has no control flow at all. Frequent change of trivial data is not a hotspot."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "change-coupling",
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs",
+      "rationale": "The text catalogue co-changes with the reminder composer that reads it whenever a new message is added. That coupling is explicit (the composer references the catalogue) and expected: a shared string resource changes with the feature that needs a new string."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "change-coupling",
+      "file": "tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs",
+      "rationale": "The slot finder's tests change in nearly every commit that changes the slot finder. A test changing with its subject is the expected coupling of a test-first team, not hidden coupling."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "knowledge-concentration",
+      "file": "src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs",
+      "subject": "src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs",
+      "rationale": "A single-author file, but a leaf utility: an RFC 5545 iCalendar writer (escaping and 75-octet line folding) that depends on nothing in the system, is depended on by one endpoint, and is pinned by its own thorough unit tests. Its behaviour is specified by a public standard and by the tests; one author of such a utility is not a knowledge risk a reviewer would act on."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "adr-conformance",
+      "file": "docs/adr/0003-clock-abstraction.md",
+      "rationale": "ADR 0003 decided on a custom IClock abstraction; the code has no IClock and uses TimeProvider instead. That is not a violation: ADR 0003 is marked 'Superseded by ADR 0006', and ADR 0006 (TimeProvider) is what the code follows. A superseded decision no longer binds the code."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "churn-complexity-hotspot",
+      "file": "src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs",
+      "rationale": "Changed often (every policy tweak), but made of small, flat methods with low complexity. Churn without complexity is ordinary maintenance, not a hotspot. (Its single authorship is SIL-001, a different concept.)"
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "suppressed-diagnostic",
+      "file": ".editorconfig",
+      "lines": [
+        36,
+        37
+      ],
+      "rationale": "CA2007 (ConfigureAwait) is switched off at the repository root with its reason on the line above: tests must not call ConfigureAwait(false) (xUnit1030), and src/.editorconfig switches it back on as a warning for all production code. A scoped, documented suppression is good practice, not hidden debt. Promoted from a scanner false positive in scan iteration 1 (the same site is a trap in other benchmark repositories)."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "churn-complexity-hotspot",
+      "band": [
+        40,
+        85
+      ],
+      "rationale": "One pronounced hotspot (HOT-001) that draws a large share of the last quarter's commits, most of them fixes; the rest of the churn lands on simple files. A clear but contained deduction."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "knowledge-concentration",
+      "band": [
+        50,
+        90
+      ],
+      "rationale": "A five-person team over nine months; ownership of the significant files is shared except for one core silo (SIL-001) and one leaf utility (TRP-007). A moderate deduction for the silo."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "knowledge-freshness",
+      "band": [
+        50,
+        90
+      ],
+      "rationale": "One stale module (STL-001, two files) whose author has left; everything else is recently and jointly maintained. The generated holiday table (TRP-002) is not lost knowledge."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "change-coupling",
+      "band": [
+        40,
+        90
+      ],
+      "rationale": "One hidden cross-module coupled pair (CPL-001) among about fifty production files; the other co-changes are explicit dependencies or tests changing with their subject."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "readme-quality",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "A substantive README with build/run, testing, configuration and architecture sections, maintained during the history. One stale section is an accuracy defect (DOC-001), not an absence of documentation."
+    },
+    {
+      "id": "BND-006",
+      "label": "score-band",
+      "concept": "architecture-documentation",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "docs/architecture.md with a Mermaid diagram, and six ADRs (one superseded and marked so)."
+    },
+    {
+      "id": "BND-007",
+      "label": "score-band",
+      "concept": "documentation-quality",
+      "band": [
+        50,
+        95
+      ],
+      "rationale": "Model-judged. Clear README, architecture overview and ADRs, but the README carries a section about a removed feature. Wide band for judge variance."
+    },
+    {
+      "id": "BND-008",
+      "label": "score-band",
+      "concept": "adr-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged. Every ADR has status, context, decision and consequences; the superseded one names its successor. Wide band."
+    },
+    {
+      "id": "BND-009",
+      "label": "score-band",
+      "concept": "adr-conformance",
+      "band": [
+        30,
+        85
+      ],
+      "rationale": "Model-judged. One of six ADRs is contradicted by the code (ADR-001); the others are followed or are process decisions. Wide band."
+    },
+    {
+      "id": "BND-010",
+      "label": "score-band",
+      "concept": "documentation-accuracy",
+      "band": [
+        20,
+        80
+      ],
+      "rationale": "Model-judged. The README describes a module that no longer exists (DOC-001); the rest of it matches the code. Wide band."
+    },
+    {
+      "id": "BND-011",
+      "label": "score-band",
+      "concept": "release-hygiene",
+      "band": [
+        30,
+        80
+      ],
+      "rationale": "A changelog, a <Version> property and release tags exist, but the changelog misses the two latest releases (REL-001)."
+    },
+    {
+      "id": "BND-012",
+      "label": "score-band",
+      "concept": "folder-structure",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "src/ and tests/ separation and one root namespace prefix (ClinicScheduling) for every project."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": ".editorconfig",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": ".gitignore",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "folder-structure"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts. Not certified for release-hygiene: see REL-001."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "ClinicScheduling.slnx",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "Directory.Build.props",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "Directory.Packages.props",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "LICENSE",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "README.md",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts. Not certified for documentation-quality, documentation-accuracy: see DOC-001."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/README.md",
+      "rationale": "Benchmark documentation, labels and tooling; not part of the service."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/answer-key.json",
+      "rationale": "Benchmark documentation, labels and tooling; not part of the service."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/build-history.sh",
+      "rationale": "Benchmark documentation, labels and tooling; not part of the service."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0001.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0002.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0003.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0004.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0005.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0006.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0007.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0008.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0009.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0010.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0011.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0012.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0013.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0014.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0015.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0016.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0017.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0018.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0019.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0020.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0021.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0022.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0023.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0024.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0025.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0026.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0027.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0028.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0029.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0030.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0031.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0032.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0033.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0034.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0035.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0036.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0037.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0038.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0039.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0040.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0041.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0042.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0043.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0044.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0045.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0046.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0047.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0048.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0049.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0050.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0051.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0052.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0053.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0054.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0055.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0056.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0057.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0058.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0059.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0060.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0061.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0062.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0063.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0064.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0065.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0066.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0067.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0068.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0069.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0070.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0071.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0072.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-088",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0073.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-089",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0074.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-090",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0075.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-091",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0076.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-092",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0077.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-093",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0078.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-094",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0079.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-095",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0080.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-096",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0081.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-097",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0082.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-098",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0083.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-099",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0084.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-100",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0085.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-101",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0086.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-102",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0087.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-103",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0088.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-104",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0089.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-105",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0090.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-106",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0091.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-107",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0092.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-108",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0093.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-109",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0094.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-110",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0095.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-111",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0096.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-112",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0097.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-113",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0098.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-114",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0099.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-115",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0100.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-116",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0101.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-117",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0102.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-118",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0103.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-119",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0104.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-120",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0105.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-121",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0106.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-122",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0107.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-123",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0108.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-124",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0109.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-125",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0110.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-126",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0111.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-127",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0112.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-128",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0113.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-129",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0114.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-130",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0115.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-131",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0116.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-132",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0117.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-133",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0118.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-134",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0119.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-135",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/history/patches/0120.patch",
+      "rationale": "One commit of the scripted history as a patch (benchmark tooling, data only); nothing to measure for these concepts."
+    },
+    {
+      "id": "CLN-136",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "benchmark/journal.md",
+      "rationale": "Benchmark documentation, labels and tooling; not part of the service."
+    },
+    {
+      "id": "CLN-137",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0001-record-architecture-decisions.md",
+      "rationale": "Accurate decision record or architecture document for these concepts."
+    },
+    {
+      "id": "CLN-138",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0002-layered-solution.md",
+      "rationale": "Accurate decision record or architecture document for these concepts."
+    },
+    {
+      "id": "CLN-139",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0003-clock-abstraction.md",
+      "rationale": "Accurate decision record or architecture document for these concepts. Not certified for adr-conformance: see TRP-008."
+    },
+    {
+      "id": "CLN-140",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0004-minimal-api-endpoints.md",
+      "rationale": "Accurate decision record or architecture document for these concepts. Not certified for adr-conformance: see ADR-001."
+    },
+    {
+      "id": "CLN-141",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0005-reminders-through-an-outbox.md",
+      "rationale": "Accurate decision record or architecture document for these concepts."
+    },
+    {
+      "id": "CLN-142",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/adr/0006-timeprovider.md",
+      "rationale": "Accurate decision record or architecture document for these concepts."
+    },
+    {
+      "id": "CLN-143",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "Accurate decision record or architecture document for these concepts. Not certified for documentation-accuracy: not certified for documentation accuracy: it calls the API project \"Minimal API endpoints\", which the reports controller (ADR-001) makes not quite true."
+    },
+    {
+      "id": "CLN-144",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "global.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-145",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/.editorconfig",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-146",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/ClinicScheduling.Api.csproj",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-147",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for change-coupling: see CPL-001."
+    },
+    {
+      "id": "CLN-148",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-149",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/BookSeriesRequest.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-150",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-151",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/CancellationResponse.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-152",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/RequestErrors.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-153",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/RescheduleAppointmentRequest.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-154",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-155",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Contracts/SlotResponse.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-156",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Controllers/ReportsController.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for adr-conformance: see ADR-001 (the violating code)."
+    },
+    {
+      "id": "CLN-157",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-158",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-159",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/EndpointResults.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-160",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-161",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-162",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Endpoints/SeriesEndpoints.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-163",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-164",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-165",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Program.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-166",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-167",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Security/ConfigureJwtBearerOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-168",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Security/JwtAuthenticationOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-169",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Security/ScopeClaims.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-170",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-171",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/appsettings.Development.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-172",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/appsettings.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-173",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Api/packages.lock.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-174",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-175",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Abstractions/IPatientStrikeLedger.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-176",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Abstractions/IReminderOutbox.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-177",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Abstractions/IScheduleRepository.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-178",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-179",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Availability/FindSlots.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-180",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Booking/BookAppointment.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-181",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Booking/CancelAppointment.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-182",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Booking/RecordNoShow.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-183",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-184",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/ClinicScheduling.Application.csproj",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-185",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/OperationResult.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-186",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Reminders/PlannedReminder.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-187",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Reminders/ReminderOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-188",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-189",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-190",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Application/packages.lock.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-191",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Appointments/Appointment.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-192",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-193",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Appointments/CancellationReason.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-194",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-195",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/Slot.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-196",
+      "label": "clean",
+      "concepts": [
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/SlotFinder.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for churn-complexity-hotspot: see HOT-001."
+    },
+    {
+      "id": "CLN-197",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/SlotQuery.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-198",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-199",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/TimeRange.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-200",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Availability/WeeklyHours.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-201",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/ClinicScheduling.Domain.csproj",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-202",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Holidays/IHolidayCalendar.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-203",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Policies/CancellationDecision.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-204",
+      "label": "clean",
+      "concepts": [
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for churn-complexity-hotspot, knowledge-concentration: see SIL-001, TRP-009."
+    },
+    {
+      "id": "CLN-205",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-206",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for knowledge-freshness: see STL-001."
+    },
+    {
+      "id": "CLN-207",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/Recurrence/RecurrenceRule.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for knowledge-freshness: see STL-001 (same module)."
+    },
+    {
+      "id": "CLN-208",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Domain/packages.lock.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-209",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for knowledge-concentration: see TRP-007."
+    },
+    {
+      "id": "CLN-210",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/ClinicScheduling.Infrastructure.csproj",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-211",
+      "label": "clean",
+      "concepts": [
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for churn-complexity-hotspot, knowledge-concentration, knowledge-freshness: see TRP-001..003."
+    },
+    {
+      "id": "CLN-212",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Holidays/TableHolidayCalendar.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-213",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-214",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ISmsSender.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-215",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/LoggingSmsSender.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-216",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-217",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-218",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-219",
+      "label": "clean",
+      "concepts": [
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for churn-complexity-hotspot, change-coupling: see TRP-004, TRP-005."
+    },
+    {
+      "id": "CLN-220",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters. Not certified for change-coupling: see CPL-001 (same pair)."
+    },
+    {
+      "id": "CLN-221",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-222",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Persistence/InMemoryReminderOutbox.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-223",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Persistence/InMemoryScheduleRepository.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-224",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/Persistence/InMemoryStrikeLedger.cs",
+      "rationale": "Production code whose history and documentation are healthy for these concepts: changed by more than one active person, not a hotspot, not hidden-coupled, documented where it matters."
+    },
+    {
+      "id": "CLN-225",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "src/ClinicScheduling.Infrastructure/packages.lock.json",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-226",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/ApiClient.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-227",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-228",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/ClinicScheduling.IntegrationTests.csproj",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-229",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-230",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/ReportsAndPortalTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-231",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/Responses.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-232",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-233",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/TestTokens.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-234",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.IntegrationTests/packages.lock.json",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-235",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-236",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected. Not certified for change-coupling: see TRP-006."
+    },
+    {
+      "id": "CLN-237",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-238",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-239",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-240",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Holidays/TableHolidayCalendarTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-241",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-242",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-243",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-244",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceExpanderTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-245",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceRuleTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-246",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-247",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/TestData.cs",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-248",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tests/ClinicScheduling.UnitTests/packages.lock.json",
+      "rationale": "Test code; tests are not production knowledge, hotspots or coupling, and they change with their subjects as expected."
+    },
+    {
+      "id": "CLN-249",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tools/holidays/generate-holidays.sh",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    },
+    {
+      "id": "CLN-250",
+      "label": "clean",
+      "concepts": [
+        "churn-complexity-hotspot",
+        "knowledge-concentration",
+        "knowledge-freshness",
+        "change-coupling",
+        "adr-conformance",
+        "adr-quality",
+        "documentation-quality",
+        "documentation-accuracy",
+        "readme-quality",
+        "architecture-documentation",
+        "release-hygiene",
+        "folder-structure"
+      ],
+      "file": "tools/holidays/holidays.csv",
+      "rationale": "Build, CI, configuration or repository documentation; nothing defective for these concepts."
+    }
+  ]
+}

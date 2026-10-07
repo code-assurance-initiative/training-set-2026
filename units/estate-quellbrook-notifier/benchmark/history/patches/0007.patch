@@ -1,0 +1,314 @@
+From 070efff16a51f89df13f7e71df5be1ed6245cc2a Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Tue, 4 Aug 2026 11:37:50 +0200
+Subject: build: container image and Kubernetes manifests
+
+---
+ .dockerignore                      | 11 ++++
+ deploy/k8s/deployment.yaml         | 99 ++++++++++++++++++++++++++++++
+ deploy/k8s/external-secret.yaml    | 40 ++++++++++++
+ deploy/k8s/namespace.yaml          | 12 ++++
+ deploy/k8s/networkpolicy.yaml      | 74 ++++++++++++++++++++++
+ src/Quellbrook.Notifier/Dockerfile | 22 +++++++
+ 6 files changed, 258 insertions(+)
+ create mode 100644 .dockerignore
+ create mode 100644 deploy/k8s/deployment.yaml
+ create mode 100644 deploy/k8s/external-secret.yaml
+ create mode 100644 deploy/k8s/namespace.yaml
+ create mode 100644 deploy/k8s/networkpolicy.yaml
+ create mode 100644 src/Quellbrook.Notifier/Dockerfile
+
+diff --git a/.dockerignore b/.dockerignore
+new file mode 100644
+index 0000000..66a32b5
+--- /dev/null
++++ b/.dockerignore
+@@ -0,0 +1,11 @@
++**/bin/
++**/obj/
++**/TestResults/
++.git/
++.github/
++deploy/
++docs/
++tests/
++benchmark/
++contracts/
++*.md
+diff --git a/deploy/k8s/deployment.yaml b/deploy/k8s/deployment.yaml
+new file mode 100644
+index 0000000..10343b8
+--- /dev/null
++++ b/deploy/k8s/deployment.yaml
+@@ -0,0 +1,99 @@
++apiVersion: v1
++kind: ServiceAccount
++metadata:
++  name: quellbrook-notifier
++  namespace: quellbrook-notifier
++automountServiceAccountToken: false
++---
++apiVersion: apps/v1
++kind: Deployment
++metadata:
++  name: quellbrook-notifier
++  namespace: quellbrook-notifier
++  labels:
++    app.kubernetes.io/name: quellbrook-notifier
++    app.kubernetes.io/part-of: quellbrook
++spec:
++  replicas: 2
++  revisionHistoryLimit: 5
++  strategy:
++    type: RollingUpdate
++    rollingUpdate:
++      maxUnavailable: 0
++      maxSurge: 1
++  selector:
++    matchLabels:
++      app.kubernetes.io/name: quellbrook-notifier
++  template:
++    metadata:
++      annotations:
++        linkerd.io/inject: enabled
++      labels:
++        app.kubernetes.io/name: quellbrook-notifier
++        app.kubernetes.io/part-of: quellbrook
++    spec:
++      serviceAccountName: quellbrook-notifier
++      automountServiceAccountToken: false
++      terminationGracePeriodSeconds: 45
++      securityContext:
++        runAsNonRoot: true
++        runAsUser: 10001
++        runAsGroup: 10001
++        fsGroup: 10001
++        seccompProfile:
++          type: RuntimeDefault
++      containers:
++        - name: worker
++          image: ghcr.io/code-assurance-initiative/quellbrook-notifier@sha256:bee769e4eafdb6d93c28d7bf780d5f2cc83091859b8458835b0aa4ae75448aa5
++          imagePullPolicy: IfNotPresent
++          env:
++            - name: DOTNET_ENVIRONMENT
++              value: Production
++            - name: OTEL_EXPORTER_OTLP_ENDPOINT
++              value: http://otel-collector.observability.svc:4317
++            - name: ConnectionStrings__Notifier
++              valueFrom:
++                secretKeyRef:
++                  name: quellbrook-notifier-db
++                  key: connection-string
++            - name: RabbitMq__UserName
++              valueFrom:
++                secretKeyRef:
++                  name: quellbrook-notifier-broker
++                  key: username
++            - name: RabbitMq__Password
++              valueFrom:
++                secretKeyRef:
++                  name: quellbrook-notifier-broker
++                  key: password
++          # The heartbeat file is rewritten after every health-check round that is not Unhealthy (every 30 s).
++          readinessProbe:
++            exec:
++              command: ["/bin/sh", "-c", "find /tmp/heartbeat -mmin -2 | grep -q ."]
++            initialDelaySeconds: 40
++            periodSeconds: 30
++          livenessProbe:
++            exec:
++              command: ["/bin/sh", "-c", "find /tmp/heartbeat -mmin -5 | grep -q ."]
++            initialDelaySeconds: 60
++            periodSeconds: 60
++            failureThreshold: 3
++          resources:
++            requests:
++              cpu: 50m
++              memory: 160Mi
++            limits:
++              cpu: 500m
++              memory: 320Mi
++          securityContext:
++            allowPrivilegeEscalation: false
++            readOnlyRootFilesystem: true
++            capabilities:
++              drop: ["ALL"]
++          volumeMounts:
++            - name: tmp
++              mountPath: /tmp
++      volumes:
++        - name: tmp
++          emptyDir:
++            sizeLimit: 16Mi
+diff --git a/deploy/k8s/external-secret.yaml b/deploy/k8s/external-secret.yaml
+new file mode 100644
+index 0000000..27c7130
+--- /dev/null
++++ b/deploy/k8s/external-secret.yaml
+@@ -0,0 +1,40 @@
++# Credentials live in the platform's secret store; External Secrets Operator materialises them as Kubernetes Secrets.
++apiVersion: external-secrets.io/v1
++kind: ExternalSecret
++metadata:
++  name: quellbrook-notifier-db
++  namespace: quellbrook-notifier
++spec:
++  refreshInterval: 1h
++  secretStoreRef:
++    kind: ClusterSecretStore
++    name: quellbrook-vault
++  target:
++    name: quellbrook-notifier-db
++  data:
++    - secretKey: connection-string
++      remoteRef:
++        key: notifier/postgres
++        property: connection-string
++---
++apiVersion: external-secrets.io/v1
++kind: ExternalSecret
++metadata:
++  name: quellbrook-notifier-broker
++  namespace: quellbrook-notifier
++spec:
++  refreshInterval: 1h
++  secretStoreRef:
++    kind: ClusterSecretStore
++    name: quellbrook-vault
++  target:
++    name: quellbrook-notifier-broker
++  data:
++    - secretKey: username
++      remoteRef:
++        key: notifier/rabbitmq
++        property: username
++    - secretKey: password
++      remoteRef:
++        key: notifier/rabbitmq
++        property: password
+diff --git a/deploy/k8s/namespace.yaml b/deploy/k8s/namespace.yaml
+new file mode 100644
+index 0000000..fefeddc
+--- /dev/null
++++ b/deploy/k8s/namespace.yaml
+@@ -0,0 +1,12 @@
++apiVersion: v1
++kind: Namespace
++metadata:
++  name: quellbrook-notifier
++  annotations:
++    # Every pod gets the mesh sidecar: in-cluster traffic is mutual TLS (docs/architecture.md).
++    linkerd.io/inject: enabled
++  labels:
++    app.kubernetes.io/part-of: quellbrook
++    quellbrook.example/team: customer-comms
++    pod-security.kubernetes.io/enforce: restricted
++    pod-security.kubernetes.io/enforce-version: latest
+diff --git a/deploy/k8s/networkpolicy.yaml b/deploy/k8s/networkpolicy.yaml
+new file mode 100644
+index 0000000..7968291
+--- /dev/null
++++ b/deploy/k8s/networkpolicy.yaml
+@@ -0,0 +1,74 @@
++# Default deny in both directions, then one allowance per real flow. The worker accepts no connections.
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: default-deny
++  namespace: quellbrook-notifier
++spec:
++  podSelector: {}
++  policyTypes: ["Ingress", "Egress"]
++---
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: allow-dns
++  namespace: quellbrook-notifier
++spec:
++  podSelector: {}
++  policyTypes: ["Egress"]
++  egress:
++    - to:
++        - namespaceSelector:
++            matchLabels:
++              kubernetes.io/metadata.name: kube-system
++          podSelector:
++            matchLabels:
++              k8s-app: kube-dns
++      ports:
++        - protocol: UDP
++          port: 53
++        - protocol: TCP
++          port: 53
++---
++apiVersion: networking.k8s.io/v1
++kind: NetworkPolicy
++metadata:
++  name: worker-egress
++  namespace: quellbrook-notifier
++spec:
++  podSelector:
++    matchLabels:
++      app.kubernetes.io/name: quellbrook-notifier
++  policyTypes: ["Egress"]
++  egress:
++    # PostgreSQL
++    - to:
++        - ipBlock:
++            cidr: 10.20.8.0/24
++      ports:
++        - protocol: TCP
++          port: 5432
++    # RabbitMQ (amqps)
++    - to:
++        - namespaceSelector:
++            matchLabels:
++              kubernetes.io/metadata.name: messaging
++      ports:
++        - protocol: TCP
++          port: 5671
++    # The telemetry collector
++    - to:
++        - namespaceSelector:
++            matchLabels:
++              kubernetes.io/metadata.name: observability
++      ports:
++        - protocol: TCP
++          port: 4317
++    # The e-mail and SMS providers (HTTPS, outside the cluster)
++    - to:
++        - ipBlock:
++            cidr: 0.0.0.0/0
++            except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
++      ports:
++        - protocol: TCP
++          port: 443
+diff --git a/src/Quellbrook.Notifier/Dockerfile b/src/Quellbrook.Notifier/Dockerfile
+new file mode 100644
+index 0000000..fce70fe
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Dockerfile
+@@ -0,0 +1,22 @@
++# syntax=docker/dockerfile:1
++# Build from the repository root:
++#   docker build -f src/Quellbrook.Notifier/Dockerfile -t ghcr.io/code-assurance-initiative/quellbrook-notifier .
++#
++# Base images are pinned by digest (the 10.0 tag at the last bump); Dependabot proposes the next digest.
++# No HEALTHCHECK: the image runs only on Kubernetes, which ignores it; the exec probes on the heartbeat file live in
++# deploy/k8s/deployment.yaml.
++FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:e70cdb7f80b0348f5cb85f19a8f670fca061f033d57eed12fa003d58b0e06317 AS build
++WORKDIR /src
++COPY global.json Directory.Build.props Directory.Packages.props .editorconfig ./
++COPY src/.editorconfig src/
++COPY src/Quellbrook.Notifier/Quellbrook.Notifier.csproj src/Quellbrook.Notifier/packages.lock.json src/Quellbrook.Notifier/
++RUN dotnet restore src/Quellbrook.Notifier/Quellbrook.Notifier.csproj --locked-mode
++COPY src/ src/
++RUN dotnet publish src/Quellbrook.Notifier/Quellbrook.Notifier.csproj -c Release --no-restore -o /app
++
++FROM mcr.microsoft.com/dotnet/runtime:10.0@sha256:b89586dc17781f25531909993658aa8161205ae38b8cec8847df4a8221a403d5 AS runtime
++WORKDIR /app
++COPY --from=build /app ./
++# An unprivileged UID above any host account range, by number so the kubelet can verify runAsNonRoot.
++USER 10001:10001
++ENTRYPOINT ["dotnet", "Quellbrook.Notifier.dll"]

@@ -1,0 +1,66 @@
+@page "/rooms/{Slug}"
+@inject IRoomCatalog Catalog
+@inject NavigationManager Navigation
+
+@if (_room is null)
+{
+    <PageTitle>Room not found · Harbour Lane Community Centre</PageTitle>
+    <h1>Room not found</h1>
+    <p>There is no room at this address. <a href="rooms">See all rooms</a>.</p>
+}
+else
+{
+    <PageTitle>@_room.Name · Harbour Lane Community Centre</PageTitle>
+    <h1>@_room.Name</h1>
+    <p class="hint">@_room.Floor · up to @_room.Capacity people · @Money.PerHour(_room.HourlyRate)</p>
+
+    <div class="gallery">
+        @if (_photo is not null)
+        {
+            <img class="gallery-photo" src="@_photo.Url" width="800" height="500" />
+        }
+        <ul class="gallery-thumbs">
+            @foreach (var photo in _room.Photos)
+            {
+                <li>
+                    <button type="button" class="gallery-thumb" aria-pressed="@PressedState(photo)" @onclick="() => _photo = photo">
+                        <img src="@photo.Url" alt="@photo.Caption" width="120" height="75" />
+                    </button>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <section aria-labelledby="about-room">
+        <h2 id="about-room">About the room</h2>
+        <div class="room-description">@((MarkupString)_room.DescriptionHtml)</div>
+    </section>
+
+    @if (_room.TourVideoUrl is { } tour)
+    {
+        <RoomTourVideo Url="@tour" RoomName="@_room.Name" />
+    }
+
+    <RoomMap AreaId="@_room.MapAreaId" />
+
+    <p class="room-actions">
+        <a class="button" href="book/@_room.Slug">Book the @_room.Name</a>
+        <CopyLinkButton Url="@Navigation.Uri" Label="Copy a link to this room" />
+    </p>
+}
+
+@code {
+    private Room? _room;
+    private RoomPhoto? _photo;
+
+    private string PressedState(RoomPhoto photo) => photo == _photo ? "true" : "false";
+
+    [Parameter]
+    public string Slug { get; set; } = string.Empty;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _room = await Catalog.FindBySlugAsync(Slug, CancellationToken.None);
+        _photo = _room?.Photos.FirstOrDefault();
+    }
+}

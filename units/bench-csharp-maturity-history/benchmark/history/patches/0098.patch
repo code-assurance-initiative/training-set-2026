@@ -1,0 +1,51 @@
+From 0677ba94b901f8056dd057e52edeecb3597ca7a2 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Thu, 30 Jul 2026 11:45:19 +0200
+Subject: fix(availability): cap the number of slots returned
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs       | 5 +++++
+ .../Availability/SlotSearchOptions.cs                        | 2 ++
+ .../Availability/SlotFinderTests.cs                          | 2 +-
+ 3 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 3a47a8d..c34db03 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -92,6 +92,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                     }
+ 
+                     slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End, query.Telehealth));
++                    if (slots.Count >= options.MaxResults)
++                    {
++                        return slots;
++                    }
++
+                     cursor += options.Granularity;
+                 }
+             }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+index 2fd0f65..8759b26 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -18,4 +18,6 @@ public sealed record SlotSearchOptions
+     public TimeOnly SameDayCutoff { get; init; } = new(14, 0);
+ 
+     public int MaxDaysAhead { get; init; } = 60;
++
++    public int MaxResults { get; init; } = 200;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 88d7ccd..aa5d3da 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -103,7 +103,7 @@ public sealed class SlotFinderTests
+     {
+         var query = new SlotQuery(Monday.AddDays(1), Monday.AddDays(30), HalfHour);
+ 
+-        var slots = Finder().FindOpenSlots(Schedule(), [], query, new SlotSearchOptions { MaxDaysAhead = 2 });
++        var slots = Finder().FindOpenSlots(Schedule(), [], query, new SlotSearchOptions { MaxDaysAhead = 2, MaxResults = 1000 });
+ 
+         Assert.All(slots, s => Assert.True(s.Start < At(Monday.AddDays(3), 0)));
+     }

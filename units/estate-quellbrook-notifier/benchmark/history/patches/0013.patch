@@ -1,0 +1,23 @@
+From a033c7cf647a114975fc8d1cbcba5ab046d6427a Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Tue, 18 Aug 2026 17:52:36 +0200
+Subject: chore(email): send from the staging environment
+
+Staging had no provider key, so no e-mail left it; this lets QA see the delivery-day messages.
+---
+ src/Quellbrook.Notifier/appsettings.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/Quellbrook.Notifier/appsettings.json b/src/Quellbrook.Notifier/appsettings.json
+index ad8e8af..b86be77 100644
+--- a/src/Quellbrook.Notifier/appsettings.json
++++ b/src/Quellbrook.Notifier/appsettings.json
+@@ -12,7 +12,7 @@
+   },
+   "EmailProvider": {
+     "BaseAddress": "https://api.sendgrid.com/",
+-    "ApiKey": "",
++    "ApiKey": "@@REDACTED_SECRET@@",
+     "FromAddress": "deliveries@quellbrook.example",
+     "FromName": "Quellbrook Freight"
+   },

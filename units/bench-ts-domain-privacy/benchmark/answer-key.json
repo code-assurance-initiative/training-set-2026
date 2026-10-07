@@ -1,0 +1,2950 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-ts-domain-privacy",
+  "keyVersion": "1.0.1",
+  "languages": [
+    "typescript"
+  ],
+  "theme": "Domain modelling, vertical slices and personal-data handling in a small TypeScript fitness-club service (Membership and Billing bounded contexts)",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "AGG-001",
+      "label": "must-fire",
+      "concept": "cross-aggregate-object-reference",
+      "file": "src/membership/domain/classes/class-booking.ts",
+      "lines": [
+        10,
+        11
+      ],
+      "rationale": "The ClassBooking aggregate holds the Member aggregate itself instead of its MemberId: the booking store loads the whole member (name, contact details, consents) with every booking, and code holding a booking can change the member outside the member's own consistency boundary. A booking needs the member's identity, not the member."
+    },
+    {
+      "id": "STI-001",
+      "label": "must-fire",
+      "concept": "primitive-entity-identifier",
+      "file": "src/billing/domain/invoices/invoice.ts",
+      "lines": [
+        26,
+        26
+      ],
+      "rationale": "Invoice identifies the billing account it belongs to by a raw string although the context has a BillingAccountId type, which every other reference uses: an invoice id, a member id or any string can be passed where an account id is meant and the compiler cannot tell."
+    },
+    {
+      "id": "DIB-001",
+      "label": "must-fire",
+      "concept": "domain-depends-on-infrastructure",
+      "file": "src/membership/domain/members/contact-uniqueness.ts",
+      "lines": [
+        1,
+        18
+      ],
+      "rationale": "A domain service in the membership domain imports the query builder and queries the members table itself to decide whether an e-mail address is taken: the domain layer depends on the database driver and the table layout instead of on a port it owns (the member repository)."
+    },
+    {
+      "id": "REP-001",
+      "label": "must-fire",
+      "concept": "repository-for-non-aggregate",
+      "file": "src/billing/domain/invoices/invoice-line-repository.ts",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "InvoiceLine is a child entity of the Invoice aggregate, yet it has its own repository: the late-fee slice adds a line straight to an issued invoice without loading the Invoice, so the invoice's total and its rule that an issued or paid invoice takes no new lines are bypassed."
+    },
+    {
+      "id": "SDR-001",
+      "label": "must-fire",
+      "concept": "scattered-domain-rule",
+      "rationale": "The rule 'a member in good standing may attend classes' (status active AND the paid membership period has not ended) is decided twice, in the book-class slice and in the class-reminder slice, over Member's status and membershipEndsOn, and nowhere on Member. A change to the rule (a grace period, a suspension state) has to be found and made in both places."
+    },
+    {
+      "id": "MAT-001",
+      "label": "must-fire",
+      "concept": "multi-aggregate-transaction",
+      "file": "src/membership/features/cancel-membership/cancel-membership.ts",
+      "lines": [
+        22,
+        32
+      ],
+      "rationale": "Cancelling a membership saves the Member and every one of the member's future ClassBooking aggregates in one transaction: the bookings' consistency now depends on the member's, a concurrent booking change fails the whole cancellation, and the two aggregates can no longer be stored apart. The bookings should be released by a handler of the MembershipCancelled event."
+    },
+    {
+      "id": "CIE-001",
+      "label": "must-fire",
+      "concept": "constructible-invalid-entity",
+      "file": "src/membership/domain/classes/class-session.ts",
+      "lines": [
+        11,
+        23
+      ],
+      "rationale": "ClassSession's public constructor stores a raw title, capacity and duration without checking them and the type offers no factory: a session with an empty title, zero or negative capacity or a negative duration can be created and persisted (the HTTP schema is the only guard, and the domain does not rely on it elsewhere)."
+    },
+    {
+      "id": "CSC-001",
+      "label": "must-fire",
+      "concept": "cross-slice-coupling",
+      "file": "src/membership/features/send-class-reminders/send-class-reminders.ts",
+      "lines": [
+        17,
+        19
+      ],
+      "rationale": "The class-reminder slice depends on the book-class slice's internal UpcomingBookingsQuery (the query behind the 'my bookings' endpoint): a change to what the booking screen lists silently changes who gets reminded, and the two slices can no longer change independently. The reminder slice should own its query."
+    },
+    {
+      "id": "BTL-001",
+      "label": "must-fire",
+      "concept": "boundary-type-leakage",
+      "file": "src/billing/domain/accounts/billing-account.ts",
+      "lines": [
+        17,
+        18
+      ],
+      "rationale": "Billing's BillingAccount aggregate exposes Membership's domain type MemberId (imported from the membership domain) in its public surface: Billing compiles against Membership's model, against ADR 0001, which makes the integration events with plain string ids the only contract between the contexts.",
+      "subject": "BillingAccount.memberId"
+    },
+    {
+      "id": "LOG-001",
+      "label": "must-fire",
+      "concept": "sensitive-data-in-logs",
+      "file": "src/membership/features/send-class-reminders/sms-gateway.ts",
+      "lines": [
+        25,
+        28
+      ],
+      "rationale": "A failed SMS reminder is logged with the member's phone number in the message text: the number lands in the log store, which has none of the protection, retention or erasure that the members table has (the privacy notice promises phone numbers are kept only encrypted). The e-mail gateway logs a pseudonym instead."
+    },
+    {
+      "id": "CON-001",
+      "label": "must-fire",
+      "concept": "consent-not-checked",
+      "file": "src/membership/features/send-class-reminders/send-class-reminders.ts",
+      "lines": [
+        75,
+        79
+      ],
+      "rationale": "SMS reminders are optional and, per the privacy notice, sent only to members who consented to them; this path sends one to every member with a phone number and never asks Member.hasConsented('sms-reminders'), so members who refused or withdrew that consent are texted anyway."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "cross-aggregate-object-reference",
+      "file": "src/membership/domain/classes/class-booking.ts",
+      "lines": [
+        18,
+        18
+      ],
+      "rationale": "The booking refers to the ClassSession aggregate by its strongly-typed id, which is the aggregate-boundary rule followed, not broken."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "cross-aggregate-object-reference",
+      "file": "src/billing/domain/invoices/invoice.ts",
+      "lines": [
+        33,
+        33
+      ],
+      "rationale": "Invoice holds its own child entities (its lines). InvoiceLine has identity but is created and changed only through Invoice: it is inside the boundary, not another aggregate."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "primitive-entity-identifier",
+      "file": "src/membership/contracts/integration-events.ts",
+      "lines": [
+        8,
+        8
+      ],
+      "rationale": "Integration events cross the context boundary and carry ids as plain strings on purpose, so the consuming context does not depend on the producer's id types (ADR 0001)."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "domain-depends-on-infrastructure",
+      "file": "src/membership/db/member-store.ts",
+      "lines": [
+        1,
+        57
+      ],
+      "rationale": "The knex implementation of the member repository port, outside the domain folder: infrastructure depending on the domain is the allowed direction."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "repository-for-non-aggregate",
+      "file": "src/billing/domain/invoices/invoice-repository.ts",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "A repository for the Invoice aggregate root, returning whole invoices with their lines."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "scattered-domain-rule",
+      "file": "src/billing/domain/invoices/invoice.ts",
+      "lines": [
+        127,
+        129
+      ],
+      "rationale": "The overdue rule lives on Invoice, the type that owns the due date and the status; the late-fee and the overdue-listing slices both ask the invoice rather than re-deciding it."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "multi-aggregate-transaction",
+      "file": "src/membership/features/book-class/book-class.ts",
+      "lines": [
+        17,
+        45
+      ],
+      "rationale": "The handler reads the Member (standing) and the ClassSession (capacity, start) for context but writes only the new ClassBooking."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "constructible-invalid-entity",
+      "file": "src/membership/domain/members/member.ts",
+      "lines": [
+        50,
+        80
+      ],
+      "rationale": "Member's constructor is private; the only ways to create one are the validating register factory, which takes value objects that validated themselves, and rehydration from the store."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "constructible-invalid-entity",
+      "file": "src/billing/domain/accounts/billing-account.ts",
+      "lines": [
+        23,
+        44
+      ],
+      "rationale": "The public constructor guards the raw holder name and e-mail it receives (it throws on an empty name, a malformed address, or no holder on an account that is not anonymised); ids and the birth date arrive as value objects."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "cross-slice-coupling",
+      "file": "src/membership/features/erase-member/erase-member.ts",
+      "lines": [
+        14,
+        16
+      ],
+      "rationale": "The erasure slice depends on the membership domain's unit-of-work port (the repositories of one transaction), which every slice of the context shares; it references no other slice."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "boundary-type-leakage",
+      "file": "src/billing/domain/invoices/invoice.ts",
+      "lines": [
+        90,
+        90
+      ],
+      "rationale": "Money in Billing's public surface is the shared kernel (ADR 0002), owned by neither context."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "sensitive-data-in-logs",
+      "file": "src/membership/features/send-class-reminders/email-gateway.ts",
+      "lines": [
+        36,
+        39
+      ],
+      "rationale": "The failed e-mail reminder is logged with a keyed pseudonym of the member id and the e-mail domain only; the address itself never reaches the log."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "consent-not-checked",
+      "file": "src/membership/features/send-class-reminders/send-class-reminders.ts",
+      "lines": [
+        69,
+        69
+      ],
+      "rationale": "The e-mail reminder of a booked class is a service message the member asked for by booking; its lawful basis is the membership contract (privacy notice), not consent, so no consent check belongs here."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "anemic-domain-model",
+      "file": "src/billing/domain/invoices/invoice-line.ts",
+      "lines": [
+        8,
+        8
+      ],
+      "rationale": "(Promoted from scan iteration 1.) An invoice line is an immutable child entity of Invoice: it is created and totalled only through the aggregate root, whose addLine/issue rules protect it. A line with no state-changing behaviour of its own is the design, not business logic living in a service."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "data-encryption-controls",
+      "band": [
+        35,
+        80
+      ],
+      "rationale": "Phone numbers and dates of birth in the members table are encrypted at field level (AES-256-GCM, key from configuration) and HTTPS is enforced behind the proxy, but Billing copies the date of birth into billing_accounts in plaintext, against the data inventory, and keys are not held in a key-management service. Partial."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "audit-trail",
+      "band": [
+        30,
+        75
+      ],
+      "rationale": "Every change to a member's personal data (registration, contact details, consent, erasure) is written to an append-only audit log in the same transaction by the member store; Billing's copy of name, e-mail and date of birth changes with no audit record. Partial."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "data-retention-policy",
+      "band": [
+        30,
+        80
+      ],
+      "rationale": "A retention job erases members whose membership lapsed more than the configured retention period ago (24 months by default); the reminder delivery log, which keeps the phone number or e-mail address each reminder went to, is never purged although the data inventory gives it 90 days. Partial."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "data-subject-rights",
+      "band": [
+        40,
+        90
+      ],
+      "rationale": "Erasure (anonymisation, propagated to Billing by an integration event), export of a member's data and recorded, withdrawable consent per purpose all exist; consent is not enforced on the SMS reminder path (CON-001). Mostly supported."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "personal-data-inventory",
+      "band": [
+        10,
+        70
+      ],
+      "rationale": "Genuine personal data is held in a handful of fields: the member's first and last name, e-mail, phone and date of birth; Billing's holder name, e-mail and date of birth; the reminder recipient. Measured only in the secondary configuration (compliance framework switched on)."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".editorconfig",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".gitattributes",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".gitignore",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".nvmrc",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".prettierignore",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": ".prettierrc.json",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "README.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/adr/0001-two-contexts-as-vertical-slices.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/adr/0002-shared-kernel.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/adr/0003-postgres-with-knex.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/adr/0004-field-encryption-of-contact-data.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/adr/0005-integration-events-through-an-outbox.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "docs/privacy/data-inventory.md",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "eslint.config.js",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "package-lock.json",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "package.json",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/app.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/db/billing-account-store.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/db/invoice-store.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/db/unit-of-work.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/accounts/billing-account-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/accounts/billing-account-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "cross-slice-coupling",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/accounts/billing-account.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/accounts/concession.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/billing-transactions.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice-line-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice-line-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice-line.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/domain/invoices/invoice.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/anonymise-billing-account/anonymise-billing-account.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/charge-late-fees/charge-late-fees.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/issue-invoices/issue-invoices.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/list-overdue-invoices/list-overdue-invoices.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/open-billing-account/open-billing-account.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/features/record-payment/record-payment.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/billing/routes.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/composition.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/config.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/jobs.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/lifecycle.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/main.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/contracts/integration-events.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/db/class-booking-store.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/db/class-session-store.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/db/member-store.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/db/unit-of-work.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-booking-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-booking-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-booking.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-session-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-session-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/classes/class-session.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/consent.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/contact-uniqueness.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/date-of-birth.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/email-address.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/member-events.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/member-id.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/member-repository.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/member.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/person-name.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/members/phone-number.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/domain/membership-transactions.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/book-class/book-class.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/book-class/upcoming-bookings-query.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/cancel-membership/cancel-membership.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/change-contact-details/change-contact-details.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/erase-member/erase-member.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/export-member-data/export-member-data.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/purge-lapsed-members/purge-lapsed-members.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/record-consent/record-consent.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/register-member/register-member.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/schedule-class/schedule-class.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/send-class-reminders/email-gateway.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/send-class-reminders/reminder-log.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs"
+      ],
+      "file": "src/membership/features/send-class-reminders/send-class-reminders.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/features/send-class-reminders/sms-gateway.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/membership/routes.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/migrate.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-088",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/audit-log.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-089",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/clock.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-090",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/db/database.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-091",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/db/migrations.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-092",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/db/migrations/001-membership.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-093",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/db/migrations/002-billing.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-094",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/db/migrations/003-audit-and-outbox.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-095",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/field-cipher.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-096",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/authentication.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-097",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/errors.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-098",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/health.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-099",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/problem.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-100",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/scopes.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-101",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/transport-security.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-102",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/http/validation.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-103",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/integration-bus.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-104",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/logger.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-105",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/outbox.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-106",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/platform/pseudonym.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-107",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/server.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-108",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/aggregate-root.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-109",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/domain-event.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-110",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/entity.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-111",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/identifier.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-112",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/money.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-113",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/result.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-114",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "src/shared-kernel/value-object.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-115",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/billing.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-116",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/classes-api.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-117",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/http-security.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-118",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/members-api.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-119",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/reminders.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-120",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/integration/retention.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-121",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/fake-clock.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-122",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/fake-provider.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-123",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/silent-logger.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-124",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/test-app.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-125",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/test-config.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-126",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/test-database.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-127",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/support/test-tokens.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-128",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/billing-domain.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-129",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/config.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-130",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/field-cipher.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-131",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/gateways.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-132",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/jobs-and-outbox.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-133",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/lifecycle.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-134",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/member.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-135",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/money.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-136",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tests/unit/value-objects.test.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-137",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tsconfig.build.json",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-138",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "tsconfig.json",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    },
+    {
+      "id": "CLN-139",
+      "label": "clean",
+      "concepts": [
+        "cross-aggregate-object-reference",
+        "primitive-entity-identifier",
+        "domain-depends-on-infrastructure",
+        "repository-for-non-aggregate",
+        "scattered-domain-rule",
+        "multi-aggregate-transaction",
+        "constructible-invalid-entity",
+        "cross-slice-coupling",
+        "boundary-type-leakage",
+        "sensitive-data-in-logs",
+        "consent-not-checked"
+      ],
+      "file": "vitest.config.ts",
+      "rationale": "Certified free of the theme defects not labelled elsewhere in this file."
+    }
+  ]
+}

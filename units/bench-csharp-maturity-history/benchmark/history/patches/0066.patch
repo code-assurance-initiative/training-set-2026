@@ -1,0 +1,189 @@
+From 62c0b9098c20a7e8f14bd708db7f24d1500888fe Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 30 Apr 2026 16:00:12 +0200
+Subject: release 0.3.0
+
+---
+ CHANGELOG.md                                      | 15 ++++++++++++++-
+ Directory.Build.props                             |  2 +-
+ src/ClinicScheduling.Api/packages.lock.json       |  6 +++---
+ .../packages.lock.json                            |  2 +-
+ src/ClinicScheduling.Waitlist/packages.lock.json  |  2 +-
+ .../packages.lock.json                            | 12 ++++++------
+ .../ClinicScheduling.UnitTests/packages.lock.json |  6 +++---
+ 7 files changed, 29 insertions(+), 16 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 9d67be2..0d7a692 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,18 @@ All notable changes to this project are documented in this file. The format is b
+ 
+ ## [Unreleased]
+ 
++## [0.3.0] - 2026-04-30
++
++### Added
++
++- Telehealth (video) appointments and slots, with in-clinic-only opening hours.
++- The patient-portal feed and the iCalendar subscription.
++- Reduced cancellation fees for video appointments.
++
++### Fixed
++
++- iCalendar lines with Danish characters were folded in the middle of a character.
++
+ ## [0.2.0] - 2026-03-31
+ 
+ ### Added
+@@ -26,6 +38,7 @@ All notable changes to this project are documented in this file. The format is b
+ - Treatment series from a weekly recurrence rule.
+ - JWT bearer authentication with scope policies, security headers and health checks.
+ 
+-[Unreleased]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/compare/v0.2.0...HEAD
++[Unreleased]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/compare/v0.3.0...HEAD
++[0.3.0]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/compare/v0.2.0...v0.3.0
+ [0.2.0]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/compare/v0.1.0...v0.2.0
+ [0.1.0]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/releases/tag/v0.1.0
+diff --git a/Directory.Build.props b/Directory.Build.props
+index e2e5e4d..f51f754 100644
+--- a/Directory.Build.props
++++ b/Directory.Build.props
+@@ -9,7 +9,7 @@
+     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+     <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+-    <Version>0.2.0</Version>
++    <Version>0.3.0</Version>
+     <Authors>ClinicScheduling team</Authors>
+   </PropertyGroup>
+ </Project>
+diff --git a/src/ClinicScheduling.Api/packages.lock.json b/src/ClinicScheduling.Api/packages.lock.json
+index dab0e7c..0626588 100644
+--- a/src/ClinicScheduling.Api/packages.lock.json
++++ b/src/ClinicScheduling.Api/packages.lock.json
+@@ -75,7 +75,7 @@
+       "clinicscheduling.application": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Domain": "[0.2.0, )"
++          "ClinicScheduling.Domain": "[0.3.0, )"
+         }
+       },
+       "clinicscheduling.domain": {
+@@ -84,13 +84,13 @@
+       "clinicscheduling.infrastructure": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )"
++          "ClinicScheduling.Application": "[0.3.0, )"
+         }
+       },
+       "clinicscheduling.waitlist": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )"
++          "ClinicScheduling.Application": "[0.3.0, )"
+         }
+       }
+     }
+diff --git a/src/ClinicScheduling.Infrastructure/packages.lock.json b/src/ClinicScheduling.Infrastructure/packages.lock.json
+index f3d47de..d13f44e 100644
+--- a/src/ClinicScheduling.Infrastructure/packages.lock.json
++++ b/src/ClinicScheduling.Infrastructure/packages.lock.json
+@@ -102,7 +102,7 @@
+       "clinicscheduling.application": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Domain": "[0.2.0, )",
++          "ClinicScheduling.Domain": "[0.3.0, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.DataAnnotations": "[10.0.12, )"
+diff --git a/src/ClinicScheduling.Waitlist/packages.lock.json b/src/ClinicScheduling.Waitlist/packages.lock.json
+index 78b467e..4ef555c 100644
+--- a/src/ClinicScheduling.Waitlist/packages.lock.json
++++ b/src/ClinicScheduling.Waitlist/packages.lock.json
+@@ -50,7 +50,7 @@
+       "clinicscheduling.application": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Domain": "[0.2.0, )",
++          "ClinicScheduling.Domain": "[0.3.0, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.DataAnnotations": "[10.0.12, )"
+diff --git a/tests/ClinicScheduling.IntegrationTests/packages.lock.json b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+index bc582ef..21ba23d 100644
+--- a/tests/ClinicScheduling.IntegrationTests/packages.lock.json
++++ b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+@@ -466,16 +466,16 @@
+       "clinicscheduling.api": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )",
+-          "ClinicScheduling.Infrastructure": "[0.2.0, )",
+-          "ClinicScheduling.Waitlist": "[0.2.0, )",
++          "ClinicScheduling.Application": "[0.3.0, )",
++          "ClinicScheduling.Infrastructure": "[0.3.0, )",
++          "ClinicScheduling.Waitlist": "[0.3.0, )",
+           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.12, )"
+         }
+       },
+       "clinicscheduling.application": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Domain": "[0.2.0, )",
++          "ClinicScheduling.Domain": "[0.3.0, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.DataAnnotations": "[10.0.12, )"
+@@ -487,7 +487,7 @@
+       "clinicscheduling.infrastructure": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )",
++          "ClinicScheduling.Application": "[0.3.0, )",
+           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )"
+@@ -496,7 +496,7 @@
+       "clinicscheduling.waitlist": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )"
++          "ClinicScheduling.Application": "[0.3.0, )"
+         }
+       },
+       "Microsoft.AspNetCore.Authentication.JwtBearer": {
+diff --git a/tests/ClinicScheduling.UnitTests/packages.lock.json b/tests/ClinicScheduling.UnitTests/packages.lock.json
+index 26669a2..358e1ec 100644
+--- a/tests/ClinicScheduling.UnitTests/packages.lock.json
++++ b/tests/ClinicScheduling.UnitTests/packages.lock.json
+@@ -193,7 +193,7 @@
+       "clinicscheduling.application": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Domain": "[0.2.0, )",
++          "ClinicScheduling.Domain": "[0.3.0, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.DataAnnotations": "[10.0.12, )"
+@@ -205,7 +205,7 @@
+       "clinicscheduling.infrastructure": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )",
++          "ClinicScheduling.Application": "[0.3.0, )",
+           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Logging.Abstractions": "[10.0.12, )",
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )"
+@@ -214,7 +214,7 @@
+       "clinicscheduling.waitlist": {
+         "type": "Project",
+         "dependencies": {
+-          "ClinicScheduling.Application": "[0.2.0, )"
++          "ClinicScheduling.Application": "[0.3.0, )"
+         }
+       },
+       "Microsoft.Extensions.Hosting.Abstractions": {

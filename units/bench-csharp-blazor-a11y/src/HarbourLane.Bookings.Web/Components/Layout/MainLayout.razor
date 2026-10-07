@@ -1,0 +1,31 @@
+@inherits LayoutComponentBase
+
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<header class="site-header">
+    <a class="brand" href="">
+        <img src="images/logo.svg" alt="Harbour Lane Community Centre" width="40" height="40" />
+        <span>Room booking</span>
+    </a>
+    <NavMenu />
+</header>
+
+<NoticeBanner />
+
+<main id="main-content" class="page">
+    @Body
+</main>
+
+<ToastHost />
+
+<footer class="site-footer">
+    <p>Harbour Lane Community Centre · 14 Harbour Lane · Open daily 08:00–22:00</p>
+    <p><a href="mailto:bookings@harbourlane.org">bookings@harbourlane.org</a> · <a href="tel:+441632960123">01632 960123</a></p>
+    <img class="footer-divider" src="images/wave.svg" alt="" />
+</footer>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Something went wrong and the page needs to be reloaded.
+    <a href="." class="reload">Reload the page</a>
+    <button type="button" class="dismiss" aria-label="Dismiss this message">×</button>
+</div>

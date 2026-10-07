@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>FleetOps.ArchitectureTests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FleetOps.Api\FleetOps.Api.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Application\FleetOps.Application.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Contracts\FleetOps.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Diagnostics\FleetOps.Diagnostics.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Domain\FleetOps.Domain.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Infrastructure\FleetOps.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Infrastructure.Telematics\FleetOps.Infrastructure.Telematics.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.ServiceDefaults\FleetOps.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\src\FleetOps.Worker\FleetOps.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TngTech.ArchUnitNET" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

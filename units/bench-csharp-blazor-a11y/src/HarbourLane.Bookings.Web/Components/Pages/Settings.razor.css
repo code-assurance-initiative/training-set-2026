@@ -1,0 +1,47 @@
+.settings section {
+    margin-bottom: 1.5rem;
+}
+
+.setting {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 2.75rem;
+    height: 1.5rem;
+    border: 2px solid #57606a;
+    border-radius: 999px;
+    background: #ffffff;
+}
+
+.switch::after {
+    content: "";
+    position: absolute;
+    top: 0.125rem;
+    left: 0.125rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #57606a;
+}
+
+.switch--on {
+    border-color: #0b5394;
+    background: #0b5394;
+}
+
+.switch--on::after {
+    left: 1.375rem;
+    background: #ffffff;
+}
+
+.form-row--inline {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}

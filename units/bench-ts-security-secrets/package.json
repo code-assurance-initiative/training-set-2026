@@ -1,0 +1,51 @@
+{
+  "name": "media-intake-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Media upload and notification service: stores uploads in object storage, issues download tokens, notifies subscribers.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:web": "vite build web",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p web/tsconfig.json",
+    "start": "node dist/server.js",
+    "nightly": "node dist/nightly.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1147.0",
+    "@fastify/multipart": "^10.1.2",
+    "axios": "^1.20.0",
+    "dotenv": "^18.0.6",
+    "fastify": "^5.12.5",
+    "google-auth-library": "^11.1.0",
+    "jose": "^6.2.12",
+    "mongodb": "^7.7.0",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stripe/stripe-js": "^10.0.0",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^5.0.3",
+    "eslint": "^10.12.0",
+    "firebase": "^12.19.0",
+    "globals": "^17.13.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.5"
+  }
+}

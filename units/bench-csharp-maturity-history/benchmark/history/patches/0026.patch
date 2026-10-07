@@ -1,0 +1,207 @@
+From d821fa3894bef873c74d93fa12a6fc84e2a2334d Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Thu, 5 Feb 2026 11:15:39 +0100
+Subject: feat: cancel appointments through the API
+
+---
+ .../Contracts/CancelAppointmentRequest.cs     | 18 ++++++++
+ .../Contracts/CancellationResponse.cs         | 12 ++++++
+ .../Endpoints/AppointmentEndpoints.cs         | 15 +++++++
+ .../ApplicationServiceCollectionExtensions.cs |  4 ++
+ .../Booking/CancelAppointment.cs              | 41 +++++++++++++++++++
+ .../BookingFlowTests.cs                       |  8 ++--
+ .../Responses.cs                              |  2 +
+ 7 files changed, 97 insertions(+), 3 deletions(-)
+ create mode 100644 src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
+ create mode 100644 src/ClinicScheduling.Api/Contracts/CancellationResponse.cs
+ create mode 100644 src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+
+diff --git a/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs b/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
+new file mode 100644
+index 0000000..afd98e7
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
+@@ -0,0 +1,18 @@
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record CancelAppointmentRequest(string? Reason)
++{
++    private static readonly Dictionary<string, CancellationReason> Reasons = new(StringComparer.OrdinalIgnoreCase)
++    {
++        ["patient-request"] = CancellationReason.PatientRequest,
++        ["practitioner-unavailable"] = CancellationReason.PractitionerUnavailable,
++        ["clinic-closed"] = CancellationReason.ClinicClosed,
++    };
++
++    public CancellationReason? ParsedReason => Reason is not null && Reasons.TryGetValue(Reason, out var reason) ? reason : null;
++
++    public RequestErrors Validate() =>
++        new RequestErrors().Require(ParsedReason is not null, nameof(Reason), "Reason must be one of: " + string.Join(", ", Reasons.Keys) + ".");
++}
+diff --git a/src/ClinicScheduling.Api/Contracts/CancellationResponse.cs b/src/ClinicScheduling.Api/Contracts/CancellationResponse.cs
+new file mode 100644
+index 0000000..0509d90
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/CancellationResponse.cs
+@@ -0,0 +1,12 @@
++using ClinicScheduling.Domain.Policies;
++
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record CancellationResponse(decimal Fee, bool CountsAsStrike, string Code)
++{
++    public static CancellationResponse From(CancellationDecision decision)
++    {
++        ArgumentNullException.ThrowIfNull(decision);
++        return new CancellationResponse(decision.Fee, decision.CountsAsStrike, decision.Code);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index e543420..67f0dfb 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -13,6 +13,7 @@ public static class AppointmentEndpoints
+         var group = app.MapGroup("/api/appointments").WithTags("Appointments");
+         group.MapPost("/", BookAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         group.MapGet("/{id:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsRead).WithName("GetAppointment");
++        group.MapPost("/{id:guid}/cancellation", CancelAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         return app;
+     }
+ 
+@@ -37,4 +38,18 @@ public static class AppointmentEndpoints
+         var appointment = await appointments.FindAsync(id, cancellationToken).ConfigureAwait(false);
+         return appointment is null ? Results.NotFound() : Results.Ok(AppointmentResponse.From(appointment));
+     }
++
++    private static async Task<IResult> CancelAsync(Guid id, CancelAppointmentRequest request, CancelAppointmentHandler handler, CancellationToken cancellationToken)
++    {
++        var errors = request.Validate();
++        if (errors.Any || request.ParsedReason is not { } reason)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var result = await handler.HandleAsync(new CancelAppointmentCommand(id, reason), cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } decision }
++            ? Results.Ok(CancellationResponse.From(decision))
++            : EndpointResults.Problem(result);
++    }
+ }
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index 5375e6b..ade5003 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -2,6 +2,7 @@ using ClinicScheduling.Application.Availability;
+ using ClinicScheduling.Application.Booking;
+ using ClinicScheduling.Application.Series;
+ using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Policies;
+ using ClinicScheduling.Domain.Recurrence;
+ using Microsoft.Extensions.DependencyInjection;
+ 
+@@ -12,9 +13,12 @@ public static class ApplicationServiceCollectionExtensions
+     public static IServiceCollection AddSchedulingApplication(this IServiceCollection services)
+     {
+         services.AddSingleton(new SlotSearchOptions());
++        services.AddSingleton(new CancellationPolicyOptions());
+         services.AddSingleton<SlotFinder>();
++        services.AddSingleton<CancellationPolicy>();
+         services.AddSingleton<RecurrenceExpander>();
+         services.AddScoped<BookAppointmentHandler>();
++        services.AddScoped<CancelAppointmentHandler>();
+         services.AddScoped<FindSlotsHandler>();
+         services.AddScoped<BookTreatmentSeriesHandler>();
+         return services;
+diff --git a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+new file mode 100644
+index 0000000..08f4a84
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+@@ -0,0 +1,41 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Policies;
++using ClinicScheduling.Domain.Time;
++using Microsoft.Extensions.Logging;
++
++namespace ClinicScheduling.Application.Booking;
++
++public sealed record CancelAppointmentCommand(Guid AppointmentId, CancellationReason Reason);
++
++public sealed partial class CancelAppointmentHandler(
++    IAppointmentRepository appointments,
++    CancellationPolicy policy,
++    IClock clock,
++    ILogger<CancelAppointmentHandler> logger)
++{
++    public async Task<OperationResult<CancellationDecision>> HandleAsync(CancelAppointmentCommand command, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(command);
++        var appointment = await appointments.FindAsync(command.AppointmentId, cancellationToken).ConfigureAwait(false);
++        if (appointment is null)
++        {
++            return Operation.NotFound<CancellationDecision>($"Appointment {command.AppointmentId} does not exist.");
++        }
++
++        if (appointment.Status != AppointmentStatus.Booked)
++        {
++            return Operation.Conflict<CancellationDecision>($"Appointment {appointment.Id} is already {appointment.Status}.");
++        }
++
++        var now = clock.UtcNow;
++        var decision = policy.EvaluateCancellation(appointment, command.Reason, now);
++        appointment.Cancel(command.Reason, now);
++        await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        LogCancelled(appointment.Id, decision.Code, decision.Fee);
++        return Operation.Ok<CancellationDecision>(decision);
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "Cancelled appointment {AppointmentId} ({Code}, fee {Fee})")]
++    private partial void LogCancelled(Guid appointmentId, string code, decimal fee);
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index c2b39b0..f3d3d12 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -1,11 +1,12 @@
+ using System.Net;
++using System.Net.Http.Json;
+ 
+ namespace ClinicScheduling.IntegrationTests;
+ 
+ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
+ {
+     [Fact]
+-    public async Task FindAndBook()
++    public async Task FindBookAndCancel()
+     {
+         using var client = factory.CreateClient(ApiClient.AllScopes);
+         await client.PutScheduleAsync();
+@@ -15,12 +16,13 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+             $"api/practitioners/{ApiClient.PractitionerId}/slots?from=2026-03-05&to=2026-03-05&durationMinutes=45", ApiClient.Token)).ReadAsync<List<SlotDto>>();
+         using var booked = await client.BookAsync(patient, slots[0].Start);
+         var appointment = await booked.ReadAsync<AppointmentDto>();
++        using var cancelled = await client.PostAsJsonAsync($"api/appointments/{appointment.Id}/cancellation", new { reason = "patient-request" }, ApiClient.Token);
+         var fetched = await (await client.GetAsync($"api/appointments/{appointment.Id}", ApiClient.Token)).ReadAsync<AppointmentDto>();
+ 
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+         Assert.Equal(slots[0].Start, appointment.Start);
+-        Assert.Equal(patient, fetched.PatientId);
+-        Assert.Equal("booked", fetched.Status);
++        Assert.Equal(new CancellationDto(0m, false, "free"), await cancelled.ReadAsync<CancellationDto>());
++        Assert.Equal("cancelled", fetched.Status);
+     }
+ 
+     [Fact]
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index 17e386a..7d2198f 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -3,3 +3,5 @@ namespace ClinicScheduling.IntegrationTests;
+ public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start, string Status);
+ 
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
++
++public sealed record CancellationDto(decimal Fee, bool CountsAsStrike, string Code);

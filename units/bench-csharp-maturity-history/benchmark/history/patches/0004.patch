@@ -1,0 +1,180 @@
+From ad5f82146dd994922e49fdd33750a25e8829734b Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 6 Jan 2026 10:20:13 +0100
+Subject: feat(domain): appointments and time ranges
+
+---
+ .../Appointments/Appointment.cs               | 58 +++++++++++++++++++
+ .../Appointments/AppointmentStatus.cs         |  7 +++
+ .../Availability/TimeRange.cs                 | 24 ++++++++
+ .../Appointments/AppointmentTests.cs          | 29 ++++++++++
+ tests/ClinicScheduling.UnitTests/TestData.cs  | 14 +++++
+ 5 files changed, 132 insertions(+)
+ create mode 100644 src/ClinicScheduling.Domain/Appointments/Appointment.cs
+ create mode 100644 src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/TimeRange.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/TestData.cs
+
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+new file mode 100644
+index 0000000..3d44d3e
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -0,0 +1,58 @@
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Domain.Appointments;
++
++/// <summary>One booked visit of a patient with a practitioner.</summary>
++public sealed class Appointment
++{
++    private Appointment(
++        Guid id,
++        Guid patientId,
++        Guid practitionerId,
++        Guid clinicId,
++        TimeRange time)
++    {
++        Id = id;
++        PatientId = patientId;
++        PractitionerId = practitionerId;
++        ClinicId = clinicId;
++        Time = time;
++        Status = AppointmentStatus.Booked;
++    }
++
++    public Guid Id { get; }
++
++    public Guid PatientId { get; }
++
++    public Guid PractitionerId { get; }
++
++    public Guid ClinicId { get; }
++
++    public TimeRange Time { get; }
++
++    public AppointmentStatus Status { get; private set; }
++
++    public DateTimeOffset? CancelledAt { get; private set; }
++
++    public static Appointment Book(
++        Guid patientId,
++        Guid practitionerId,
++        Guid clinicId,
++        TimeRange time) =>
++        new(Guid.NewGuid(), patientId, practitionerId, clinicId, time);
++
++    public void Cancel(DateTimeOffset at)
++    {
++        EnsureBooked();
++        Status = AppointmentStatus.Cancelled;
++        CancelledAt = at;
++    }
++
++    private void EnsureBooked()
++    {
++        if (Status != AppointmentStatus.Booked)
++        {
++            throw new InvalidOperationException($"Appointment {Id} is {Status}, not booked.");
++        }
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs b/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
+new file mode 100644
+index 0000000..6e9058e
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Appointments/AppointmentStatus.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Domain.Appointments;
++
++public enum AppointmentStatus
++{
++    Booked,
++    Cancelled,
++}
+diff --git a/src/ClinicScheduling.Domain/Availability/TimeRange.cs b/src/ClinicScheduling.Domain/Availability/TimeRange.cs
+new file mode 100644
+index 0000000..8219e2d
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/TimeRange.cs
+@@ -0,0 +1,24 @@
++namespace ClinicScheduling.Domain.Availability;
++
++/// <summary>A half-open interval of time, [<see cref="Start"/>, <see cref="End"/>).</summary>
++public readonly record struct TimeRange
++{
++    public TimeRange(DateTimeOffset start, DateTimeOffset end)
++    {
++        if (end <= start)
++        {
++            throw new ArgumentException("A time range must end after it starts.", nameof(end));
++        }
++
++        Start = start;
++        End = end;
++    }
++
++    public DateTimeOffset Start { get; }
++
++    public DateTimeOffset End { get; }
++
++    public TimeSpan Duration => End - Start;
++
++    public bool Overlaps(TimeRange other) => Start < other.End && other.Start < End;
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+new file mode 100644
+index 0000000..d10c38a
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -0,0 +1,29 @@
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Appointments;
++
++public sealed class AppointmentTests
++{
++    private static Appointment Booked() =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 10)));
++
++    [Fact]
++    public void ABookedAppointmentCanBeCancelledOnce()
++    {
++        var appointment = Booked();
++
++        appointment.Cancel(Now);
++
++        Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
++        Assert.Equal(Now, appointment.CancelledAt);
++        Assert.Throws<InvalidOperationException>(() => appointment.Cancel(Now));
++    }
++
++    [Fact]
++    public void ATimeRangeMustEndAfterItStarts()
++    {
++        Assert.Throws<ArgumentException>(() => new TimeRange(At(Monday, 10), At(Monday, 10)));
++    }
++}
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+new file mode 100644
+index 0000000..4e75b7e
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -0,0 +1,14 @@
++namespace ClinicScheduling.UnitTests;
++
++public static class TestData
++{
++    /// <summary>Monday 2 March 2026, 07:00 UTC.</summary>
++    public static readonly DateTimeOffset Now = new(2026, 3, 2, 7, 0, 0, TimeSpan.Zero);
++
++    public static readonly DateOnly Monday = new(2026, 3, 2);
++
++    public static readonly Guid PractitionerId = Guid.Parse("6f1d2c7e-5a43-4b8e-9c11-0d2f3a4b5c6d");
++
++    public static DateTimeOffset At(DateOnly day, int hour, int minute = 0) =>
++        new(day.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.Zero);
++}

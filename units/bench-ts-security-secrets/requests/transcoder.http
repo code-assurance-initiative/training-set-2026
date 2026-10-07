@@ -1,0 +1,16 @@
+### Transcoder: create a thumbnail job for an uploaded object
+@baseUrl = https://api.transcoder.invalid/v2
+
+POST {{baseUrl}}/jobs
+Content-Type: application/json
+Authorization: Bearer 8hJ_ndPN7WOxZy_tVV3LDDhnMaYr8Jgnzp5sJr0TSPophQfF
+
+{
+  "input": "https://media.media-intake.internal/v1/media/0b6f5c1e-2f43-4a77-9b8e-5d0c7a1f2e39",
+  "outputs": [{ "preset": "thumbnail-320" }],
+  "callback": "https://media.media-intake.internal/v1/media/0b6f5c1e-2f43-4a77-9b8e-5d0c7a1f2e39/thumbnails"
+}
+
+### Transcoder: job status
+GET {{baseUrl}}/jobs/{{jobId}}
+Authorization: Bearer 8hJ_ndPN7WOxZy_tVV3LDDhnMaYr8Jgnzp5sJr0TSPophQfF

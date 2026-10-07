@@ -1,0 +1,94 @@
+From 021d5849ad0fa8793c8147f97a27f8246f408f73 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 10 Sep 2026 14:15:36 +0200
+Subject: fix: write empty fields as null in responses and the feed
+
+---
+ .../Contracts/AppointmentResponse.cs          |  7 ++---
+ .../PatientPortal/PortalAppointmentFeed.cs    | 30 +++++++++----------
+ .../PortalAppointmentFeedTests.cs             |  2 +-
+ 3 files changed, 19 insertions(+), 20 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 037c8ea..ab41309 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -1,5 +1,4 @@
+ using System.Globalization;
+-using System.Text.Json.Serialization;
+ using ClinicScheduling.Domain.Appointments;
+ using Reason = ClinicScheduling.Domain.Appointments.CancellationReason;
+ 
+@@ -15,9 +14,9 @@ public sealed record AppointmentResponse(
+     int DurationMinutes,
+     string Status,
+     bool IsTelehealth,
+-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId,
+-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancellationReason,
+-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancelledAt,
++    Guid? SeriesId,
++    string? CancellationReason,
++    string? CancelledAt,
+     int RescheduleCount)
+ {
+     public static AppointmentResponse From(Appointment appointment)
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index a417917..894c7ff 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -33,21 +33,9 @@ public static class PortalAppointmentFeed
+                 json.WriteNumber("durationMinutes", (int)a.Time.Duration.TotalMinutes);
+                 json.WriteString("status", Status(a.Status));
+                 json.WriteBoolean("isTelehealth", a.IsTelehealth);
+-                if (a.SeriesId is { } series)
+-                {
+-                    json.WriteString("seriesId", series);
+-                }
+-
+-                if (a.CancellationReason is { } reason)
+-                {
+-                    json.WriteString("cancellationReason", Reason(reason));
+-                }
+-
+-                if (a.CancelledAt is { } at)
+-                {
+-                    json.WriteString("cancelledAt", Local(at, zone));
+-                }
+-
++                WriteNullable(json, "seriesId", a.SeriesId?.ToString());
++                WriteNullable(json, "cancellationReason", a.CancellationReason is { } reason ? Reason(reason) : null);
++                WriteNullable(json, "cancelledAt", a.CancelledAt is { } at ? Local(at, zone) : null);
+                 json.WriteNumber("rescheduleCount", a.RescheduleCount);
+                 json.WriteEndObject();
+             }
+@@ -79,4 +67,16 @@ public static class PortalAppointmentFeed
+         CancellationReason.ClinicClosed => "clinic-closed",
+         _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
+     };
++
++    private static void WriteNullable(Utf8JsonWriter json, string name, string? value)
++    {
++        if (value is null)
++        {
++            json.WriteNull(name);
++        }
++        else
++        {
++            json.WriteString(name, value);
++        }
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+index 478e48e..81e8f07 100644
+--- a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -28,8 +28,8 @@ public sealed class PortalAppointmentFeedTests
+         Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
+         Assert.Equal("patient-illness", items[0].GetProperty("cancellationReason").GetString());
+         Assert.True(items[0].GetProperty("isTelehealth").GetBoolean());
+-        Assert.Equal("2026-03-08T19:00:00+01:00", items[0].GetProperty("cancelledAt").GetString());
+         Assert.Equal("booked", items[1].GetProperty("status").GetString());
++        Assert.Equal(JsonValueKind.Null, items[1].GetProperty("cancelledAt").ValueKind);
+         Assert.Equal(0, items[1].GetProperty("rescheduleCount").GetInt32());
+     }
+ 

@@ -1,0 +1,60 @@
+From 321dc76d9cd3cddf988ced21c394325e588f4505 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Fri, 21 Aug 2026 14:12:47 +0200
+Subject: release 0.2.0
+
+---
+ CHANGELOG.md      | 7 +++++++
+ package-lock.json | 4 ++--
+ package.json      | 2 +-
+ 3 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a7d18cb..e678dfc 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,6 +3,13 @@
+ All notable changes to this project are documented here. The format follows
+ [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+ 
++## [0.2.0] - 2026-08-21
++
++### Added
++
++- Dispatch board: the routes of a day with their vehicles, drivers, load and stops; starting a route.
++- The order page shows the delivery status and can cancel the order with a reason.
++
+ ## [0.1.0] - 2026-08-07
+ 
+ ### Added
+diff --git a/package-lock.json b/package-lock.json
+index e0ea7a7..3c4ed7a 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "quellbrook-web",
+-  "version": "0.1.0",
++  "version": "0.2.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "quellbrook-web",
+-      "version": "0.1.0",
++      "version": "0.2.0",
+       "license": "MIT",
+       "dependencies": {
+         "react": "^19.3.0",
+diff --git a/package.json b/package.json
+index 94de1ae..2efa075 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "quellbrook-web",
+-  "version": "0.1.0",
++  "version": "0.2.0",
+   "description": "Operator console of the Quellbrook operations platform: orders, shipment status and the dispatch board.",
+   "private": true,
+   "license": "MIT",

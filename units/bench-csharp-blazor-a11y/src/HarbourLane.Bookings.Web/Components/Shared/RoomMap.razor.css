@@ -1,0 +1,18 @@
+.room-map-canvas {
+    max-width: 30rem;
+}
+
+.room-map-canvas ::deep .map-area {
+    fill: #dbeafe;
+    stroke: #1f2933;
+    stroke-width: 1;
+}
+
+.room-map-canvas ::deep .map-area--selected {
+    fill: #0b5394;
+}
+
+.room-map-canvas ::deep .map-area:focus-visible {
+    outline: 3px solid #b45309;
+    outline-offset: 2px;
+}

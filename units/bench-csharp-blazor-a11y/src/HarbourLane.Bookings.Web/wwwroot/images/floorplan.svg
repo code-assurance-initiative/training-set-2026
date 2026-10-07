@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" width="320" height="220">
+  <rect x="5" y="5" width="310" height="210" fill="#ffffff" stroke="#1f2933" stroke-width="3"/>
+  <rect x="10" y="10" width="170" height="130" fill="#dbeafe" stroke="#1f2933"/>
+  <rect x="190" y="10" width="120" height="130" fill="#fef3c7" stroke="#1f2933"/>
+  <rect x="10" y="150" width="140" height="60" fill="#e5e7eb" stroke="#1f2933"/>
+  <rect x="160" y="150" width="150" height="60" fill="#dcfce7" stroke="#1f2933"/>
+  <text x="95" y="80" font-size="14" text-anchor="middle">Main hall</text>
+  <text x="250" y="80" font-size="14" text-anchor="middle">Workshop</text>
+  <text x="80" y="185" font-size="12" text-anchor="middle">Lift and toilets</text>
+  <text x="235" y="185" font-size="12" text-anchor="middle">Foyer</text>
+</svg>

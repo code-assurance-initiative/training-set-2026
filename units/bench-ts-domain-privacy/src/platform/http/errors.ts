@@ -1,0 +1,44 @@
+import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { DomainRuleViolation } from '../../shared-kernel/result.js';
+import { sendProblem, statusOf } from './problem.js';
+
+const clientErrorDetails: Readonly<Record<number, string>> = {
+  400: 'The request body is not valid JSON.',
+  413: 'The request body is too large.',
+  415: 'The request body must be JSON.',
+};
+
+export const notFoundHandler: RequestHandler = (_req, res) => {
+  sendProblem(res, 404, 'No resource exists at this path.');
+};
+
+/**
+ * Answers errors without leaking internals: a broken domain rule and a client error say what was
+ * wrong, anything else is logged and answered with a generic 500.
+ */
+export const errorHandler: ErrorRequestHandler = (error: unknown, req, res, next) => {
+  if (res.headersSent) {
+    next(error);
+    return;
+  }
+  if (error instanceof DomainRuleViolation || error instanceof RangeError) {
+    const status = error instanceof DomainRuleViolation ? statusOf(error.kind) : 400;
+    sendProblem(res, status, error.message);
+    return;
+  }
+  const status = clientErrorStatus(error);
+  if (status !== undefined) {
+    sendProblem(res, status, clientErrorDetails[status] ?? 'The request could not be read.');
+    return;
+  }
+  req.log.error({ err: error }, 'Request failed');
+  sendProblem(res, 500, 'The request could not be processed.');
+};
+
+function clientErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) {
+    return undefined;
+  }
+  const { status } = error;
+  return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
+}

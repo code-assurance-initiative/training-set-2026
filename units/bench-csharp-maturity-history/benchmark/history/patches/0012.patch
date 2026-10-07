@@ -1,0 +1,212 @@
+From de9faac4697ddb6374ac0aa33b545fc9c0224b4e Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 13 Jan 2026 16:30:05 +0100
+Subject: feat(security): JWT bearer authentication with scope policies
+
+---
+ .../ApiApplicationBuilderExtensions.cs        |  2 ++
+ .../Hosting/ApiServiceCollectionExtensions.cs | 18 ++++++++++
+ .../Security/AuthorizationPolicies.cs         | 23 +++++++++++++
+ .../Security/ConfigureJwtBearerOptions.cs     | 33 +++++++++++++++++++
+ .../Security/JwtAuthenticationOptions.cs      | 21 ++++++++++++
+ .../Security/ScopeClaims.cs                   | 18 ++++++++++
+ .../appsettings.Development.json              |  3 ++
+ src/ClinicScheduling.Api/appsettings.json     |  4 +++
+ 8 files changed, 122 insertions(+)
+ create mode 100644 src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+ create mode 100644 src/ClinicScheduling.Api/Security/ConfigureJwtBearerOptions.cs
+ create mode 100644 src/ClinicScheduling.Api/Security/JwtAuthenticationOptions.cs
+ create mode 100644 src/ClinicScheduling.Api/Security/ScopeClaims.cs
+
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index 3746fad..e3f9d74 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -15,6 +15,8 @@ public static class ApiApplicationBuilderExtensions
+         app.UseStatusCodePages();
+         app.UseHttpsRedirection();
+         app.UseMiddleware<SecurityHeadersMiddleware>();
++        app.UseAuthentication();
++        app.UseAuthorization();
+ 
+         app.MapHealthChecks("/health").AllowAnonymous();
+         return app;
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+index fb78851..4d67732 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -1,3 +1,6 @@
++using ClinicScheduling.Api.Security;
++using Microsoft.AspNetCore.Authentication.JwtBearer;
++
+ namespace ClinicScheduling.Api.Hosting;
+ 
+ public static class ApiServiceCollectionExtensions
+@@ -7,6 +10,21 @@ public static class ApiServiceCollectionExtensions
+         services.AddProblemDetails();
+         services.AddHealthChecks();
+         services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
++        return services.AddSchedulingSecurity();
++    }
++
++    private static IServiceCollection AddSchedulingSecurity(this IServiceCollection services)
++    {
++        services
++            .AddOptions<JwtAuthenticationOptions>()
++            .BindConfiguration(JwtAuthenticationOptions.SectionName)
++            .ValidateDataAnnotations()
++            .Validate(options => options.HasHttpsAuthority(), "Authentication:Authority must be an absolute https URL.")
++            .ValidateOnStart();
++
++        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
++        services.ConfigureOptions<ConfigureJwtBearerOptions>();
++        services.AddAuthorizationBuilder().AddSchedulingPolicies();
+         return services;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+new file mode 100644
+index 0000000..71617e5
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+@@ -0,0 +1,23 @@
++using Microsoft.AspNetCore.Authorization;
++
++namespace ClinicScheduling.Api.Security;
++
++/// <summary>The named policies, each granted by one OAuth scope in the caller's access token.</summary>
++public static class AuthorizationPolicies
++{
++    public const string AppointmentsRead = "appointments.read";
++    public const string AppointmentsWrite = "appointments.write";
++    public const string SchedulesWrite = "schedules.write";
++
++    public static AuthorizationBuilder AddSchedulingPolicies(this AuthorizationBuilder builder) =>
++        builder
++            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
++            .AddPolicy(AppointmentsRead, policy => policy.RequireScope(AppointmentsRead))
++            .AddPolicy(AppointmentsWrite, policy => policy.RequireScope(AppointmentsWrite))
++            .AddPolicy(SchedulesWrite, policy => policy.RequireScope(SchedulesWrite));
++
++    private static AuthorizationPolicyBuilder RequireScope(this AuthorizationPolicyBuilder policy, string scope) =>
++        policy
++            .RequireAuthenticatedUser()
++            .RequireAssertion(context => ScopeClaims.HasScope(context.User, scope));
++}
+diff --git a/src/ClinicScheduling.Api/Security/ConfigureJwtBearerOptions.cs b/src/ClinicScheduling.Api/Security/ConfigureJwtBearerOptions.cs
+new file mode 100644
+index 0000000..b1a2639
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Security/ConfigureJwtBearerOptions.cs
+@@ -0,0 +1,33 @@
++using Microsoft.AspNetCore.Authentication.JwtBearer;
++using Microsoft.Extensions.Options;
++
++namespace ClinicScheduling.Api.Security;
++
++/// <summary>Applies <see cref="JwtAuthenticationOptions"/> to the bearer handler.</summary>
++public sealed partial class ConfigureJwtBearerOptions(
++    IOptions<JwtAuthenticationOptions> settings,
++    ILogger<ConfigureJwtBearerOptions> logger) : IConfigureNamedOptions<JwtBearerOptions>
++{
++    public void Configure(string? name, JwtBearerOptions options)
++    {
++        if (name == JwtBearerDefaults.AuthenticationScheme)
++        {
++            Configure(options);
++        }
++    }
++
++    public void Configure(JwtBearerOptions options)
++    {
++        ArgumentNullException.ThrowIfNull(options);
++        var jwt = settings.Value;
++        options.Authority = jwt.Authority;
++        options.Audience = jwt.Audience;
++        options.RequireHttpsMetadata = true;
++        options.MapInboundClaims = false;
++        options.TokenValidationParameters.ClockSkew = TimeSpan.FromMinutes(1);
++        LogConfigured(jwt.Authority, jwt.Audience);
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "Accepting bearer tokens from {Authority} for {Audience}")]
++    private partial void LogConfigured(string authority, string audience);
++}
+diff --git a/src/ClinicScheduling.Api/Security/JwtAuthenticationOptions.cs b/src/ClinicScheduling.Api/Security/JwtAuthenticationOptions.cs
+new file mode 100644
+index 0000000..95c33f7
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Security/JwtAuthenticationOptions.cs
+@@ -0,0 +1,21 @@
++using System.ComponentModel.DataAnnotations;
++
++namespace ClinicScheduling.Api.Security;
++
++/// <summary>
++/// Where access tokens come from and whom they must be for. Token signing keys are published by the authority's
++/// OpenID Connect metadata, so no key material is ever configured here.
++/// </summary>
++public sealed class JwtAuthenticationOptions
++{
++    public const string SectionName = "Authentication";
++
++    [Required]
++    public string Authority { get; set; } = string.Empty;
++
++    [Required]
++    public string Audience { get; set; } = string.Empty;
++
++    public bool HasHttpsAuthority() =>
++        Uri.TryCreate(Authority, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
++}
+diff --git a/src/ClinicScheduling.Api/Security/ScopeClaims.cs b/src/ClinicScheduling.Api/Security/ScopeClaims.cs
+new file mode 100644
+index 0000000..990841e
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Security/ScopeClaims.cs
+@@ -0,0 +1,18 @@
++using System.Security.Claims;
++
++namespace ClinicScheduling.Api.Security;
++
++public static class ScopeClaims
++{
++    /// <summary>The OAuth 2.0 access-token claim (RFC 8693 §4.2): one space-delimited string of scopes.</summary>
++    public const string ClaimType = "scope";
++
++    public static bool HasScope(ClaimsPrincipal user, string scope)
++    {
++        ArgumentNullException.ThrowIfNull(user);
++        return user
++            .FindAll(ClaimType)
++            .SelectMany(claim => claim.Value.Split(' ', StringSplitOptions.RemoveEmptyEntries))
++            .Contains(scope, StringComparer.Ordinal);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/appsettings.Development.json b/src/ClinicScheduling.Api/appsettings.Development.json
+index 3e1a225..16ee50f 100644
+--- a/src/ClinicScheduling.Api/appsettings.Development.json
++++ b/src/ClinicScheduling.Api/appsettings.Development.json
+@@ -4,5 +4,8 @@
+       "Default": "Information",
+       "Microsoft.AspNetCore": "Information"
+     }
++  },
++  "Authentication": {
++    "Authority": "https://localhost:8443/realms/clinic"
+   }
+ }
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+index 0c208ae..046f8cd 100644
+--- a/src/ClinicScheduling.Api/appsettings.json
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -4,5 +4,9 @@
+       "Default": "Information",
+       "Microsoft.AspNetCore": "Warning"
+     }
++  },
++  "Authentication": {
++    "Authority": "",
++    "Audience": "clinic-scheduling-api"
+   }
+ }

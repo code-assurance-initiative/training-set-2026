@@ -1,0 +1,24 @@
+@inject ClipboardInterop Clipboard
+
+<button type="button" class="button button--secondary" aria-label="@Label" @onclick="CopyAsync">
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16">
+        <path d="M5 2h7v9H5zM3 5v9h7" fill="none" stroke="currentColor" stroke-width="1.5" />
+    </svg>
+</button>
+<span class="hint" role="status">@_result</span>
+
+@code {
+    private string? _result;
+
+    [Parameter, EditorRequired]
+    public string Url { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Label { get; set; } = "Copy link";
+
+    private async Task CopyAsync()
+    {
+        var copied = await Clipboard.TryCopyAsync(Url, CancellationToken.None);
+        _result = copied ? "Link copied." : "Your browser did not allow copying. Select the address bar and copy the link from there.";
+    }
+}

@@ -1,0 +1,175 @@
+From f29d6c454e5e0ebdbed1aee0369f7cfc4e3ad53a Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Tue, 1 Sep 2026 11:40:09 +0200
+Subject: contracts: pin the consumed order and dispatch schemas
+
+---
+ contracts/asyncapi.yaml                       | 31 ++++++++++
+ contracts/consumed/README.md                  | 12 ++++
+ .../consignment-delivered.v1.schema.json      | 14 +++++
+ ...onsignment-out-for-delivery.v1.schema.json | 14 +++++
+ .../orders/order-placed.v1.schema.json        | 56 +++++++++++++++++++
+ 5 files changed, 127 insertions(+)
+ create mode 100644 contracts/asyncapi.yaml
+ create mode 100644 contracts/consumed/README.md
+ create mode 100644 contracts/consumed/dispatch/consignment-delivered.v1.schema.json
+ create mode 100644 contracts/consumed/dispatch/consignment-out-for-delivery.v1.schema.json
+ create mode 100644 contracts/consumed/orders/order-placed.v1.schema.json
+
+diff --git a/contracts/asyncapi.yaml b/contracts/asyncapi.yaml
+new file mode 100644
+index 0000000..782cc47
+--- /dev/null
++++ b/contracts/asyncapi.yaml
+@@ -0,0 +1,31 @@
++asyncapi: 3.0.0
++info:
++  title: Quellbrook notifier — consumed events
++  version: 1.0.0
++  description: The notifier publishes no events; it consumes these from the platform's RabbitMQ topic exchange.
++servers:
++  production:
++    host: rabbitmq.messaging.svc.cluster.local:5671
++    protocol: amqps
++    pathname: /quellbrook
++channels:
++  notifierEvents:
++    address: notifier.events
++    description: >-
++      Durable queue bound to orders.order-placed.v1, dispatch.consignment-out-for-delivery.v1 and
++      dispatch.consignment-delivered.v1; dead-letters to quellbrook.dead-letter.
++    messages:
++      orderPlaced:
++        payload:
++          $ref: './consumed/orders/order-placed.v1.schema.json'
++      consignmentOutForDelivery:
++        payload:
++          $ref: './consumed/dispatch/consignment-out-for-delivery.v1.schema.json'
++      consignmentDelivered:
++        payload:
++          $ref: './consumed/dispatch/consignment-delivered.v1.schema.json'
++operations:
++  consumeEvents:
++    action: receive
++    channel:
++      $ref: '#/channels/notifierEvents'
+diff --git a/contracts/consumed/README.md b/contracts/consumed/README.md
+new file mode 100644
+index 0000000..a5769e7
+--- /dev/null
++++ b/contracts/consumed/README.md
+@@ -0,0 +1,12 @@
++# Consumed event schemas
++
++Pinned copies of the producers' schemas that the notifier implements (`src/Quellbrook.Notifier/Messaging/Messages.cs`):
++
++| Schema | Producer | Version pinned | Fields the notifier reads |
++|---|---|---|---|
++| `orders/order-placed.v1.schema.json` | estate-quellbrook-orders | v0.3.0 | order id, consignee name, contact e-mail and phone |
++| `dispatch/consignment-out-for-delivery.v1.schema.json` | estate-quellbrook-dispatch | v0.3.0 | order id |
++| `dispatch/consignment-delivered.v1.schema.json` | estate-quellbrook-dispatch | v0.3.0 | order id, delivery time |
++
++Within v1 the producers only add optional fields; the notifier ignores fields it does not read. Update a copy when its
++producer announces a new version.
+diff --git a/contracts/consumed/dispatch/consignment-delivered.v1.schema.json b/contracts/consumed/dispatch/consignment-delivered.v1.schema.json
+new file mode 100644
+index 0000000..ee7ea07
+--- /dev/null
++++ b/contracts/consumed/dispatch/consignment-delivered.v1.schema.json
+@@ -0,0 +1,14 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://quellbrook.example/contracts/dispatch/consignment-delivered.v1.schema.json",
++  "title": "dispatch.consignment-delivered.v1",
++  "description": "Published by the dispatch service when a driver records a delivery. Owned by the Fleet team. Within v1 fields are only added.",
++  "type": "object",
++  "required": ["consignmentId", "orderId", "proof", "deliveredAt"],
++  "properties": {
++    "consignmentId": { "type": "string", "format": "uuid" },
++    "orderId": { "type": "string", "format": "uuid" },
++    "proof": { "enum": ["signature", "photo", "safe-place"] },
++    "deliveredAt": { "type": "string", "format": "date-time" }
++  }
++}
+diff --git a/contracts/consumed/dispatch/consignment-out-for-delivery.v1.schema.json b/contracts/consumed/dispatch/consignment-out-for-delivery.v1.schema.json
+new file mode 100644
+index 0000000..eb0e66a
+--- /dev/null
++++ b/contracts/consumed/dispatch/consignment-out-for-delivery.v1.schema.json
+@@ -0,0 +1,14 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://quellbrook.example/contracts/dispatch/consignment-out-for-delivery.v1.schema.json",
++  "title": "dispatch.consignment-out-for-delivery.v1",
++  "description": "Published by the dispatch service for every consignment on a route when the route leaves the depot. Owned by the Fleet team. Within v1 fields are only added.",
++  "type": "object",
++  "required": ["consignmentId", "orderId", "routeId", "outForDeliveryAt"],
++  "properties": {
++    "consignmentId": { "type": "string", "format": "uuid" },
++    "orderId": { "type": "string", "format": "uuid" },
++    "routeId": { "type": "string", "format": "uuid" },
++    "outForDeliveryAt": { "type": "string", "format": "date-time" }
++  }
++}
+diff --git a/contracts/consumed/orders/order-placed.v1.schema.json b/contracts/consumed/orders/order-placed.v1.schema.json
+new file mode 100644
+index 0000000..54e1117
+--- /dev/null
++++ b/contracts/consumed/orders/order-placed.v1.schema.json
+@@ -0,0 +1,56 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "https://quellbrook.example/contracts/orders/order-placed.v1.schema.json",
++  "title": "orders.order-placed.v1",
++  "description": "Published by the order service when an order is placed. Owned by the Orders team. Within v1 fields are only added, never renamed or removed; consumers ignore fields they do not know.",
++  "type": "object",
++  "required": ["orderId", "customerAccountId", "serviceLevel", "consignee", "parcels", "placedAt"],
++  "properties": {
++    "orderId": { "type": "string", "format": "uuid" },
++    "customerAccountId": { "type": "string", "pattern": "^QB-[0-9]{4,12}$" },
++    "serviceLevel": { "enum": ["standard", "express"] },
++    "consignee": {
++      "type": "object",
++      "required": ["name", "address", "contact"],
++      "properties": {
++        "name": { "type": "string", "maxLength": 100 },
++        "address": {
++          "type": "object",
++          "required": ["line1", "postalCode", "city", "countryCode"],
++          "properties": {
++            "line1": { "type": "string", "maxLength": 100 },
++            "line2": { "type": ["string", "null"], "maxLength": 100 },
++            "postalCode": { "type": "string", "maxLength": 10 },
++            "city": { "type": "string", "maxLength": 60 },
++            "countryCode": { "enum": ["DK", "SE", "NO", "DE", "NL"] }
++          }
++        },
++        "contact": {
++          "type": "object",
++          "description": "Personal data: used only to notify the consignee about this delivery (docs/privacy.md).",
++          "properties": {
++            "email": { "type": ["string", "null"], "format": "email" },
++            "phone": { "type": ["string", "null"], "pattern": "^\\+[1-9][0-9]{7,14}$" }
++          }
++        }
++      }
++    },
++    "parcels": {
++      "type": "array",
++      "minItems": 1,
++      "maxItems": 20,
++      "items": {
++        "type": "object",
++        "required": ["number", "weightGrams", "lengthCm", "widthCm", "heightCm"],
++        "properties": {
++          "number": { "type": "integer", "minimum": 1 },
++          "weightGrams": { "type": "integer", "minimum": 1, "maximum": 31500 },
++          "lengthCm": { "type": "integer", "minimum": 1, "maximum": 175 },
++          "widthCm": { "type": "integer", "minimum": 1, "maximum": 175 },
++          "heightCm": { "type": "integer", "minimum": 1, "maximum": 175 }
++        }
++      }
++    },
++    "placedAt": { "type": "string", "format": "date-time" }
++  }
++}

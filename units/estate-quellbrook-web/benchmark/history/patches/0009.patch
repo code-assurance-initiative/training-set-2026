@@ -1,0 +1,368 @@
+From 0bf52ade10072249d143ddc9a2cca930423a1ec0 Mon Sep 17 00:00:00 2001
+From: Ines Halvard <ines.halvard@example.invalid>
+Date: Tue, 11 Aug 2026 15:19:22 +0200
+Subject: feat(dispatch): dispatch board with the day's routes, their vehicles
+ and stops; starting a route
+
+---
+ src/App.tsx                             |  4 +-
+ src/api/dispatch.ts                     | 15 +++++
+ src/api/types.ts                        | 23 +++++++
+ src/components/Layout.tsx               |  5 ++
+ src/features/dispatch/DispatchBoard.tsx | 53 +++++++++++++++
+ src/features/dispatch/RouteCard.tsx     | 48 ++++++++++++++
+ src/styles/app.css                      | 47 ++++++++++++++
+ tests/DispatchBoard.test.tsx            | 85 +++++++++++++++++++++++++
+ 8 files changed, 279 insertions(+), 1 deletion(-)
+ create mode 100644 src/api/dispatch.ts
+ create mode 100644 src/features/dispatch/DispatchBoard.tsx
+ create mode 100644 src/features/dispatch/RouteCard.tsx
+ create mode 100644 tests/DispatchBoard.test.tsx
+
+diff --git a/src/App.tsx b/src/App.tsx
+index 052c72b..3f7d1f2 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,4 +1,5 @@
+ import { Layout } from './components/Layout';
++import { DispatchBoard } from './features/dispatch/DispatchBoard';
+ import { OrderDetailPage } from './features/orders/OrderDetailPage';
+ import { OrdersPage } from './features/orders/OrdersPage';
+ import { useRoute } from './routing';
+@@ -9,7 +10,8 @@ export function App() {
+     <Layout route={route}>
+       {route.name === 'orders' && <OrdersPage />}
+       {route.name === 'order' && <OrderDetailPage orderId={route.orderId} />}
+-      {(route.name === 'not-found' || route.name === 'dispatch') && (
++      {route.name === 'dispatch' && <DispatchBoard />}
++      {route.name === 'not-found' && (
+         <section>
+           <h1>Page not found</h1>
+         </section>
+diff --git a/src/api/dispatch.ts b/src/api/dispatch.ts
+new file mode 100644
+index 0000000..55509a5
+--- /dev/null
++++ b/src/api/dispatch.ts
+@@ -0,0 +1,15 @@
++import { request } from './http';
++import type { BoardRoute } from './types';
++
++export async function getBoard(date: string, signal?: AbortSignal): Promise<readonly BoardRoute[]> {
++  return (
++    (await request<BoardRoute[]>(
++      `/dispatch/board?date=${encodeURIComponent(date)}`,
++      signal ? { signal } : {},
++    )) ?? []
++  );
++}
++
++export async function startRoute(routeId: string): Promise<void> {
++  await request(`/dispatch/routes/${encodeURIComponent(routeId)}/start`, { method: 'POST' });
++}
+diff --git a/src/api/types.ts b/src/api/types.ts
+index 54911df..3e57d59 100644
+--- a/src/api/types.ts
++++ b/src/api/types.ts
+@@ -34,3 +34,26 @@ export interface Order {
+   readonly placedBy: string;
+   readonly placedAt: string;
+ }
++
++export interface RouteStop {
++  readonly sequence: number;
++  readonly consignmentId: string;
++  readonly orderId: string;
++  readonly postalCode: string;
++  readonly weightGrams: number;
++  readonly status: string;
++}
++
++export interface BoardRoute {
++  readonly routeId: string;
++  readonly depot: string;
++  readonly zone: string;
++  readonly express: boolean;
++  readonly status: string;
++  readonly driverName: string;
++  readonly vehicleRegistration: string;
++  readonly vehicleKind: string;
++  readonly capacityGrams: number;
++  readonly loadGrams: number;
++  readonly stops: readonly RouteStop[];
++}
+diff --git a/src/components/Layout.tsx b/src/components/Layout.tsx
+index 54132bc..9efe6a5 100644
+--- a/src/components/Layout.tsx
++++ b/src/components/Layout.tsx
+@@ -20,6 +20,11 @@ export function Layout({ route, children }: { route: Route; children: ReactNode
+                 Orders
+               </AppLink>
+             </li>
++            <li>
++              <AppLink to="/dispatch" current={route.name === 'dispatch'}>
++                Dispatch board
++              </AppLink>
++            </li>
+           </ul>
+         </nav>
+       </header>
+diff --git a/src/features/dispatch/DispatchBoard.tsx b/src/features/dispatch/DispatchBoard.tsx
+new file mode 100644
+index 0000000..c4b31cf
+--- /dev/null
++++ b/src/features/dispatch/DispatchBoard.tsx
+@@ -0,0 +1,53 @@
++import { useState } from 'react';
++import { getBoard, startRoute } from '../../api/dispatch';
++import { ErrorMessage } from '../../components/ErrorMessage';
++import { useLoad } from '../../useLoad';
++import { RouteCard } from './RouteCard';
++
++const today = () => new Date().toISOString().slice(0, 10);
++
++export function DispatchBoard() {
++  const [date, setDate] = useState(today);
++  const [board, reload] = useLoad((signal) => getBoard(date, signal), date);
++  const [actionError, setActionError] = useState<unknown>();
++
++  const start = (routeId: string) => {
++    startRoute(routeId).then(
++      () => {
++        setActionError(undefined);
++        reload();
++      },
++      (error: unknown) => {
++        setActionError(error);
++      },
++    );
++  };
++
++  return (
++    <section aria-labelledby="board-heading">
++      <h1 id="board-heading">Dispatch board</h1>
++      <label htmlFor="board-date">Day</label>{' '}
++      <input
++        id="board-date"
++        type="date"
++        value={date}
++        onChange={(event) => {
++          setDate(event.target.value);
++        }}
++      />
++      {actionError !== undefined && <ErrorMessage error={actionError} />}
++      {board.state === 'loading' && <p role="status">Loading routes…</p>}
++      {board.state === 'failed' && <ErrorMessage error={board.error} />}
++      {board.state === 'loaded' &&
++        (board.value.length === 0 ? (
++          <p>No routes planned for this day.</p>
++        ) : (
++          <ul className="board">
++            {board.value.map((route) => (
++              <RouteCard key={route.routeId} route={route} onStart={start} />
++            ))}
++          </ul>
++        ))}
++    </section>
++  );
++}
+diff --git a/src/features/dispatch/RouteCard.tsx b/src/features/dispatch/RouteCard.tsx
+new file mode 100644
+index 0000000..5ecdfa9
+--- /dev/null
++++ b/src/features/dispatch/RouteCard.tsx
+@@ -0,0 +1,48 @@
++import type { BoardRoute } from '../../api/types';
++import { StatusBadge } from '../../components/StatusBadge';
++
++const kilograms = (grams: number) => `${(grams / 1000).toFixed(0)} kg`;
++
++export function RouteCard({
++  route,
++  onStart,
++}: {
++  route: BoardRoute;
++  onStart: (routeId: string) => void;
++}) {
++  const vehicleIcon = route.vehicleKind === 'Rigid' ? '/icons/rigid.svg' : '/icons/van.svg';
++  return (
++    <li className="route-card">
++      <h2>
++        {route.zone}
++        {route.express ? ' · express' : ''}
++      </h2>
++      <p className="vehicle">
++        <img src={vehicleIcon} width="48" height="24" />
++        <span>{route.vehicleRegistration}</span>
++      </p>
++      <p>Driver: {route.driverName}</p>
++      <p>
++        Load: {kilograms(route.loadGrams)} of {kilograms(route.capacityGrams)}
++      </p>
++      <ol className="stops">
++        {route.stops.map((stop) => (
++          <li key={stop.consignmentId}>
++            {stop.postalCode}, {(stop.weightGrams / 1000).toFixed(1)} kg{' '}
++            <StatusBadge status={stop.status} />
++          </li>
++        ))}
++      </ol>
++      {route.status === 'Planned' && route.stops.length > 0 && (
++        <button
++          type="button"
++          onClick={() => {
++            onStart(route.routeId);
++          }}
++        >
++          Start route {route.zone}
++        </button>
++      )}
++    </li>
++  );
++}
+diff --git a/src/styles/app.css b/src/styles/app.css
+index c87c923..07d36ed 100644
+--- a/src/styles/app.css
++++ b/src/styles/app.css
+@@ -136,3 +136,50 @@ select:focus-visible {
+   outline: 3px solid var(--brand);
+   outline-offset: 2px;
+ }
++
++.board {
++  display: grid;
++  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
++  gap: 1rem;
++  list-style: none;
++  padding: 0;
++}
++
++.route-card {
++  border: 1px solid var(--line);
++  border-radius: 0.5rem;
++  padding: 1rem;
++}
++
++.route-card h2 {
++  margin-top: 0;
++  font-size: 1.1rem;
++}
++
++.vehicle {
++  display: flex;
++  align-items: center;
++  gap: 0.5rem;
++}
++
++.stops {
++  padding-left: 1.25rem;
++}
++
++dialog {
++  border: 1px solid var(--line);
++  border-radius: 0.5rem;
++  max-width: 28rem;
++}
++
++dialog textarea {
++  display: block;
++  width: 100%;
++  min-height: 5rem;
++  margin: 0.25rem 0 1rem;
++}
++
++.actions {
++  display: flex;
++  gap: 0.5rem;
++}
+diff --git a/tests/DispatchBoard.test.tsx b/tests/DispatchBoard.test.tsx
+new file mode 100644
+index 0000000..47297bf
+--- /dev/null
++++ b/tests/DispatchBoard.test.tsx
+@@ -0,0 +1,85 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { App } from '../src/App';
++import { fakeApi, json } from './support/fakeApi';
++
++const route = (status: string) => ({
++  routeId: '0198f1a2-0000-7000-8000-0000000000a1',
++  depot: 'AAR',
++  zone: 'DK-AAR',
++  express: true,
++  status,
++  driverName: 'Anna K.',
++  vehicleRegistration: 'QB 12 345',
++  vehicleKind: 'Van',
++  capacityGrams: 800000,
++  loadGrams: 3500,
++  stops: [
++    {
++      sequence: 1,
++      consignmentId: 'c1',
++      orderId: 'o1',
++      postalCode: '8000',
++      weightGrams: 3500,
++      status: 'Assigned',
++    },
++  ],
++});
++
++describe('dispatch board', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals();
++  });
++
++  it('shows the routes of the chosen day and starts one', async () => {
++    let started = false;
++    const calls = fakeApi({
++      '/api/dispatch/board': () => json(200, [route(started ? 'Started' : 'Planned')]),
++      '/api/dispatch/routes/': () => {
++        started = true;
++        return new Response(null, { status: 204 });
++      },
++    });
++    window.history.replaceState(null, '', '/dispatch');
++    render(<App />);
++
++    expect(await screen.findByRole('heading', { name: 'DK-AAR · express' })).toBeInTheDocument();
++    expect(screen.getByText('Driver: Anna K.')).toBeInTheDocument();
++    await userEvent.click(screen.getByRole('button', { name: 'Start route DK-AAR' }));
++
++    await vi.waitFor(() => {
++      expect(screen.queryByRole('button', { name: 'Start route DK-AAR' })).not.toBeInTheDocument();
++    });
++    expect(calls.some((call) => call.method === 'POST' && call.url.endsWith('/start'))).toBe(true);
++  });
++
++  it('loads another day when the date changes', async () => {
++    const calls = fakeApi({ '/api/dispatch/board': () => json(200, []) });
++    window.history.replaceState(null, '', '/dispatch');
++    render(<App />);
++
++    expect(await screen.findByText('No routes planned for this day.')).toBeInTheDocument();
++    const day = screen.getByLabelText('Day');
++    await userEvent.clear(day);
++    await userEvent.type(day, '2026-08-14');
++
++    await vi.waitFor(() => {
++      expect(calls.at(-1)?.url).toBe('/api/dispatch/board?date=2026-08-14');
++    });
++  });
++
++  it('shows why a route could not start', async () => {
++    fakeApi({
++      '/api/dispatch/board': () => json(200, [route('Planned')]),
++      '/api/dispatch/routes/': () =>
++        json(409, { title: 'Conflict', detail: 'Route has no stops.' }),
++    });
++    window.history.replaceState(null, '', '/dispatch');
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('button', { name: 'Start route DK-AAR' }));
++
++    expect(await screen.findByRole('alert')).toHaveTextContent('Route has no stops.');
++  });
++});

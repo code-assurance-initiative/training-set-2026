@@ -1,0 +1,24 @@
+.summary-dialog {
+    max-width: 28rem;
+    padding: 1.5rem;
+    border: 1px solid #d0d7de;
+    border-radius: 0.5rem;
+}
+
+.summary-dialog::backdrop {
+    background: rgba(31, 41, 51, 0.6);
+}
+
+.summary {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.25rem 1rem;
+}
+
+.summary dt {
+    font-weight: 600;
+}
+
+.summary dd {
+    margin: 0;
+}

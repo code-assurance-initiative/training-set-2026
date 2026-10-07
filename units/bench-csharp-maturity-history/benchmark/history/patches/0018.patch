@@ -1,0 +1,27 @@
+From bdd395e0376494fb2e3c510f7abf2ee765907eab Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 20 Jan 2026 16:40:07 +0100
+Subject: chore(editorconfig): naming rule for private fields
+
+---
+ .editorconfig | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/.editorconfig b/.editorconfig
+index 8e94ae6..2319513 100644
+--- a/.editorconfig
++++ b/.editorconfig
+@@ -25,5 +25,13 @@ dotnet_style_qualification_for_field = false:warning
+ dotnet_style_readonly_field = true:warning
+ dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+ 
++dotnet_naming_rule.private_fields_are_camel_case_with_underscore.symbols = private_fields
++dotnet_naming_rule.private_fields_are_camel_case_with_underscore.style = underscore_camel_case
++dotnet_naming_rule.private_fields_are_camel_case_with_underscore.severity = warning
++dotnet_naming_symbols.private_fields.applicable_kinds = field
++dotnet_naming_symbols.private_fields.applicable_accessibilities = private
++dotnet_naming_style.underscore_camel_case.capitalization = camel_case
++dotnet_naming_style.underscore_camel_case.required_prefix = _
++
+ # Tests must not use ConfigureAwait(false) (xUnit1030); production code under src/ must (src/.editorconfig).
+ dotnet_diagnostic.CA2007.severity = none

@@ -1,0 +1,149 @@
+From b9d1998214a64d7a9a98c722e70e8d69e8b62d6c Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Fri, 9 Jan 2026 14:10:09 +0100
+Subject: feat: IClock for testable time; slots respect a minimum notice
+
+---
+ .../Availability/SlotFinder.cs                      |  9 ++++++---
+ .../Availability/SlotSearchOptions.cs               |  3 +++
+ src/ClinicScheduling.Domain/Time/IClock.cs          |  7 +++++++
+ .../Time/SystemClock.cs                             |  8 ++++++++
+ .../Availability/SlotFinderTests.cs                 | 13 ++++++++++++-
+ tests/ClinicScheduling.UnitTests/TestData.cs        |  7 +++++++
+ 6 files changed, 43 insertions(+), 4 deletions(-)
+ create mode 100644 src/ClinicScheduling.Domain/Time/IClock.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index ee1b38e..5d1bccb 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -1,9 +1,10 @@
+ using ClinicScheduling.Domain.Holidays;
++using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.Domain.Availability;
+ 
+ /// <summary>Finds the bookable slots of one practitioner: opening hours minus holidays and existing appointments.</summary>
+-public sealed class SlotFinder(IHolidayCalendar holidays)
++public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+ {
+     public IReadOnlyList<Slot> FindOpenSlots(
+         PractitionerSchedule schedule,
+@@ -16,11 +17,13 @@ public sealed class SlotFinder(IHolidayCalendar holidays)
+         ArgumentNullException.ThrowIfNull(query);
+         ArgumentNullException.ThrowIfNull(options);
+ 
++        var now = clock.UtcNow;
++        var today = DateOnly.FromDateTime(now.UtcDateTime);
+         var slots = new List<Slot>();
+ 
+         for (var day = query.From; day <= query.To; day = day.AddDays(1))
+         {
+-            if (holidays.IsHoliday(schedule.CountryCode, day))
++            if (day < today || holidays.IsHoliday(schedule.CountryCode, day))
+             {
+                 continue;
+             }
+@@ -34,7 +37,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays)
+                 while (cursor + query.Duration <= closes)
+                 {
+                     var candidate = new TimeRange(cursor, cursor + query.Duration);
+-                    if (!booked.Any(b => b.Overlaps(candidate)))
++                    if (candidate.Start >= now + options.MinimumNotice && !booked.Any(b => b.Overlaps(candidate)))
+                     {
+                         slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End));
+                     }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+index c5c145b..a1582e1 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -4,4 +4,7 @@ public sealed record SlotSearchOptions
+ {
+     /// <summary>Slots start on multiples of this from the opening time.</summary>
+     public TimeSpan Granularity { get; init; } = TimeSpan.FromMinutes(15);
++
++    /// <summary>The earliest a slot may start, measured from now.</summary>
++    public TimeSpan MinimumNotice { get; init; } = TimeSpan.FromHours(2);
+ }
+diff --git a/src/ClinicScheduling.Domain/Time/IClock.cs b/src/ClinicScheduling.Domain/Time/IClock.cs
+new file mode 100644
+index 0000000..1d89030
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Time/IClock.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Domain.Time;
++
++/// <summary>The current time, injected so that time-dependent rules can be tested (ADR 0003).</summary>
++public interface IClock
++{
++    DateTimeOffset UtcNow { get; }
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs b/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
+new file mode 100644
+index 0000000..df00c38
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
+@@ -0,0 +1,8 @@
++using ClinicScheduling.Domain.Time;
++
++namespace ClinicScheduling.Infrastructure.Time;
++
++public sealed class SystemClock : IClock
++{
++    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index c761e41..c486c88 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -6,8 +6,9 @@ namespace ClinicScheduling.UnitTests.Availability;
+ public sealed class SlotFinderTests
+ {
+     private static readonly TimeSpan HalfHour = TimeSpan.FromMinutes(30);
++    private readonly FixedClock _clock = new(Now);
+ 
+-    private static SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays));
++    private SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays), _clock);
+ 
+     private static SlotQuery Tuesday(TimeSpan? duration = null) =>
+         new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour);
+@@ -41,4 +42,14 @@ public sealed class SlotFinderTests
+         Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 30) && s.Start < At(tuesday, 10));
+         Assert.Contains(slots, s => s.Start == At(tuesday, 10));
+     }
++
++    [Fact]
++    public void RespectsMinimumNotice()
++    {
++        var today = new SlotQuery(Monday, Monday, HalfHour);
++
++        var morning = Finder().FindOpenSlots(Schedule(), [], today, new SlotSearchOptions());
++
++        Assert.All(morning, s => Assert.True(s.Start >= Now + TimeSpan.FromHours(2)));
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index 8581283..fce1930 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -1,5 +1,6 @@
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Holidays;
++using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.UnitTests;
+ 
+@@ -9,6 +10,12 @@ public sealed class FixedHolidays(params DateOnly[] days) : IHolidayCalendar
+     public bool IsHoliday(string countryCode, DateOnly day) => days.Contains(day);
+ }
+ 
++/// <summary>A clock that stands still until a test moves it.</summary>
++public sealed class FixedClock(DateTimeOffset now) : IClock
++{
++    public DateTimeOffset UtcNow { get; set; } = now;
++}
++
+ public static class TestData
+ {
+     /// <summary>Monday 2 March 2026, 07:00 UTC.</summary>

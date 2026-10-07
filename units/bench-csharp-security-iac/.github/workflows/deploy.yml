@@ -1,0 +1,34 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to roll out, e.g. v1.2.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.version }}
+          persist-credentials: false
+
+      - name: Apply manifests
+        env:
+          KUBE_SERVER: ${{ vars.KUBE_SERVER }}
+        run: |
+          kubectl --server "$KUBE_SERVER" --token "${{ secrets.KUBE_DEPLOY_TOKEN }}" apply --recursive -f deploy/k8s
+          kubectl --server "$KUBE_SERVER" --token "${{ secrets.KUBE_DEPLOY_TOKEN }}" -n depot-slots rollout status deployment/depot-slots-api --timeout=5m

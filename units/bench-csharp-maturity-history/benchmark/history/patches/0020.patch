@@ -1,0 +1,118 @@
+From 0f7d96fafecb5e403999154cb5f0913411cea9d3 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 22 Jan 2026 10:00:48 +0100
+Subject: feat(availability): breaks in opening hours
+
+---
+ src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs |  2 +-
+ .../Endpoints/ScheduleEndpoints.cs                    |  2 +-
+ .../Availability/SlotFinder.cs                        | 11 +++++++++++
+ .../Availability/WeeklyHours.cs                       |  6 ++++--
+ .../Availability/SlotFinderTests.cs                   | 11 +++++++++++
+ tests/ClinicScheduling.UnitTests/TestData.cs          |  4 ++--
+ 6 files changed, 30 insertions(+), 6 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+index d2ced9c..e8e333c 100644
+--- a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -1,7 +1,7 @@
+ namespace ClinicScheduling.Api.Contracts;
+ 
+ public sealed record WeeklyHoursRequest(
+-    DayOfWeek Day, TimeOnly Opens, TimeOnly Closes);
++    DayOfWeek Day, TimeOnly Opens, TimeOnly Closes, TimeOnly? BreakStarts, TimeOnly? BreakEnds);
+ 
+ public sealed record ScheduleRequest(
+     string? CountryCode,
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+index 170213c..ad77c95 100644
+--- a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -28,7 +28,7 @@ public static class ScheduleEndpoints
+             practitionerId,
+             country,
+             zone,
+-            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes)));
++            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)));
+         await schedules.UpsertAsync(schedule, cancellationToken).ConfigureAwait(false);
+         return Results.NoContent();
+     }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 95df0b3..7144a8d 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -37,6 +37,17 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                 while (cursor + query.Duration <= closes)
+                 {
+                     var candidate = new TimeRange(cursor, cursor + query.Duration);
++
++                    if (hours.BreakStarts is { } breakStarts && hours.BreakEnds is { } breakEnds)
++                    {
++                        var lunch = new TimeRange(At(day, breakStarts, schedule.TimeZone), At(day, breakEnds, schedule.TimeZone));
++                        if (candidate.Start >= lunch.Start && candidate.Start < lunch.End)
++                        {
++                            cursor += options.Granularity;
++                            continue;
++                        }
++                    }
++
+                     if (candidate.Start < now + options.MinimumNotice)
+                     {
+                         cursor += options.Granularity;
+diff --git a/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+index 6861ffb..b15e48a 100644
+--- a/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
++++ b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+@@ -2,9 +2,11 @@ namespace ClinicScheduling.Domain.Availability;
+ 
+ /// <summary>
+ /// One block of a practitioner's weekly opening hours, in the clinic's local time. A practitioner may have several
+-/// blocks on one day (a split shift).
++/// blocks on one day (a split shift); a block may carry one break.
+ /// </summary>
+ public sealed record WeeklyHours(
+     DayOfWeek Day,
+     TimeOnly Opens,
+-    TimeOnly Closes);
++    TimeOnly Closes,
++    TimeOnly? BreakStarts = null,
++    TimeOnly? BreakEnds = null);
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index a836851..45cf3fe 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -43,6 +43,17 @@ public sealed class SlotFinderTests
+         Assert.Contains(slots, s => s.Start == At(tuesday, 10, 5));
+     }
+ 
++    [Fact]
++    public void LeavesTheBreakFree()
++    {
++        var schedule = Schedule(Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0), new TimeOnly(12, 0), new TimeOnly(12, 30)));
++
++        var slots = Finder().FindOpenSlots(schedule, [], Tuesday(), new SlotSearchOptions());
++
++        Assert.DoesNotContain(slots, s => s.Start >= At(Monday.AddDays(1), 12) && s.Start < At(Monday.AddDays(1), 12, 30));
++        Assert.Contains(slots, s => s.Start == At(Monday.AddDays(1), 12, 30));
++    }
++
+     [Fact]
+     public void RespectsMinimumNotice()
+     {
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index fce1930..d3db36c 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -33,9 +33,9 @@ public static class TestData
+             TimeZoneInfo.Utc,
+             hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)));
+ 
+-    public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes) =>
++    public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes, TimeOnly? breakStarts = null, TimeOnly? breakEnds = null) =>
+         new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday }
+-            .Select(d => new WeeklyHours(d, opens, closes));
++            .Select(d => new WeeklyHours(d, opens, closes, breakStarts, breakEnds));
+ 
+     public static DateTimeOffset At(DateOnly day, int hour, int minute = 0) =>
+         new(day.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.Zero);

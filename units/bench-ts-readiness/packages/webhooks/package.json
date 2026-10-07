@@ -1,0 +1,24 @@
+{
+  "name": "@parcel-tracking/webhooks",
+  "version": "0.4.1",
+  "description": "Verify and parse parcel-tracking webhooks in a merchant's Node.js service.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/code-assurance-initiative/bench-ts-readiness.git",
+    "directory": "packages/webhooks"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

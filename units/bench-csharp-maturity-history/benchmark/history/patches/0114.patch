@@ -1,0 +1,20 @@
+From 38cce09f58fb98382edbde622d2e7138ece21057 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Tue, 15 Sep 2026 11:30:03 +0200
+Subject: fix(policy): round reduced fees to cents
+
+---
+ src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index c86ca5d..d99253e 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -65,5 +65,5 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+         reason is CancellationReason.PractitionerUnavailable or CancellationReason.ClinicClosed;
+ 
+     private decimal Scaled(decimal fee, Appointment appointment) =>
+-        appointment.IsTelehealth ? fee * options.TelehealthFeeFactor : fee;
++        appointment.IsTelehealth ? decimal.Round(fee * options.TelehealthFeeFactor, 2) : fee;
+ }

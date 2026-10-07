@@ -1,0 +1,21 @@
+@page "/error"
+@using System.Diagnostics
+@attribute [ExcludeFromInteractiveRouting]
+
+<PageTitle>Something went wrong · Harbour Lane Community Centre</PageTitle>
+
+<h1>Something went wrong</h1>
+<p>We could not complete your request. Please try again in a minute; if it keeps happening, call the reception desk.</p>
+@if (RequestId is not null)
+{
+    <p>Quote this reference when you call: <code>@RequestId</code></p>
+}
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+
+    protected override void OnInitialized() => RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

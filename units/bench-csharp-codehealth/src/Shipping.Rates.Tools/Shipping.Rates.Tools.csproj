@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Shipping.Rates.Tools</RootNamespace>
+    <AssemblyName>shipping-rates</AssemblyName>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipping.Rates.Core\Shipping.Rates.Core.csproj" />
+  </ItemGroup>
+
+</Project>

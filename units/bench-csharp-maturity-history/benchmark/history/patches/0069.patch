@@ -1,0 +1,50 @@
+From 3b8eb2f66a0172934b8772f1c6f5707ae2e6da86 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Fri, 8 May 2026 14:40:05 +0200
+Subject: fix(availability): after a clash, continue on the slot grid
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs   | 9 ++++++++-
+ .../Availability/SlotFinderTests.cs                      | 4 ++--
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 5041b14..39af480 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -86,7 +86,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                     var clash = booked.FirstOrDefault(b => b.Widen(options.BufferBetweenAppointments).Overlaps(candidate));
+                     if (clash != default)
+                     {
+-                        cursor = clash.End + options.BufferBetweenAppointments;
++                        cursor = AlignUp(clash.End + options.BufferBetweenAppointments, opens, options.Granularity);
+                         continue;
+                     }
+ 
+@@ -104,4 +104,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+         var local = day.ToDateTime(time, DateTimeKind.Unspecified);
+         return new DateTimeOffset(local, zone.GetUtcOffset(local));
+     }
++
++    /// <summary>The first slot boundary (opening time plus a whole number of steps) at or after <paramref name="value"/>.</summary>
++    private static DateTimeOffset AlignUp(DateTimeOffset value, DateTimeOffset origin, TimeSpan step)
++    {
++        var steps = Math.Ceiling((value - origin).Ticks / (double)step.Ticks);
++        return origin + TimeSpan.FromTicks((long)steps * step.Ticks);
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 285a05b..a142127 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -39,8 +39,8 @@ public sealed class SlotFinderTests
+ 
+         var slots = Finder().FindOpenSlots(Schedule(), booked, Tuesday(), new SlotSearchOptions());
+ 
+-        Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 25) && s.Start < At(tuesday, 10, 5));
+-        Assert.Contains(slots, s => s.Start == At(tuesday, 10, 5));
++        Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 25) && s.Start < At(tuesday, 10, 15));
++        Assert.Contains(slots, s => s.Start == At(tuesday, 10, 15));
+     }
+ 
+     [Fact]

@@ -1,0 +1,19 @@
+# The console's pods only serve files: ingress from the ingress controller, no egress at all.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web
+  namespace: quellbrook-edge
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: quellbrook-web
+  policyTypes: ['Ingress', 'Egress']
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080

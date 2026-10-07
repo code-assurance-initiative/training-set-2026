@@ -1,0 +1,365 @@
+From fbec35ade8b08de1a92df10138c030cc81f2d688 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Fri, 14 Aug 2026 10:46:51 +0200
+Subject: feat(orders): delivery status on the order page; cancelling an order
+ with a reason
+
+---
+ src/api/orders.ts                         | 16 ++++-
+ src/api/types.ts                          | 13 ++++
+ src/features/orders/CancelOrderDialog.tsx | 73 ++++++++++++++++++++
+ src/features/orders/OrderDetailPage.tsx   | 77 ++++++++++++++++-----
+ tests/OrderDetailPage.test.tsx            | 82 +++++++++++++++++++++--
+ 5 files changed, 241 insertions(+), 20 deletions(-)
+ create mode 100644 src/features/orders/CancelOrderDialog.tsx
+
+diff --git a/src/api/orders.ts b/src/api/orders.ts
+index 06e98aa..4ec48a7 100644
+--- a/src/api/orders.ts
++++ b/src/api/orders.ts
+@@ -1,5 +1,5 @@
+ import { request } from './http';
+-import type { Order, OrderPage } from './types';
++import type { Order, OrderPage, Shipment } from './types';
+ 
+ export async function listOrders(page: number, signal?: AbortSignal): Promise<OrderPage> {
+   const result = await request<OrderPage>(
+@@ -12,3 +12,17 @@ export async function listOrders(page: number, signal?: AbortSignal): Promise<Or
+ export async function getOrder(orderId: string, signal?: AbortSignal): Promise<Order | undefined> {
+   return request<Order>(`/orders/${encodeURIComponent(orderId)}`, signal ? { signal } : {});
+ }
++
++export async function getShipment(
++  orderId: string,
++  signal?: AbortSignal,
++): Promise<Shipment | undefined> {
++  return request<Shipment>(`/shipments/${encodeURIComponent(orderId)}`, signal ? { signal } : {});
++}
++
++export async function cancelOrder(orderId: string, reason: string): Promise<void> {
++  await request(`/orders/${encodeURIComponent(orderId)}/cancellation`, {
++    method: 'POST',
++    body: { reason },
++  });
++}
+diff --git a/src/api/types.ts b/src/api/types.ts
+index 3e57d59..aafadbb 100644
+--- a/src/api/types.ts
++++ b/src/api/types.ts
+@@ -35,6 +35,19 @@ export interface Order {
+   readonly placedAt: string;
+ }
+ 
++export interface Delivery {
++  readonly consignmentId: string;
++  readonly status: string;
++  readonly outForDeliveryAt?: string | null;
++  readonly deliveredAt?: string | null;
++  readonly proof?: string | null;
++}
++
++export interface Shipment {
++  readonly order: Order;
++  readonly delivery: Delivery | null;
++}
++
+ export interface RouteStop {
+   readonly sequence: number;
+   readonly consignmentId: string;
+diff --git a/src/features/orders/CancelOrderDialog.tsx b/src/features/orders/CancelOrderDialog.tsx
+new file mode 100644
+index 0000000..6804316
+--- /dev/null
++++ b/src/features/orders/CancelOrderDialog.tsx
+@@ -0,0 +1,73 @@
++import { useEffect, useId, useRef, useState, type MouseEvent, type SyntheticEvent } from 'react';
++import { cancelOrder } from '../../api/orders';
++import { ErrorMessage } from '../../components/ErrorMessage';
++
++/** A native modal dialog: focus moves into it, Escape and the Close button close it, a backdrop click does too. */
++export function CancelOrderDialog({
++  orderId,
++  onClose,
++  onCancelled,
++}: {
++  orderId: string;
++  onClose: () => void;
++  onCancelled: () => void;
++}) {
++  const dialog = useRef<HTMLDialogElement>(null);
++  const reasonId = useId();
++  const [reason, setReason] = useState('');
++  const [error, setError] = useState<unknown>();
++
++  useEffect(() => {
++    dialog.current?.showModal();
++  }, []);
++
++  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
++    event.preventDefault();
++    cancelOrder(orderId, reason.trim()).then(onCancelled, (failure: unknown) => {
++      setError(failure);
++    });
++  };
++
++  const closeOnBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
++    if (event.target === dialog.current) {
++      dialog.current.close();
++    }
++  };
++
++  return (
++    <dialog
++      ref={dialog}
++      aria-labelledby={`${reasonId}-title`}
++      onClose={onClose}
++      onClick={closeOnBackdrop}
++    >
++      <form onSubmit={submit}>
++        <h2 id={`${reasonId}-title`}>Cancel this order</h2>
++        <label htmlFor={reasonId}>Reason</label>
++        <textarea
++          id={reasonId}
++          required
++          maxLength={200}
++          value={reason}
++          onChange={(event) => {
++            setReason(event.target.value);
++          }}
++        />
++        {error !== undefined && <ErrorMessage error={error} />}
++        <div className="actions">
++          <button type="submit" disabled={reason.trim().length === 0}>
++            Cancel order
++          </button>
++          <button
++            type="button"
++            onClick={() => {
++              dialog.current?.close();
++            }}
++          >
++            Close
++          </button>
++        </div>
++      </form>
++    </dialog>
++  );
++}
+diff --git a/src/features/orders/OrderDetailPage.tsx b/src/features/orders/OrderDetailPage.tsx
+index ca545e0..5f79939 100644
+--- a/src/features/orders/OrderDetailPage.tsx
++++ b/src/features/orders/OrderDetailPage.tsx
+@@ -1,47 +1,94 @@
+-import { getOrder } from '../../api/orders';
++import { useState } from 'react';
++import { getShipment } from '../../api/orders';
++import type { Delivery } from '../../api/types';
+ import { AppLink } from '../../components/AppLink';
+ import { ErrorMessage } from '../../components/ErrorMessage';
+ import { StatusBadge } from '../../components/StatusBadge';
+ import { useLoad } from '../../useLoad';
++import { CancelOrderDialog } from './CancelOrderDialog';
++
++const time = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
+ 
+ export function OrderDetailPage({ orderId }: { orderId: string }) {
+-  const [order] = useLoad((signal) => getOrder(orderId, signal), orderId);
++  const [shipment, reload] = useLoad((signal) => getShipment(orderId, signal), orderId);
++  const [cancelling, setCancelling] = useState(false);
+ 
+-  if (order.state === 'loading') {
++  if (shipment.state === 'loading') {
+     return <p role="status">Loading the order…</p>;
+   }
+-  if (order.state === 'failed' || !order.value) {
+-    return order.state === 'failed' ? <ErrorMessage error={order.error} /> : null;
++  if (shipment.state === 'failed' || !shipment.value) {
++    return shipment.state === 'failed' ? <ErrorMessage error={shipment.error} /> : null;
+   }
+-  const value = order.value;
++  const { order, delivery } = shipment.value;
++  const cancellable =
++    order.status === 'placed' &&
++    (delivery === null || delivery.status === 'AwaitingRoute' || delivery.status === 'Assigned');
+   return (
+     <article aria-labelledby="order-heading">
+       <p>
+         <AppLink to="/orders">Back to orders</AppLink>
+       </p>
+-      <h1 id="order-heading">Order for {value.consignee.name}</h1>
++      <h1 id="order-heading">Order for {order.consignee.name}</h1>
+       <dl className="facts">
+         <dt>Status</dt>
+         <dd>
+-          <StatusBadge status={value.status} />
++          <StatusBadge status={order.status} />
+         </dd>
+         <dt>Customer account</dt>
+-        <dd>{value.customerAccountId}</dd>
++        <dd>{order.customerAccountId}</dd>
+         <dt>Service</dt>
+-        <dd>{value.serviceLevel}</dd>
++        <dd>{order.serviceLevel}</dd>
+         <dt>Deliver to</dt>
+         <dd>
+-          {value.consignee.line1}
+-          {value.consignee.line2 ? `, ${value.consignee.line2}` : ''}, {value.consignee.postalCode}{' '}
+-          {value.consignee.city}, {value.consignee.countryCode}
++          {order.consignee.line1}
++          {order.consignee.line2 ? `, ${order.consignee.line2}` : ''}, {order.consignee.postalCode}{' '}
++          {order.consignee.city}, {order.consignee.countryCode}
+         </dd>
+         <dt>Parcels</dt>
+         <dd>
+-          {value.parcels.length} parcels, {(value.totalWeightGrams / 1000).toFixed(1)} kg
++          {order.parcels.length} parcels, {(order.totalWeightGrams / 1000).toFixed(1)} kg
+         </dd>
+         <dt>Placed by</dt>
+-        <dd>{value.placedBy}</dd>
++        <dd>{order.placedBy}</dd>
+       </dl>
++      <h2>Delivery</h2>
++      <DeliveryStatus delivery={delivery} />
++      {cancellable && (
++        <button
++          type="button"
++          onClick={() => {
++            setCancelling(true);
++          }}
++        >
++          Cancel order…
++        </button>
++      )}
++      {cancelling && (
++        <CancelOrderDialog
++          orderId={order.id}
++          onClose={() => {
++            setCancelling(false);
++          }}
++          onCancelled={() => {
++            setCancelling(false);
++            reload();
++          }}
++        />
++      )}
+     </article>
+   );
+ }
++
++function DeliveryStatus({ delivery }: { delivery: Delivery | null }) {
++  if (delivery === null) {
++    return <p>Not with dispatch yet.</p>;
++  }
++  return (
++    <p>
++      <StatusBadge status={delivery.status} />
++      {delivery.outForDeliveryAt && <> since {time.format(new Date(delivery.outForDeliveryAt))}</>}
++      {delivery.deliveredAt && <> on {time.format(new Date(delivery.deliveredAt))}</>}
++      {delivery.proof && <> ({delivery.proof})</>}
++    </p>
++  );
++}
+diff --git a/tests/OrderDetailPage.test.tsx b/tests/OrderDetailPage.test.tsx
+index f1c08a7..3475f75 100644
+--- a/tests/OrderDetailPage.test.tsx
++++ b/tests/OrderDetailPage.test.tsx
+@@ -1,4 +1,5 @@
+-import { render, screen } from '@testing-library/react';
++import { render, screen, within } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
+ import { afterEach, describe, expect, it, vi } from 'vitest';
+ import { App } from '../src/App';
+ import { fakeApi, json, order } from './support/fakeApi';
+@@ -10,8 +11,18 @@ describe('order page', () => {
+     vi.unstubAllGlobals();
+   });
+ 
+-  it('shows the order', async () => {
+-    fakeApi({ [`/api/orders/${id}`]: () => json(200, order(id)) });
++  it('shows the order and its delivery', async () => {
++    fakeApi({
++      [`/api/shipments/${id}`]: () =>
++        json(200, {
++          order: order(id),
++          delivery: {
++            consignmentId: 'c1',
++            status: 'OutForDelivery',
++            outForDeliveryAt: '2026-08-12T06:30:00Z',
++          },
++        }),
++    });
+     window.history.replaceState(null, '', `/orders/${id}`);
+     render(<App />);
+ 
+@@ -19,7 +30,70 @@ describe('order page', () => {
+       await screen.findByRole('heading', { name: 'Order for Halden Bikes ApS' }),
+     ).toBeInTheDocument();
+     expect(screen.getByText('2 parcels, 3.5 kg')).toBeInTheDocument();
+-    expect(screen.getByText('Placed')).toBeInTheDocument();
++    expect(screen.getByText('Out for delivery')).toBeInTheDocument();
++    expect(screen.queryByRole('button', { name: 'Cancel order…' })).not.toBeInTheDocument();
++  });
++
++  it('says when dispatch does not have the order yet', async () => {
++    fakeApi({ [`/api/shipments/${id}`]: () => json(200, { order: order(id), delivery: null }) });
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    expect(await screen.findByText('Not with dispatch yet.')).toBeInTheDocument();
++  });
++
++  it('cancels an order with a reason from the dialog', async () => {
++    let cancelled = false;
++    const calls = fakeApi({
++      [`/api/shipments/${id}`]: () =>
++        json(200, {
++          order: { ...order(id), status: cancelled ? 'cancelled' : 'placed' },
++          delivery: null,
++        }),
++      [`/api/orders/${id}/cancellation`]: () => {
++        cancelled = true;
++        return new Response(null, { status: 204 });
++      },
++    });
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('button', { name: 'Cancel order…' }));
++    const dialog = screen.getByRole('dialog', { name: 'Cancel this order' });
++    await userEvent.type(within(dialog).getByLabelText('Reason'), 'Shipper withdrew the order');
++    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel order' }));
++
++    expect(await screen.findByText('Cancelled')).toBeInTheDocument();
++    expect(calls.find((call) => call.method === 'POST')?.body).toEqual({
++      reason: 'Shipper withdrew the order',
++    });
++  });
++
++  it('closes the dialog without cancelling', async () => {
++    fakeApi({ [`/api/shipments/${id}`]: () => json(200, { order: order(id), delivery: null }) });
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('button', { name: 'Cancel order…' }));
++    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
++
++    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
++  });
++
++  it('shows why a cancellation failed', async () => {
++    fakeApi({
++      [`/api/shipments/${id}`]: () => json(200, { order: order(id), delivery: null }),
++      [`/api/orders/${id}/cancellation`]: () =>
++        json(409, { title: 'Conflict', detail: 'The order is already cancelled.' }),
++    });
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('button', { name: 'Cancel order…' }));
++    await userEvent.type(screen.getByLabelText('Reason'), 'again');
++    await userEvent.click(screen.getByRole('button', { name: 'Cancel order' }));
++
++    expect(await screen.findByRole('alert')).toHaveTextContent('already cancelled');
+   });
+ 
+   it('says so when the order does not exist', async () => {

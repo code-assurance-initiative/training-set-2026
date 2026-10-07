@@ -1,0 +1,69 @@
+From 997009acd5141a1910445173c5c2f63562497ca1 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Tue, 28 Jul 2026 10:30:55 +0200
+Subject: docs: ADR 0001 and ADR 0002 (notify at most once per order, kind and
+ channel)
+
+---
+ .../adr/0001-record-architecture-decisions.md | 20 ++++++++++++++++
+ docs/adr/0002-notify-at-most-once.md          | 24 +++++++++++++++++++
+ 2 files changed, 44 insertions(+)
+ create mode 100644 docs/adr/0001-record-architecture-decisions.md
+ create mode 100644 docs/adr/0002-notify-at-most-once.md
+
+diff --git a/docs/adr/0001-record-architecture-decisions.md b/docs/adr/0001-record-architecture-decisions.md
+new file mode 100644
+index 0000000..e55618f
+--- /dev/null
++++ b/docs/adr/0001-record-architecture-decisions.md
+@@ -0,0 +1,20 @@
++# 1. Record architecture decisions
++
++- Status: Accepted
++- Date: 2026-07-27
++- Deciders: Lucia Brennan, Sami Oyelaran
++
++## Context
++
++The notifier talks to consignees on Quellbrook's behalf and handles their personal data; its decisions need to be
++traceable for the team and for the privacy reviews.
++
++## Decision
++
++We record every decision that shapes the worker's structure, data or operation as an architecture decision record in
++`docs/adr`, numbered, with status, context, decision and consequences.
++
++## Consequences
++
++- Positive: the reasons behind the design survive staff changes and can be shown in a review.
++- Negative: records take time and must be kept current when a decision changes.
+diff --git a/docs/adr/0002-notify-at-most-once.md b/docs/adr/0002-notify-at-most-once.md
+new file mode 100644
+index 0000000..30069be
+--- /dev/null
++++ b/docs/adr/0002-notify-at-most-once.md
+@@ -0,0 +1,24 @@
++# 2. Notify at most once per order, kind and channel
++
++- Status: Accepted
++- Date: 2026-07-28
++- Deciders: Lucia Brennan, Sami Oyelaran
++
++## Context
++
++The broker delivers at least once, the order service may announce an order twice (its outbox relay retries), and a
++provider call can time out after the provider sent the message. A consignee who gets the same SMS three times calls
++customer service.
++
++## Decision
++
++Each consumed message is processed in one database transaction that records its message id; a processed message id
++is skipped. Before sending, the notification log is checked for the same order, kind and channel, and the sent
++notification is written to it in the same transaction. A provider failure rolls the transaction back and the message
++is redelivered.
++
++## Consequences
++
++- Positive: redeliveries and duplicate announcements send nothing twice.
++- Negative: a provider that accepted a message but answered with an error leads to a second send on redelivery
++  (rare; accepted); the log holds one row per notification and needs a retention period.

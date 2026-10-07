@@ -1,0 +1,39 @@
+@page "{id:guid}"
+@model EditRoomModel
+@{
+    ViewData["Title"] = $"Edit {Model.Input.Name}";
+}
+
+<h1>Edit the @Model.Input.Name</h1>
+
+<form method="post" class="admin-form">
+    <div asp-validation-summary="ModelOnly" class="field-error" role="alert"></div>
+
+    <div class="form-row">
+        <label asp-for="Input.Name">Room name</label>
+        <input asp-for="Input.Name" aria-describedby="Input_Name-error" />
+        <span asp-validation-for="Input.Name" id="Input_Name-error" class="field-error"></span>
+    </div>
+
+    <div class="form-row">
+        <label asp-for="Input.Capacity">Capacity (people)</label>
+        <input asp-for="Input.Capacity" type="number" min="1" aria-describedby="Input_Capacity-error" />
+        <span asp-validation-for="Input.Capacity" id="Input_Capacity-error" class="field-error"></span>
+    </div>
+
+    <div class="form-row">
+        <label asp-for="Input.HourlyRate">Value</label>
+        <input asp-for="Input.HourlyRate" type="number" min="0" step="0.50" aria-describedby="Input_HourlyRate-error" />
+        <span asp-validation-for="Input.HourlyRate" id="Input_HourlyRate-error" class="field-error"></span>
+    </div>
+
+    <div class="form-row">
+        <label asp-for="Input.DescriptionHtml">Description</label>
+        <p id="description-hint" class="hint">Shown on the room's page. You can use HTML for headings, lists and links.</p>
+        <textarea asp-for="Input.DescriptionHtml" rows="8" aria-describedby="description-hint Input_DescriptionHtml-error"></textarea>
+        <span asp-validation-for="Input.DescriptionHtml" id="Input_DescriptionHtml-error" class="field-error"></span>
+    </div>
+
+    <button type="submit" class="button">Save the room</button>
+    <a asp-page="/Admin/Index">Back to the rooms</a>
+</form>

@@ -1,0 +1,3553 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-csharp-blazor-a11y",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Accessibility and JS-interop correctness of a small Blazor Web App + Razor Pages room-booking portal",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "BA-001",
+      "label": "must-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/RoomDetail.razor",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "The selected room photo is an <img> bound to the photo URL with no alt, aria-label or aria-labelledby. The photo is the main content of the room page (it shows the layout and furniture the visitor is booking); a screen reader announces nothing useful."
+    },
+    {
+      "id": "BA-002",
+      "label": "must-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/RoomTourVideo.razor",
+      "lines": [
+        2,
+        5
+      ],
+      "rationale": "The narrated room walk-through plays in a <video controls> with no captions <track>: the narration (capacity, accessible entrance, what equipment is in the room) is lost to deaf and hard-of-hearing visitors (WCAG 1.2.2)."
+    },
+    {
+      "id": "BA-003",
+      "label": "must-fire",
+      "concept": "form-control-without-label",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Calendar.razor",
+      "lines": [
+        28,
+        28
+      ],
+      "rationale": "The 'next week' calendar button contains only an inline arrow <svg aria-hidden=\"true\"> and has no text, aria-label, aria-labelledby or title: it has no accessible name, so assistive technology announces just 'button' (WCAG 4.1.2)."
+    },
+    {
+      "id": "BA-004",
+      "label": "must-fire",
+      "concept": "form-control-without-label",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/MyBookings.razor",
+      "lines": [
+        10,
+        10
+      ],
+      "rationale": "The bookings filter <input> is named only by its placeholder: no <label>, no aria-label/aria-labelledby. A placeholder is not a label (it disappears on input and is not reliably announced) (WCAG 1.3.1, 4.1.2)."
+    },
+    {
+      "id": "BA-005",
+      "label": "must-fire",
+      "concept": "page-structure-violation",
+      "file": "src/HarbourLane.Bookings.Web/Pages/Shared/_AdminLayout.cshtml",
+      "lines": [
+        2,
+        2
+      ],
+      "rationale": "The staff area's layout (every Razor Pages admin page renders inside it) opens <html> with no lang attribute, so assistive technology cannot choose pronunciation rules for any admin page (WCAG 3.1.1). The public Blazor host page declares lang; this one was written separately and omits it."
+    },
+    {
+      "id": "BA-006",
+      "label": "must-fire",
+      "concept": "page-structure-violation",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Settings.razor",
+      "lines": [
+        13,
+        13
+      ],
+      "rationale": "The settings page goes from its <h1> straight to <h3> section headings in one render: the h2 level is skipped, so heading navigation presents a broken outline (WCAG 1.3.1)."
+    },
+    {
+      "id": "BA-007",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Calendar.razor",
+      "lines": [
+        62,
+        62
+      ],
+      "rationale": "Each booked calendar slot is a <div> with an @onclick that opens the booking's detail panel (reference, times, attendees, organiser), but it has no role, no tabindex and no key handler, and nothing else in the page opens that panel: keyboard users cannot reach a booking's details at all (WCAG 2.1.1)."
+    },
+    {
+      "id": "BA-008",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Book.razor",
+      "lines": [
+        17,
+        18
+      ],
+      "rationale": "The organiser-name field carries tabindex=\"1\": a positive tabindex pulls it ahead of the skip link and the site navigation and fights the DOM order (WCAG 2.4.3)."
+    },
+    {
+      "id": "BA-009",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/MyBookings.razor",
+      "lines": [
+        32,
+        34
+      ],
+      "rationale": "'Cancel booking' is an <a href=\"#\"> whose @onclick performs an action: a button dressed as a link — announced as a link, not activated by Space, and a no-op jump without the circuit."
+    },
+    {
+      "id": "BA-010",
+      "label": "must-fire",
+      "concept": "modal-focus-not-managed",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/ConfirmDialog.razor",
+      "lines": [
+        3,
+        12
+      ],
+      "rationale": "A hand-rolled modal: a <div role=\"dialog\"> over a backdrop with no aria-modal, no initial focus move into the dialog, no focus containment, no Escape handling and no focus return to the control that opened it. Keyboard focus stays on the page behind the overlay (WCAG 2.4.3)."
+    },
+    {
+      "id": "BA-011",
+      "label": "must-fire",
+      "concept": "invalid-aria-usage",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Settings.razor",
+      "lines": [
+        16,
+        21
+      ],
+      "rationale": "The 'E-mail reminders' toggle is a focusable role=\"switch\" with click and key handlers but no aria-checked: the switch role requires aria-checked, so its on/off state is never exposed (only a CSS class changes) (WCAG 4.1.2)."
+    },
+    {
+      "id": "BA-012",
+      "label": "must-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Calendar.razor.css",
+      "lines": [
+        36,
+        39
+      ],
+      "rationale": "Free-slot labels are normal-size text in #a3a3a3 on #ffffff — a contrast ratio of about 2.5:1, below the 4.5:1 AA minimum for normal text (WCAG 1.4.3)."
+    },
+    {
+      "id": "BA-013",
+      "label": "must-fire",
+      "concept": "autoplay-media-without-control",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Home.razor",
+      "lines": [
+        6,
+        7
+      ],
+      "rationale": "The home-page hero <video> starts on load (autoplay), loops forever and has no controls and no pause mechanism. It is muted, so WCAG 1.4.2 does not apply, but it is moving content that starts automatically and lasts more than five seconds with no way to pause, stop or hide it (WCAG 2.2.2)."
+    },
+    {
+      "id": "BA-014",
+      "label": "must-fire",
+      "concept": "motion-without-reduced-motion",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/LoadingSkeleton.razor",
+      "lines": [
+        1,
+        19
+      ],
+      "rationale": "The loading skeleton's <style> block runs an infinite shimmer @keyframes animation with no prefers-reduced-motion guard anywhere, so motion-sensitive users cannot turn it off (WCAG 2.3.3)."
+    },
+    {
+      "id": "BA-015",
+      "label": "must-fire",
+      "concept": "motion-without-reduced-motion",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/ToastHost.razor.css",
+      "lines": [
+        10,
+        43
+      ],
+      "rationale": "Toasts slide in with an animation declared unconditionally in the component stylesheet, with no prefers-reduced-motion query, so the motion cannot be turned off (WCAG 2.3.3)."
+    },
+    {
+      "id": "BA-016",
+      "label": "must-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/HarbourLane.Bookings.Web/Pages/Shared/_AdminLayout.cshtml",
+      "lines": [
+        8,
+        31
+      ],
+      "rationale": "The admin layout's <style> block sets outline: none on the toolbar buttons and declares no :focus or :focus-visible style anywhere: keyboard users cannot see which toolbar action has focus (WCAG 2.4.7)."
+    },
+    {
+      "id": "BA-017",
+      "label": "must-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/HarbourLane.Bookings.Web/Components/Layout/NavMenu.razor.css",
+      "lines": [
+        27,
+        29
+      ],
+      "rationale": "The navigation links' :focus rule removes the outline (outline: none) and the stylesheet gives no other focus style for them: the focused link is invisible to a keyboard user (WCAG 2.4.7)."
+    },
+    {
+      "id": "BA-018",
+      "label": "must-fire",
+      "concept": "form-error-not-associated",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Book.razor",
+      "lines": [
+        55,
+        58
+      ],
+      "rationale": "The attendees field's error message is rendered as a paragraph after the input but is tied to nothing: the input has no aria-describedby/aria-errormessage and no aria-invalid, and the message is not in a live region, so a screen-reader user is not told the field is wrong or why (WCAG 3.3.1, 1.3.1)."
+    },
+    {
+      "id": "BA-019",
+      "label": "must-fire",
+      "concept": "cross-site-scripting",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/RoomDetail.razor",
+      "lines": [
+        36,
+        36
+      ],
+      "rationale": "The room description is cast to MarkupString and rendered as raw HTML. It is free HTML typed by staff in the admin area and stored verbatim (no sanitisation on save or render), so a script or event-handler attribute in a description runs in every visitor's browser: stored XSS (CWE-79). The notice banner sanitises; this path does not."
+    },
+    {
+      "id": "BA-020",
+      "label": "must-fire",
+      "concept": "js-interop-contract-mismatch",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/RoomMap.razor",
+      "lines": [
+        31,
+        31
+      ],
+      "rationale": "The component invokes a function by string name on the room-map script object that the script no longer defines (it was renamed in the script and the C# call was not updated): the interop call fails at run time, and the room is never highlighted on the map."
+    },
+    {
+      "id": "BA-021",
+      "label": "must-fire",
+      "concept": "js-interop-contract-mismatch",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/MyBookings.razor.cs",
+      "lines": [
+        54,
+        54
+      ],
+      "rationale": "The calendar-file download invokes a string-named function on the export script object that no script defines under that name (the script exports it under another name): clicking 'Add to calendar' throws a JSException at run time."
+    },
+    {
+      "id": "BA-022",
+      "label": "must-fire",
+      "concept": "accessibility-checks-in-ci",
+      "rationale": "Nothing enforces accessibility: no automated accessibility assertion runs over the rendered markup in the component tests, no browser-based accessibility check exists, and CI runs neither. Every markup plant in this repository would be caught by such a check."
+    },
+    {
+      "id": "BA-023",
+      "label": "must-fire",
+      "concept": "alt-text-quality",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Home.razor",
+      "lines": [
+        27,
+        27
+      ],
+      "rationale": "The foyer illustration's alt text is its file name: a file name is not a text equivalent of the image (WCAG 1.1.1)."
+    },
+    {
+      "id": "BA-024",
+      "label": "must-fire",
+      "concept": "link-and-button-text-quality",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Home.razor",
+      "lines": [
+        36,
+        36
+      ],
+      "rationale": "The link to the hire terms reads 'click here': out of context (a links list, a screen reader's link navigation) it says nothing about its destination (WCAG 2.4.4)."
+    },
+    {
+      "id": "BA-025",
+      "label": "must-fire",
+      "concept": "heading-and-label-text-quality",
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/EditRoom.cshtml",
+      "lines": [
+        25,
+        25
+      ],
+      "rationale": "The hourly-rate field's label reads 'Value': it does not say what the field is (the label of a generic key/value row copied into the form), so a user navigating by form fields hears 'Value, edit text' (WCAG 2.4.6)."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/HarbourLane.Bookings.Web/Components/Layout/MainLayout.razor",
+      "lines": [
+        24,
+        24
+      ],
+      "rationale": "The wave divider in the footer is purely decorative and is marked so with alt=\"\": the correct text alternative for decoration is the empty one (WCAG 1.1.1, technique H67)."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Home.razor",
+      "lines": [
+        6,
+        7
+      ],
+      "rationale": "The hero video is muted footage with no audio track content to caption: captions (WCAG 1.2.2) are owed for audio, and there is none. (Its autoplay is a different defect, BA-013.)"
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "form-control-without-label",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Calendar.razor",
+      "lines": [
+        21,
+        21
+      ],
+      "rationale": "The 'previous week' button is icon-only but carries aria-label=\"Previous week\": it has an accessible name."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "form-control-without-label",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Rooms.razor",
+      "lines": [
+        10,
+        11
+      ],
+      "rationale": "The room search input's <label for> is visually hidden with a clip-based class, which keeps it in the accessibility tree: the input is programmatically labelled."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/AmenityChips.razor",
+      "lines": [
+        4,
+        9
+      ],
+      "rationale": "Each amenity chip is a <span> with @onclick, but also role=\"checkbox\", aria-checked, tabindex=\"0\" and an @onkeydown handler for Space and Enter: a keyboard-operable custom checkbox."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Layout/MainLayout.razor",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The skip link's href=\"#main-content\" is a real fragment target (the <main id=\"main-content\">), not a placeholder href."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Rooms.razor",
+      "lines": [
+        41,
+        41
+      ],
+      "rationale": "'Show more rooms' is a native <button type=\"button\"> styled to look like a link: fully keyboard-operable with the correct role."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "modal-focus-not-managed",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/BookingSummaryDialog.razor",
+      "lines": [
+        3,
+        19
+      ],
+      "rationale": "The booking summary is a native <dialog> opened with showModal() through a JS module: the browser moves focus into it, makes the page behind inert, closes it on Escape and returns focus to the previously focused control. No hand-written focus code is needed."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Home.razor.css",
+      "lines": [
+        23,
+        32
+      ],
+      "rationale": "The hero title is #ffffff on #2f8f9d at 2.25rem / 700 (36px bold): about 3.8:1 — below 4.5:1 but above the 3:1 AA minimum for large text, and the same rule sets the large size (WCAG 1.4.3)."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/app.css",
+      "lines": [
+        45,
+        50
+      ],
+      "rationale": "Disabled buttons use a low-contrast pair on purpose: text of inactive user-interface components is exempt from the contrast minimum (WCAG 1.4.3)."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "motion-without-reduced-motion",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/SavedIndicator.razor",
+      "lines": [
+        1,
+        20
+      ],
+      "rationale": "The 'saved' tick animation is declared only inside @media (prefers-reduced-motion: no-preference): users who ask for reduced motion get no animation."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/app.css",
+      "lines": [
+        30,
+        32
+      ],
+      "rationale": "h1:focus { outline: none } removes the ring only from the page heading that the router focuses programmatically after navigation (tabindex -1, not in the tab order) — no keyboard-operable control loses its focus indicator."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/AmenityChips.razor.css",
+      "lines": [
+        23,
+        30
+      ],
+      "rationale": "The chips drop the outline only for :focus:not(:focus-visible) (mouse focus) and draw a high-contrast :focus-visible ring for keyboard focus: the focus indicator is replaced, not removed."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "page-structure-violation",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/RoomCard.razor",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "The card's <h3> is rendered inside the rooms list under the page's <h2> 'Available rooms': in the composed page there is no skipped level, although the component file on its own starts at h3."
+    },
+    {
+      "id": "TRP-015",
+      "label": "must-not-fire",
+      "concept": "page-structure-violation",
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/EditRoom.cshtml",
+      "rationale": "A Razor Page with a route template (@page \"{id:guid}\") is not a Blazor routed component: its document title is the admin layout's <title>, filled from ViewData[\"Title\"], which this page sets, and its outline is one <h1>. The page as a whole is correct for page structure (whole-file trap since v1.0.0 iteration 1: the claim is about the page, not one line)."
+    },
+    {
+      "id": "TRP-016",
+      "label": "must-not-fire",
+      "concept": "cross-site-scripting",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/NoticeBanner.razor",
+      "lines": [
+        8,
+        8
+      ],
+      "rationale": "The notice HTML is passed through an allow-list HTML sanitiser (no script, no event-handler attributes, no javascript: URLs) before it is cast to MarkupString."
+    },
+    {
+      "id": "TRP-017",
+      "label": "must-not-fire",
+      "concept": "invalid-aria-usage",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/CopyLinkButton.razor",
+      "lines": [
+        3,
+        7
+      ],
+      "rationale": "aria-hidden=\"true\" sits on the decorative <svg> icon inside a button that is named by aria-label; the svg itself is not focusable, so nothing focusable is hidden."
+    },
+    {
+      "id": "TRP-018",
+      "label": "must-not-fire",
+      "concept": "invalid-aria-usage",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/AmenityChips.razor",
+      "lines": [
+        4,
+        9
+      ],
+      "rationale": "role=\"checkbox\" carries its required aria-checked state (bound to the chip's selection as the strings 'true'/'false')."
+    },
+    {
+      "id": "TRP-019",
+      "label": "must-not-fire",
+      "concept": "form-error-not-associated",
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Book.razor",
+      "lines": [
+        28,
+        33
+      ],
+      "rationale": "The e-mail field's error is associated: the input sets aria-invalid and aria-describedby naming the error element's id, so the error is announced with the field."
+    },
+    {
+      "id": "TRP-020",
+      "label": "must-not-fire",
+      "concept": "js-interop-contract-mismatch",
+      "file": "src/HarbourLane.Bookings.Web/Interop/ClipboardInterop.cs",
+      "lines": [
+        13,
+        13
+      ],
+      "rationale": "navigator.clipboard.writeText is a browser API: it is defined by the platform, not by any first-party script, and resolves at run time."
+    },
+    {
+      "id": "TRP-021",
+      "label": "must-not-fire",
+      "concept": "js-interop-contract-mismatch",
+      "file": "src/HarbourLane.Bookings.Web/Interop/DialogInterop.cs",
+      "lines": [
+        14,
+        14
+      ],
+      "rationale": "The function is invoked on the JS module imported from the dialog script, which exports a function of exactly that name."
+    },
+    {
+      "id": "TRP-022",
+      "label": "must-not-fire",
+      "concept": "heading-and-label-text-quality",
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/ConfirmDialog.razor",
+      "lines": [
+        5,
+        5
+      ],
+      "rationale": "The dialog heading renders its Title parameter; every caller passes a descriptive question (the bookings page passes 'Cancel this booking?'). The markup shows a Razor expression, not placeholder text. (Promoted from scanner noise in scan iteration 3, framework-on pass.)"
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "accessibility-checks-in-ci",
+      "band": [
+        0,
+        20
+      ],
+      "rationale": "No accessibility assertion in tests, no browser accessibility check, nothing in CI: the bottom rung of any enforcement ladder."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "alt-text-quality",
+      "band": [
+        50,
+        90
+      ],
+      "rationale": "Model-judged. Of the images with a static, non-empty alt, all but one carry a meaningful description; the foyer illustration's alt is its file name (BA-023). Expected around 75; wide band for judge variance."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "link-and-button-text-quality",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Model-judged. Link and button texts state their purpose ('Book a room', 'Cancel booking', 'Save settings', ...); one 'click here' link (BA-024) among a few dozen."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "heading-and-label-text-quality",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Model-judged. Headings and labels name their section or field ('Your bookings', 'Number of attendees', ...); one label reads 'Value' (BA-025) among a few dozen."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".editorconfig",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".gitattributes",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": ".gitignore",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "Directory.Build.props",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "Directory.Packages.props",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "HarbourLane.Bookings.slnx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "LICENSE",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "README.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "docs/adr/0001-blazor-web-app-with-razor-pages-staff-area.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "docs/adr/0002-javascript-interop-through-typed-wrappers.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "global.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/.editorconfig",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/Booking.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingErrors.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingField.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingOutcome.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingReferences.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingRequest.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingRequestValidator.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingService.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/BookingStatus.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/IBookingStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/InMemoryBookingStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Bookings/OpeningHours.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Calendar/CalendarSlot.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Calendar/CalendarWeek.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Calendar/IcsCalendarFile.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Calendar/WeekCalendarBuilder.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Content/ISiteNoticeStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Content/InMemorySiteNoticeStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Content/SiteNotice.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/CoreServiceCollectionExtensions.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/HarbourLane.Bookings.Core.csproj",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Preferences/IUserPreferencesStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Preferences/InMemoryUserPreferencesStore.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Preferences/UserPreferences.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/Amenity.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/AmenityNames.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/IRoomCatalog.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/InMemoryRoomCatalog.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/Room.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/RoomFilter.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/RoomPhoto.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/RoomSeed.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/Rooms/RoomUpdate.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Core/packages.lock.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/App.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Layout/MainLayout.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Layout/NavMenu.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Money.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Error.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/NotFound.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/RoomDetail.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Rooms.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Settings.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Pages/Terms.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Routes.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/BookingSummaryDialog.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/ConfirmDialog.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/RedirectToLogin.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/RoomMap.razor.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/Shared/ToastHost.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Components/_Imports.razor",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Content/NoticeSanitizer.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/HarbourLane.Bookings.Web.csproj",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Hosting/PortalApplicationExtensions.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Hosting/PortalServiceCollectionExtensions.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Interop/RoomMapInterop.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/AdminLog.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/EditRoom.cshtml.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/Index.cshtml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/Index.cshtml.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/Notice.cshtml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/Admin/Notice.cshtml.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/_ViewImports.cshtml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Pages/_ViewStart.cshtml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Program.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Properties/launchSettings.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Security/AccountEndpoints.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Security/AuthenticationServiceCollectionExtensions.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Security/AuthorizationPolicies.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-088",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-089",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/Security/UserIdentity.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-090",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/State/Toast.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-091",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/State/ToastService.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-092",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/appsettings.Development.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-093",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/appsettings.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-094",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/packages.lock.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-095",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/floorplan.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-096",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/foyer.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-097",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/hero-poster.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-098",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/logo.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-099",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/step-free-entrance.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-100",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/images/wave.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-101",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/js/booking-export.js",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-102",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/js/dialog.js",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-103",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "src/HarbourLane.Bookings.Web/wwwroot/js/room-map.js",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-104",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/.editorconfig",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-105",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.IntegrationTests/AuthorizationTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-106",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.IntegrationTests/HarbourLane.Bookings.IntegrationTests.csproj",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-107",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.IntegrationTests/PortalFactory.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-108",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.IntegrationTests/PublicPagesTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-109",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.IntegrationTests/packages.lock.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-110",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Admin/AdminIndexAndNoticeTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-111",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Admin/EditRoomModelTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-112",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Bookings/BookingRequestValidatorTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-113",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Bookings/BookingServiceTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-114",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Calendar/IcsCalendarFileTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-115",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Calendar/WeekCalendarBuilderTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-116",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/AmenityChipsTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-117",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/BookPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-118",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/CalendarPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-119",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/ConfirmDialogTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-120",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/CopyLinkButtonTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-121",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/MyBookingsPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-122",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/NoticeBannerTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-123",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/RoomDetailPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-124",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/RoomsPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-125",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Components/SettingsPageTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-126",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Content/LocalReturnUrlTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-127",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Content/NoticeSanitizerTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-128",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/HarbourLane.Bookings.UnitTests.csproj",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-129",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Interop/JsInteropContractTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-130",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Rooms/InMemoryRoomCatalogTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-131",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/Rooms/RoomFilterTests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-132",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/TestSupport/FixedClock.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-133",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/TestSupport/PortalContext.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-134",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/TestSupport/RepositoryFiles.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-135",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/TestSupport/Requests.cs",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    },
+    {
+      "id": "CLN-136",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "form-error-not-associated",
+        "cross-site-scripting",
+        "js-interop-contract-mismatch",
+        "alt-text-quality",
+        "link-and-button-text-quality",
+        "heading-and-label-text-quality"
+      ],
+      "file": "tests/HarbourLane.Bookings.UnitTests/packages.lock.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, label, heading, interaction, ARIA attribute, colour pair, focus style, animation, dialog, medium and form error here is correct, no markup is rendered unsanitised, every string-named interop call resolves, and the judged texts are descriptive."
+    }
+  ]
+}

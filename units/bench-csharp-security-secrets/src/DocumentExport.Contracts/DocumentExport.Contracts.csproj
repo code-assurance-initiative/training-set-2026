@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DocumentExport.Contracts</RootNamespace>
+    <Description>Request and response contracts of the document export API.</Description>
+    <PackageId>DocumentExport.Contracts</PackageId>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>DocumentExport.Contracts.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+</Project>

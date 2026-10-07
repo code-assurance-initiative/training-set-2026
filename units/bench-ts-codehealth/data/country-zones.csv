@@ -1,0 +1,250 @@
+country,name,zone,customs
+AD,"Andorra",Z3,yes
+AE,"United Arab Emirates",Z5,yes
+AF,"Afghanistan",Z5,yes
+AG,"Antigua & Barbuda",Z5,yes
+AI,"Anguilla",Z5,yes
+AL,"Albania",Z3,yes
+AM,"Armenia",Z5,yes
+AO,"Angola",Z5,yes
+AQ,"Antarctica",Z5,yes
+AR,"Argentina",Z5,yes
+AS,"Samoa (American)",Z5,yes
+AT,"Austria",Z2,no
+AU,"Australia",Z5,yes
+AW,"Aruba",Z5,yes
+AX,"Åland Islands",Z3,yes
+AZ,"Azerbaijan",Z5,yes
+BA,"Bosnia & Herzegovina",Z3,yes
+BB,"Barbados",Z5,yes
+BD,"Bangladesh",Z5,yes
+BE,"Belgium",Z2,no
+BF,"Burkina Faso",Z5,yes
+BG,"Bulgaria",Z2,no
+BH,"Bahrain",Z5,yes
+BI,"Burundi",Z5,yes
+BJ,"Benin",Z5,yes
+BL,"St Barthelemy",Z5,yes
+BM,"Bermuda",Z5,yes
+BN,"Brunei",Z5,yes
+BO,"Bolivia",Z5,yes
+BQ,"Caribbean NL",Z5,yes
+BR,"Brazil",Z5,yes
+BS,"Bahamas",Z5,yes
+BT,"Bhutan",Z5,yes
+BV,"Bouvet Island",Z5,yes
+BW,"Botswana",Z5,yes
+BY,"Belarus",Z3,yes
+BZ,"Belize",Z5,yes
+CA,"Canada",Z4,yes
+CC,"Cocos (Keeling) Islands",Z5,yes
+CD,"Congo (Dem. Rep.)",Z5,yes
+CF,"Central African Rep.",Z5,yes
+CG,"Congo (Rep.)",Z5,yes
+CH,"Switzerland",Z3,yes
+CI,"Côte d’Ivoire",Z5,yes
+CK,"Cook Islands",Z5,yes
+CL,"Chile",Z5,yes
+CM,"Cameroon",Z5,yes
+CN,"China",Z5,yes
+CO,"Colombia",Z5,yes
+CR,"Costa Rica",Z5,yes
+CU,"Cuba",Z5,yes
+CV,"Cape Verde",Z5,yes
+CW,"Curaçao",Z5,yes
+CX,"Christmas Island",Z5,yes
+CY,"Cyprus",Z2,no
+CZ,"Czech Republic",Z2,no
+DE,"Germany",Z2,no
+DJ,"Djibouti",Z5,yes
+DK,"Denmark",Z1,no
+DM,"Dominica",Z5,yes
+DO,"Dominican Republic",Z5,yes
+DZ,"Algeria",Z5,yes
+EC,"Ecuador",Z5,yes
+EE,"Estonia",Z2,no
+EG,"Egypt",Z5,yes
+EH,"Western Sahara",Z5,yes
+ER,"Eritrea",Z5,yes
+ES,"Spain",Z2,no
+ET,"Ethiopia",Z5,yes
+FI,"Finland",Z2,no
+FJ,"Fiji",Z5,yes
+FK,"Falkland Islands",Z5,yes
+FM,"Micronesia",Z5,yes
+FO,"Faroe Islands",Z3,yes
+FR,"France",Z2,no
+GA,"Gabon",Z5,yes
+GB,"Britain (UK)",Z3,yes
+GD,"Grenada",Z5,yes
+GE,"Georgia",Z5,yes
+GF,"French Guiana",Z5,yes
+GG,"Guernsey",Z3,yes
+GH,"Ghana",Z5,yes
+GI,"Gibraltar",Z3,yes
+GL,"Greenland",Z3,yes
+GM,"Gambia",Z5,yes
+GN,"Guinea",Z5,yes
+GP,"Guadeloupe",Z5,yes
+GQ,"Equatorial Guinea",Z5,yes
+GR,"Greece",Z2,no
+GS,"South Georgia & the South Sandwich Islands",Z5,yes
+GT,"Guatemala",Z5,yes
+GU,"Guam",Z5,yes
+GW,"Guinea-Bissau",Z5,yes
+GY,"Guyana",Z5,yes
+HK,"Hong Kong",Z5,yes
+HM,"Heard Island & McDonald Islands",Z5,yes
+HN,"Honduras",Z5,yes
+HR,"Croatia",Z2,no
+HT,"Haiti",Z5,yes
+HU,"Hungary",Z2,no
+ID,"Indonesia",Z5,yes
+IE,"Ireland",Z2,no
+IL,"Israel",Z5,yes
+IM,"Isle of Man",Z3,yes
+IN,"India",Z5,yes
+IO,"British Indian Ocean Territory",Z5,yes
+IQ,"Iraq",Z5,yes
+IR,"Iran",Z5,yes
+IS,"Iceland",Z3,yes
+IT,"Italy",Z2,no
+JE,"Jersey",Z3,yes
+JM,"Jamaica",Z5,yes
+JO,"Jordan",Z5,yes
+JP,"Japan",Z5,yes
+KE,"Kenya",Z5,yes
+KG,"Kyrgyzstan",Z5,yes
+KH,"Cambodia",Z5,yes
+KI,"Kiribati",Z5,yes
+KM,"Comoros",Z5,yes
+KN,"St Kitts & Nevis",Z5,yes
+KP,"Korea (North)",Z5,yes
+KR,"Korea (South)",Z5,yes
+KW,"Kuwait",Z5,yes
+KY,"Cayman Islands",Z5,yes
+KZ,"Kazakhstan",Z5,yes
+LA,"Laos",Z5,yes
+LB,"Lebanon",Z5,yes
+LC,"St Lucia",Z5,yes
+LI,"Liechtenstein",Z3,yes
+LK,"Sri Lanka",Z5,yes
+LR,"Liberia",Z5,yes
+LS,"Lesotho",Z5,yes
+LT,"Lithuania",Z2,no
+LU,"Luxembourg",Z2,no
+LV,"Latvia",Z2,no
+LY,"Libya",Z5,yes
+MA,"Morocco",Z5,yes
+MC,"Monaco",Z3,yes
+MD,"Moldova",Z3,yes
+ME,"Montenegro",Z3,yes
+MF,"St Martin (French)",Z5,yes
+MG,"Madagascar",Z5,yes
+MH,"Marshall Islands",Z5,yes
+MK,"North Macedonia",Z3,yes
+ML,"Mali",Z5,yes
+MM,"Myanmar (Burma)",Z5,yes
+MN,"Mongolia",Z5,yes
+MO,"Macau",Z5,yes
+MP,"Northern Mariana Islands",Z5,yes
+MQ,"Martinique",Z5,yes
+MR,"Mauritania",Z5,yes
+MS,"Montserrat",Z5,yes
+MT,"Malta",Z2,no
+MU,"Mauritius",Z5,yes
+MV,"Maldives",Z5,yes
+MW,"Malawi",Z5,yes
+MX,"Mexico",Z4,yes
+MY,"Malaysia",Z5,yes
+MZ,"Mozambique",Z5,yes
+NA,"Namibia",Z5,yes
+NC,"New Caledonia",Z5,yes
+NE,"Niger",Z5,yes
+NF,"Norfolk Island",Z5,yes
+NG,"Nigeria",Z5,yes
+NI,"Nicaragua",Z5,yes
+NL,"Netherlands",Z2,no
+NO,"Norway",Z3,yes
+NP,"Nepal",Z5,yes
+NR,"Nauru",Z5,yes
+NU,"Niue",Z5,yes
+NZ,"New Zealand",Z5,yes
+OM,"Oman",Z5,yes
+PA,"Panama",Z5,yes
+PE,"Peru",Z5,yes
+PF,"French Polynesia",Z5,yes
+PG,"Papua New Guinea",Z5,yes
+PH,"Philippines",Z5,yes
+PK,"Pakistan",Z5,yes
+PL,"Poland",Z2,no
+PM,"St Pierre & Miquelon",Z5,yes
+PN,"Pitcairn",Z5,yes
+PR,"Puerto Rico",Z5,yes
+PS,"Palestine",Z5,yes
+PT,"Portugal",Z2,no
+PW,"Palau",Z5,yes
+PY,"Paraguay",Z5,yes
+QA,"Qatar",Z5,yes
+RE,"Réunion",Z5,yes
+RO,"Romania",Z2,no
+RS,"Serbia",Z3,yes
+RU,"Russia",Z5,yes
+RW,"Rwanda",Z5,yes
+SA,"Saudi Arabia",Z5,yes
+SB,"Solomon Islands",Z5,yes
+SC,"Seychelles",Z5,yes
+SD,"Sudan",Z5,yes
+SE,"Sweden",Z2,no
+SG,"Singapore",Z5,yes
+SH,"St Helena",Z5,yes
+SI,"Slovenia",Z2,no
+SJ,"Svalbard & Jan Mayen",Z5,yes
+SK,"Slovakia",Z2,no
+SL,"Sierra Leone",Z5,yes
+SM,"San Marino",Z3,yes
+SN,"Senegal",Z5,yes
+SO,"Somalia",Z5,yes
+SR,"Suriname",Z5,yes
+SS,"South Sudan",Z5,yes
+ST,"Sao Tome & Principe",Z5,yes
+SV,"El Salvador",Z5,yes
+SX,"St Maarten (Dutch)",Z5,yes
+SY,"Syria",Z5,yes
+SZ,"Eswatini (Swaziland)",Z5,yes
+TC,"Turks & Caicos Is",Z5,yes
+TD,"Chad",Z5,yes
+TF,"French S. Terr.",Z5,yes
+TG,"Togo",Z5,yes
+TH,"Thailand",Z5,yes
+TJ,"Tajikistan",Z5,yes
+TK,"Tokelau",Z5,yes
+TL,"East Timor",Z5,yes
+TM,"Turkmenistan",Z5,yes
+TN,"Tunisia",Z5,yes
+TO,"Tonga",Z5,yes
+TR,"Turkey",Z5,yes
+TT,"Trinidad & Tobago",Z5,yes
+TV,"Tuvalu",Z5,yes
+TW,"Taiwan",Z5,yes
+TZ,"Tanzania",Z5,yes
+UA,"Ukraine",Z3,yes
+UG,"Uganda",Z5,yes
+UM,"US minor outlying islands",Z5,yes
+US,"United States",Z4,yes
+UY,"Uruguay",Z5,yes
+UZ,"Uzbekistan",Z5,yes
+VA,"Vatican City",Z3,yes
+VC,"St Vincent",Z5,yes
+VE,"Venezuela",Z5,yes
+VG,"Virgin Islands (UK)",Z5,yes
+VI,"Virgin Islands (US)",Z5,yes
+VN,"Vietnam",Z5,yes
+VU,"Vanuatu",Z5,yes
+WF,"Wallis & Futuna",Z5,yes
+WS,"Samoa (western)",Z5,yes
+YE,"Yemen",Z5,yes
+YT,"Mayotte",Z5,yes
+ZA,"South Africa",Z5,yes
+ZM,"Zambia",Z5,yes
+ZW,"Zimbabwe",Z5,yes

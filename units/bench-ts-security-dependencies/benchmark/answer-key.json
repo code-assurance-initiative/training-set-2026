@@ -1,0 +1,1923 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-ts-security-dependencies",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "typescript"
+  ],
+  "theme": "npm dependency risk — vulnerable (direct, transitive, test-only), deprecated, outdated, copyleft, end-of-life runtime, unused, undeclared and misplaced dependencies — and their look-alikes, in a small Node.js 22 dispatch service and a legacy command-line tool",
+  "lineTolerance": 0,
+  "entries": [
+    {
+      "id": "VUL-001",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package.json",
+      "lines": [
+        27,
+        27
+      ],
+      "subject": "jsonwebtoken",
+      "rationale": "npm jsonwebtoken 8.5.1 (published 2019-03-18), direct production dependency: it verifies the RS256 tokens of depot terminals on every authenticated request. Affected by GHSA-8cf7-32gw-wr33 / CVE-2022-23539 (high: legacy and unrestricted key types accepted), GHSA-hjrf-2m68-5959 / CVE-2022-23541 (moderate: key-retrieval callback allows RSA-to-HMAC token forgery) and GHSA-qwph-4952-7xr6 / CVE-2022-23540 (moderate: insecure default algorithm in verify), all fixed in 9.0.0 (osv.dev: introduced 0, fixed 9.0.0; checked 2026-10-07). The fix is a major-version upgrade."
+    },
+    {
+      "id": "VUL-002",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package.json",
+      "lines": [
+        23,
+        23
+      ],
+      "subject": "axios",
+      "rationale": "npm axios 0.21.1 (published 2020-12-22), direct production dependency: the HTTP client of the linehaul carrier integration (rate quotes and label download). osv.dev lists 24 advisories against this version (checked 2026-10-07), among them GHSA-cph5-m8f7-6c5x / CVE-2021-3749 (high, ReDoS, fixed 0.21.2), GHSA-wf5p-g6vw-rhxx / CVE-2023-45857 (XSRF token disclosure, fixed 0.28.0), GHSA-jr5f-v2jv-69x6 / CVE-2025-27152 (high, SSRF and credential leakage via absolute URL, fixed 0.30.0) and GHSA-43fc-jf86-j433 / CVE-2026-25639 (high, DoS via __proto__ in mergeConfig, fixed 0.30.3); the newest fixed versions are 0.33.0 and 1.18.0."
+    },
+    {
+      "id": "VUL-003",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "tools/manifest-export/package.json",
+      "lines": [
+        17,
+        17
+      ],
+      "subject": "minimist",
+      "rationale": "npm minimist 1.2.5 (published 2020-03-12), the only dependency of the shipped manifest-export command-line tool, which parses its arguments with it. Affected by GHSA-xvch-5gv4-984h / CVE-2021-44906 (critical: prototype pollution through crafted arguments), fixed in 1.2.6 (osv.dev: introduced 1.0.0, fixed 1.2.6; checked 2026-10-07). The tool's own lock file pins 1.2.5."
+    },
+    {
+      "id": "VUL-004",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package-lock.json",
+      "lines": [
+        1712,
+        1720
+      ],
+      "subject": "decode-uri-component",
+      "rationale": "TRANSITIVE: npm decode-uri-component 0.2.2, never declared by this repository. The direct dependency @googlemaps/google-maps-services-js 3.4.2 (its current release) declares query-string '<8.x', and query-string 7.1.3 (the newest 7.x) declares decode-uri-component '^0.2.2', so 0.2.2 is the only version the tree can resolve without an npm 'overrides' entry, which this repository does not have for it. Affected by GHSA-vcc3-ghjq-m6fr / CVE-2026-45822 (moderate: denial of service through exponential decoding of malformed percent-encoded input), fixed in 0.5.0 (osv.dev: introduced 0, fixed 0.5.0; checked 2026-10-07). The site is the package's entry in the root lock file."
+    },
+    {
+      "id": "VUL-005",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package.json",
+      "lines": [
+        57,
+        57
+      ],
+      "subject": "tmp",
+      "rationale": "npm tmp 0.2.3 (published 2024-02-29), a devDependency used only by the test suite for temporary directories. Affected by GHSA-52f5-9888-hmc6 / CVE-2025-54798 (low: arbitrary write through a symbolic-link dir parameter, fixed 0.2.4) and GHSA-ph9p-34f9-6g65 / CVE-2026-44705 (high: path traversal through unsanitised prefix/postfix, fixed 0.2.6) (osv.dev, checked 2026-10-07). The tests pass fixed, trusted options, so neither advisory is exploitable here; the concept is the affected version, which is declared, locked and executed on every CI run (see benchmark/README.md, contested truths)."
+    },
+    {
+      "id": "DPR-001",
+      "label": "must-fire",
+      "concept": "deprecated-dependency",
+      "file": "package.json",
+      "lines": [
+        34,
+        34
+      ],
+      "subject": "string-similarity",
+      "rationale": "npm string-similarity 4.0.4 (its last release, 2021-01-06), direct production dependency used to match a misspelt delivery city against the depot's service area. registry.npmjs.org marks every version deprecated: 'Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.' No advisory (osv.dev, checked 2026-10-07): deprecation only."
+    },
+    {
+      "id": "DPR-002",
+      "label": "must-fire",
+      "concept": "deprecated-dependency",
+      "file": "package-lock.json",
+      "lines": [
+        1682,
+        1688
+      ],
+      "subject": "crypto-js",
+      "rationale": "TRANSITIVE: npm crypto-js 4.2.0, never declared by this repository, shipped because the direct dependency @googlemaps/google-maps-services-js 3.4.2 depends on @googlemaps/url-signature, which declares crypto-js '^4.2.0' to sign request URLs. registry.npmjs.org marks 4.2.0 (the last release) deprecated: 'Active development of CryptoJS has been discontinued. This library is no longer maintained.' No advisory against 4.2.0 (osv.dev, checked 2026-10-07). The site is the package's entry in the root lock file."
+    },
+    {
+      "id": "OUT-001",
+      "label": "must-fire",
+      "concept": "outdated-dependency",
+      "file": "package.json",
+      "lines": [
+        24,
+        24
+      ],
+      "subject": "date-fns",
+      "rationale": "npm date-fns 1.30.1, published 2018-12-10, direct production dependency (delivery-window arithmetic). The current release is 4.4.0 (2026-05-29): three major versions and more than seven years behind, and the 1.x line receives no fixes. No advisory and no deprecation (osv.dev and registry.npmjs.org checked 2026-10-07): pure staleness."
+    },
+    {
+      "id": "LIC-001",
+      "label": "must-fire",
+      "concept": "license-policy-violation",
+      "file": "package.json",
+      "lines": [
+        30,
+        30
+      ],
+      "subject": "mupdf",
+      "rationale": "npm mupdf 1.28.1, direct production dependency (rasterises carrier label PDFs for the depot's thermal printers), licence 'AGPL-3.0-or-later' (registry.npmjs.org package metadata; Artifex sells a separate commercial licence). The service is installed on customer premises under a proprietary licence; docs/adr/0002-third-party-licence-policy.md forbids GPL- and AGPL-family licences in shipped code and records no commercial licence."
+    },
+    {
+      "id": "EOL-001",
+      "label": "must-fire",
+      "concept": "end-of-life-platform",
+      "cwe": "CWE-1104",
+      "file": "tools/manifest-export/package.json",
+      "lines": [
+        11,
+        11
+      ],
+      "subject": "Node.js 16",
+      "rationale": "The manifest-export tool declares engines.node '16.x' in its package.json: the one Node.js line it supports and is installed on (the depot PCs it ships to run Node.js 16). Node.js 16 reached end of life on 2023-09-11 (nodejs/Release schedule), so that runtime receives no security fixes; moving the tool is a migration, not a version bump."
+    },
+    {
+      "id": "UNU-001",
+      "label": "must-fire",
+      "concept": "unused-dependency",
+      "file": "package.json",
+      "lines": [
+        36,
+        36
+      ],
+      "subject": "uuid",
+      "rationale": "npm uuid 14.0.2 is declared under dependencies, and no source file imports it: identifiers are generated with crypto.randomUUID from the Node.js runtime. It is installed into every production bundle for nothing."
+    },
+    {
+      "id": "UND-001",
+      "label": "must-fire",
+      "concept": "undeclared-dependency",
+      "file": "src/scheduling/cutoff.ts",
+      "lines": [
+        1,
+        1
+      ],
+      "subject": "ms",
+      "rationale": "The cut-off parser imports npm ms at run time, but no package.json declares ms: it resolves only because jsonwebtoken (and express's debug) happen to install it at the top of node_modules. @types/ms in devDependencies provides types, not the runtime package. Removing or upgrading jsonwebtoken can silently remove the module the service imports."
+    },
+    {
+      "id": "MIS-001",
+      "label": "must-fire",
+      "concept": "misplaced-dev-dependency",
+      "file": "package.json",
+      "lines": [
+        31,
+        31
+      ],
+      "subject": "nock",
+      "rationale": "npm nock 15.0.1 (an HTTP mocking library) is declared under dependencies, but only test files import it; production code never does. It belongs in devDependencies: as declared, every production install ships a library that rewrites Node's HTTP stack when loaded."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package.json",
+      "lines": [
+        29,
+        29
+      ],
+      "subject": "lodash",
+      "rationale": "npm lodash 4.18.1 (2026-04-01). lodash has a long advisory record: GHSA-35jh-r3h4-6jhm / CVE-2021-23337 and GHSA-29mw-wpgm-hmr9 / CVE-2020-28500 (fixed 4.17.21), GHSA-xxjr-mmjv-4gpg / CVE-2025-13465 (fixed 4.17.23), GHSA-f23m-r3pf-42rh and GHSA-r5fr-rjxr-66jc (fixed 4.18.0). 4.18.1 is past every fix (osv.dev returns no advisory for 4.18.1, checked 2026-10-07). A rule keyed on the package name or on a stale advisory range is caught."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "package.json",
+      "lines": [
+        63,
+        63
+      ],
+      "subject": "jws",
+      "rationale": "npm jws, transitive through jsonwebtoken 8.5.1, which declares jws '^3.2.2'. jws 3.2.2 is affected by GHSA-869p-cjfg-cm3x / CVE-2025-65945 (high: improper HMAC signature verification, fixed 3.2.3). The root package.json 'overrides' pins jws to 3.2.3 and the lock file resolves 3.2.3 (osv.dev: no advisory for 3.2.3, checked 2026-10-07). A scanner that reads the parent's declared range at its lower bound instead of the resolved version is caught."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "license-policy-violation",
+      "file": "package.json",
+      "lines": [
+        35,
+        35
+      ],
+      "subject": "tweetnacl",
+      "rationale": "npm tweetnacl 1.0.3, licence 'Unlicense' (a public-domain dedication with a permissive fallback), used to verify partner webhook signatures. The name reads like 'unlicensed' (no licence at all), which the policy forbids; the Unlicense is on the policy's allowed list."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "license-policy-violation",
+      "file": "package.json",
+      "lines": [
+        28,
+        28
+      ],
+      "subject": "jszip",
+      "rationale": "npm jszip 3.10.2, licence expression '(MIT OR GPL-3.0-or-later)': a dual licence under which the licensee chooses one. The policy (docs/adr/0002) elects the permissive option of a disjunction, so the package is used under MIT. A rule that searches the expression for a banned identifier is caught."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "malicious-dependency",
+      "file": "package.json",
+      "lines": [
+        42,
+        42
+      ],
+      "subject": "@tsconfig/node22",
+      "rationale": "npm @tsconfig/node22 22.0.6, the community-maintained TypeScript base configuration for Node.js 22 (github.com/tsconfig/bases, MIT). A short lowercase scope reads like a company-internal package and therefore like a dependency-confusion candidate; it is a real public package and appears in no malicious-package feed (no MAL- or CWE-506 record on osv.dev, checked 2026-10-07)."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "unused-dependency",
+      "file": "package.json",
+      "lines": [
+        42,
+        42
+      ],
+      "subject": "@tsconfig/node22",
+      "rationale": "No source file imports @tsconfig/node22, and none should: tsconfig.json 'extends' it, so the compiler loads it on every type-check and build. A rule that counts only import statements is caught."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "prerelease-dependency",
+      "file": "package.json",
+      "lines": [
+        37,
+        37
+      ],
+      "subject": "xml2js",
+      "rationale": "npm xml2js 0.6.2 (2023-07-26), the carrier status-feed parser. A 0.x version reads as unfinished, but 0.6.2 is a stable release (no SemVer pre-release label) and the latest on registry.npmjs.org of a package that has shipped 0.x for over a decade. (Versions before 0.5.0 carried GHSA-776f-qx25-q3cc; 0.6.2 is past the fix.)"
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "outdated-dependency",
+      "file": "package.json",
+      "lines": [
+        47,
+        47
+      ],
+      "subject": "@types/node",
+      "rationale": "npm @types/node 22.x, development only. Newer majors exist (26.x), but the type definitions must describe the Node.js line the service runs on (.nvmrc 22, engines >=22.12.0 <23); a newer major would type-check APIs the runtime lacks. The pinned version is the newest of the 22 line (docs/adr/0003-node-type-definitions-follow-the-runtime.md)."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "outdated-dependency",
+      "file": "package.json",
+      "lines": [
+        58,
+        58
+      ],
+      "subject": "typescript",
+      "rationale": "npm typescript 6.0.3, development only. TypeScript 7 exists (7.0.2), but the type-aware lint rules come from typescript-eslint 8.71, which supports TypeScript '>=4.8.4 <6.1.0' (its peerDependencies); the compiler moves with the linter (docs/adr/0004-typescript-follows-the-linter.md) and 6.0.3 is the newest 6.0 release."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "end-of-life-platform",
+      "cwe": "CWE-1104",
+      "file": ".nvmrc",
+      "lines": [
+        1,
+        1
+      ],
+      "subject": "Node.js 22",
+      "rationale": "The service selects Node.js 22. Active LTS for 22 ended on 2025-10-21, but it is in maintenance LTS and receives security fixes until 2027-04-30 (nodejs/Release schedule). Not the newest LTS is not end of life."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "undeclared-dependency",
+      "file": "src/lifecycle.ts",
+      "lines": [
+        1,
+        1
+      ],
+      "subject": "timers/promises",
+      "rationale": "'timers/promises' is a Node.js built-in module imported by its bare name (without the node: prefix). It is not an npm package and must not be declared; a rule that treats every bare specifier as a package is caught."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "deprecated-dependency",
+      "file": "package.json",
+      "lines": [
+        36,
+        36
+      ],
+      "subject": "uuid",
+      "rationale": "npm uuid 14.0.2 (2026-08-18) is not deprecated. registry.npmjs.org deprecates uuid 10 and below ('uuid@10 and below is no longer supported'); a rule that reads the package's deprecation history instead of the resolved version's is caught. (The same declaration is unused: UNU-001.)"
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "nullable-analysis-disabled",
+      "rationale": "Promoted from scan 1. Strict null checking is on for every type-checking configuration: tsconfig.json extends @tsconfig/node22, whose base configuration sets \"strict\": true, and tsconfig.build.json extends tsconfig.json (tsc --showConfig prints \"strict\": true for both). A rule that reads only the options a file states itself, without resolving 'extends', is caught."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "authorization-enforcement",
+      "rationale": "Promoted from scan 1 (as in bench-ts-baseline-clean). The authorization rules are named and listable: src/http/require-terminal.ts names the three scopes, every /api route declares its scope with requireScope(Scopes.x) where it is registered, and a terminal is confined to its own depot in one place (ownRun); the README lists the scope per endpoint."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "dependencies-not-locked",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Both npm packages (the service and tools/manifest-export) commit a package-lock.json; CI installs each with npm ci. The dependency set is pinned and reproducible even though several pinned versions are bad."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "build-provenance-and-signing",
+      "band": [
+        30,
+        100
+      ],
+      "rationale": "Actions are pinned by commit SHA, but the repository publishes no release artifact, so there is nothing to sign or attest and no SBOM; partial posture by design, wide band (as the TypeScript and C# baselines)."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "outdated-dependency",
+      "band": [
+        30,
+        85
+      ],
+      "rationale": "Noticeably stale but not abandoned: of the service's seventeen direct production dependencies, three are a major version or more behind (date-fns three majors, axios 0.21 against 1.x, jsonwebtoken 8 against 9), the tool's only dependency is a patch behind, the rest are current."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".editorconfig",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".gitattributes",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".gitignore",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".nvmrc",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers, except the concepts of the plant or trap sited in it (whole file)."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".prettierignore",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".prettierrc.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "LICENSE",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "README.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0001-depot-service-on-customer-premises.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0002-third-party-licence-policy.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0003-node-type-definitions-follow-the-runtime.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0004-typescript-follows-the-linter.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "eslint.config.js",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "package-lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers, except the concepts of the plant or trap sited in it (whole file)."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/addresses/city-matcher.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/addresses/geocoder.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/app.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/auth/terminal-tokens.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/carriers/linehaul-client.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/carriers/status-feed.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/composition.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/config.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/dispatch/depots.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/dispatch/dispatch-run.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/dispatch/dispatch-service.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/dispatch/dispatch-store.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/errors.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/problem.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/require-terminal.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/routes/health-routes.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/routes/label-routes.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/routes/run-routes.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/routes/webhook-routes.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/http/schemas.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/labels/label-archive.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/labels/label-rasteriser.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/lifecycle.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers, except the concepts of the plant or trap sited in it (whole file)."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/logger.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/main.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/scheduling/cutoff.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers, except the concepts of the plant or trap sited in it (whole file)."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/scheduling/delivery-windows.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/server.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/webhooks/partner-signature.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/integration/api.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/integration/lifecycle.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/carrier-keys.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/fakes.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/label-pdf.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/parcels.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/silent-logger.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/test-app.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/test-config.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/support/test-tokens.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/city-matcher.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/config.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/cutoff.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/delivery-windows.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/dispatch-service.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/dispatch-store.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/geocoder.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/label-archive.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/label-rasteriser.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/linehaul-client.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/partner-signature.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/status-feed.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/unit/terminal-tokens.test.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/manifest-export/README.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/manifest-export/bin/manifest-export.js",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/manifest-export/lib/manifest.js",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/manifest-export/package-lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers, except the concepts of the plant or trap sited in it (whole file)."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/manifest-export/test/manifest.test.js",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tsconfig.build.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tsconfig.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "vitest.config.ts",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform, dependency-truthfulness and CI/image-pinning concepts this repository covers (whole file)."
+    }
+  ]
+}

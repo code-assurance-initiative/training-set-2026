@@ -1,0 +1,40 @@
+<div class="chips" role="group" aria-label="Amenities">
+    @foreach (var amenity in Enum.GetValues<Amenity>())
+    {
+        <span class="chip"
+              role="checkbox"
+              aria-checked="@AriaChecked(amenity)"
+              tabindex="0"
+              @onclick="() => ToggleAsync(amenity)"
+              @onkeydown="e => OnKeyDownAsync(e, amenity)">@AmenityNames.Display(amenity)</span>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IReadOnlySet<Amenity> Selected { get; set; } = new HashSet<Amenity>();
+
+    [Parameter]
+    public EventCallback<IReadOnlySet<Amenity>> SelectedChanged { get; set; }
+
+    private string AriaChecked(Amenity amenity) => Selected.Contains(amenity) ? "true" : "false";
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e, Amenity amenity)
+    {
+        if (e.Key is " " or "Enter")
+        {
+            await ToggleAsync(amenity);
+        }
+    }
+
+    private Task ToggleAsync(Amenity amenity)
+    {
+        var next = new HashSet<Amenity>(Selected);
+        if (!next.Add(amenity))
+        {
+            next.Remove(amenity);
+        }
+
+        return SelectedChanged.InvokeAsync(next);
+    }
+}

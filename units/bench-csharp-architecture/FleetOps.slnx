@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FleetOps.Api/FleetOps.Api.csproj" />
+    <Project Path="src/FleetOps.Application/FleetOps.Application.csproj" />
+    <Project Path="src/FleetOps.Contracts/FleetOps.Contracts.csproj" />
+    <Project Path="src/FleetOps.Diagnostics/FleetOps.Diagnostics.csproj" />
+    <Project Path="src/FleetOps.Domain/FleetOps.Domain.csproj" />
+    <Project Path="src/FleetOps.Infrastructure/FleetOps.Infrastructure.csproj" />
+    <Project Path="src/FleetOps.Infrastructure.Telematics/FleetOps.Infrastructure.Telematics.csproj" />
+    <Project Path="src/FleetOps.Notifications/FleetOps.Notifications.csproj" />
+    <Project Path="src/FleetOps.ServiceDefaults/FleetOps.ServiceDefaults.csproj" />
+    <Project Path="src/FleetOps.Worker/FleetOps.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FleetOps.Api.IntegrationTests/FleetOps.Api.IntegrationTests.csproj" />
+    <Project Path="tests/FleetOps.Application.Tests/FleetOps.Application.Tests.csproj" />
+    <Project Path="tests/FleetOps.ArchitectureTests/FleetOps.ArchitectureTests.csproj" />
+  </Folder>
+</Solution>

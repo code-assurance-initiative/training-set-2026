@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <RootNamespace>Invoicing.Contracts</RootNamespace>
+    <Description>Invoice document model shared with the ERP connector, which runs on .NET Framework 4.8 inside the customer's ERP host.</Description>
+  </PropertyGroup>
+
+</Project>

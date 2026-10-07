@@ -1,0 +1,48 @@
+From f85a68b24f04772c24fdbb9663df5655b19cb680 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 24 Sep 2026 14:30:55 +0200
+Subject: test: book a treatment series around Easter
+
+---
+ .../BookingFlowTests.cs                         | 17 +++++++++++++++++
+ .../Responses.cs                                |  2 +-
+ 2 files changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index 49e02be..8172cb9 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -53,4 +53,21 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+         Assert.Contains("DurationMinutes", await response.Content.ReadAsStringAsync(ApiClient.Token), StringComparison.Ordinal);
+     }
++
++    [Fact]
++    public async Task BooksATreatmentSeries()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++
++        using var response = await client.PostAsJsonAsync(
++            "api/series",
++            new { patientId = Guid.NewGuid(), practitionerId = ApiClient.PractitionerId, clinicId = ApiClient.ClinicId, firstDay = "2026-03-30", startTime = "14:00:00", durationMinutes = 30, recurrence = "WEEKLY;COUNT=3;BYDAY=MO,TH" },
++            ApiClient.Token);
++        var sessions = await response.ReadAsync<List<AppointmentDto>>();
++
++        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
++        Assert.Equal(["2026-03-30T14:00:00+02:00", "2026-04-07T14:00:00+02:00", "2026-04-09T14:00:00+02:00"], sessions.Select(s => s.StartsAt));
++        Assert.Single(sessions.Select(s => s.SeriesId).Distinct());
++    }
+ }
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index 2c52697..45b792b 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -1,6 +1,6 @@
+ namespace ClinicScheduling.IntegrationTests;
+ 
+-public sealed record AppointmentDto(Guid Id, Guid PatientId, string StartsAt, string Status, string? CancellationReason, int RescheduleCount);
++public sealed record AppointmentDto(Guid Id, Guid PatientId, string StartsAt, string Status, string? CancellationReason, int RescheduleCount, Guid? SeriesId);
+ 
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+ 

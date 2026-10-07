@@ -1,0 +1,30 @@
+@if (Open)
+{
+    <div class="dialog-backdrop">
+        <div class="dialog" role="dialog" aria-labelledby="confirm-dialog-title">
+            <h2 id="confirm-dialog-title">@Title</h2>
+            <p>@Message</p>
+            <div class="dialog-actions">
+                <button type="button" class="button" @onclick="() => Closed.InvokeAsync(true)">@ConfirmText</button>
+                <button type="button" class="button button--secondary" @onclick="() => Closed.InvokeAsync(false)">Keep booking</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Open { get; set; }
+
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirm";
+
+    [Parameter]
+    public EventCallback<bool> Closed { get; set; }
+}

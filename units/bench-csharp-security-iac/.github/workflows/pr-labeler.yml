@@ -1,0 +1,20 @@
+name: PR labeler
+
+# pull_request_target so that pull requests from forks can be labelled. The job never checks out or
+# runs the pull request's code: the labeler reads only the list of changed paths from the API.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v6.0.1
+        with:
+          sync-labels: true

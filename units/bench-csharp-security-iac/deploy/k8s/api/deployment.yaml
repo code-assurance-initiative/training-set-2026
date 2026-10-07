@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: depot-slots-api
+  namespace: depot-slots
+  labels:
+    app.kubernetes.io/name: depot-slots-api
+    app.kubernetes.io/part-of: depot-slots
+spec:
+  replicas: 3
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: depot-slots-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: depot-slots-api
+        app.kubernetes.io/part-of: depot-slots
+    spec:
+      serviceAccountName: depot-slots-api
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        runAsGroup: 1654
+        fsGroup: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: ghcr.io/depot-slots/api@sha256:75ac8fcb31612f7a155a4274145f8c79c74bae5f7d525ae1b3ad4dd43f49cdbb
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: Authentication__Authority
+              value: https://login.depot.internal/realms/depot
+            - name: ForwardedHeaders__TrustedNetwork
+              value: 10.42.0.0/16
+            - name: ConnectionStrings__Slots
+              valueFrom:
+                secretKeyRef:
+                  name: depot-slots-db
+                  key: connection-string
+          readinessProbe:
+            httpGet: &health
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              <<: *health
+              path: /health/live
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: "1"
+              memory: 384Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

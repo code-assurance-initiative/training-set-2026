@@ -1,0 +1,23 @@
+From 2f3e0056ef71ae236f470953603f5c2ed309e924 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 5 Mar 2026 13:15:48 +0100
+Subject: docs(security): say what the security policy covers
+
+---
+ SECURITY.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/SECURITY.md b/SECURITY.md
+index 61839c7..87f6e33 100644
+--- a/SECURITY.md
++++ b/SECURITY.md
+@@ -13,3 +13,9 @@ unless you ask us not to.
+ ## Supported versions
+ 
+ Only the latest commit on `main` is supported.
++
++## Scope
++
++In scope: the code in this repository and its build and CI configuration. Out of scope: the identity provider that
++issues access tokens, and denial of service through request volume (the service is meant to run behind a gateway that
++applies rate limits).

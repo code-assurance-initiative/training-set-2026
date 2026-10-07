@@ -1,0 +1,478 @@
+From ca18859317ff853910c4dfd467be072aea498896 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Fri, 31 Jul 2026 10:18:37 +0200
+Subject: feat: booking confirmations by e-mail through the provider
+
+---
+ .../Channels/EmailProviderOptions.cs          | 23 +++++
+ .../Channels/EmailSender.cs                   | 39 ++++++++
+ .../Channels/IEmailSender.cs                  | 12 +++
+ .../Notifications/ContactMask.cs              | 18 ++++
+ .../Notifications/NotificationKind.cs         |  6 ++
+ .../Notifications/NotificationService.cs      | 40 +++++++++
+ .../Notifications/NotificationTemplates.cs    | 20 +++++
+ .../Notifications/OrderPlacedHandler.cs       | 28 ++++++
+ .../Channels/EmailSenderTests.cs              | 45 ++++++++++
+ .../Notifications/TemplatesAndMaskTests.cs    | 31 +++++++
+ .../TestSupport/StubHandler.cs                | 22 +++++
+ .../TestSupport/TestDb.cs                     | 90 +++++++++++++++++++
+ 12 files changed, 374 insertions(+)
+ create mode 100644 src/Quellbrook.Notifier/Channels/EmailProviderOptions.cs
+ create mode 100644 src/Quellbrook.Notifier/Channels/EmailSender.cs
+ create mode 100644 src/Quellbrook.Notifier/Channels/IEmailSender.cs
+ create mode 100644 src/Quellbrook.Notifier/Notifications/ContactMask.cs
+ create mode 100644 src/Quellbrook.Notifier/Notifications/NotificationKind.cs
+ create mode 100644 src/Quellbrook.Notifier/Notifications/NotificationService.cs
+ create mode 100644 src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
+ create mode 100644 src/Quellbrook.Notifier/Notifications/OrderPlacedHandler.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/Channels/EmailSenderTests.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/TestSupport/StubHandler.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+
+diff --git a/src/Quellbrook.Notifier/Channels/EmailProviderOptions.cs b/src/Quellbrook.Notifier/Channels/EmailProviderOptions.cs
+new file mode 100644
+index 0000000..24495c5
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/EmailProviderOptions.cs
+@@ -0,0 +1,23 @@
++using System.ComponentModel.DataAnnotations;
++
++namespace Quellbrook.Notifier.Channels;
++
++/// <summary>The transactional e-mail provider (SendGrid's v3 API).</summary>
++public sealed class EmailProviderOptions
++{
++    public const string SectionName = "EmailProvider";
++
++    [Required]
++    public Uri BaseAddress { get; set; } = new("https://api.sendgrid.com/");
++
++    /// <summary>The provider's API key; supplied by the environment, never written in configuration files.</summary>
++    [Required]
++    public string ApiKey { get; set; } = string.Empty;
++
++    [Required]
++    [EmailAddress]
++    public string FromAddress { get; set; } = string.Empty;
++
++    [Required]
++    public string FromName { get; set; } = "Quellbrook Freight";
++}
+diff --git a/src/Quellbrook.Notifier/Channels/EmailSender.cs b/src/Quellbrook.Notifier/Channels/EmailSender.cs
+new file mode 100644
+index 0000000..9ab35cb
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/EmailSender.cs
+@@ -0,0 +1,39 @@
++using System.Net.Http.Headers;
++using System.Net.Http.Json;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Options;
++
++namespace Quellbrook.Notifier.Channels;
++
++/// <summary>Sends e-mail through the provider's v3 mail/send endpoint.</summary>
++public sealed partial class EmailSender(HttpClient http, IOptions<EmailProviderOptions> options, ILogger<EmailSender> logger) : IEmailSender
++{
++    public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(message);
++        var settings = options.Value;
++        using var request = new HttpRequestMessage(HttpMethod.Post, "v3/mail/send")
++        {
++            Content = JsonContent.Create(new
++            {
++                personalizations = new[] { new { to = new[] { new { email = message.To, name = message.ToName } } } },
++                from = new { email = settings.FromAddress, name = settings.FromName },
++                subject = message.Subject,
++                content = new[] { new { type = "text/plain", value = message.Body } },
++                custom_args = new { order_id = message.OrderId.ToString() },
++            }),
++        };
++        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
++        using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
++        if (!response.IsSuccessStatusCode)
++        {
++            throw new ProviderException($"The e-mail provider answered {(int)response.StatusCode} for order {message.OrderId}.");
++        }
++
++        var providerId = response.Headers.TryGetValues("X-Message-Id", out var ids) ? ids.FirstOrDefault() : null;
++        LogAccepted(message.OrderId, providerId ?? "unknown");
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "E-mail for order {OrderId} accepted by the provider ({ProviderMessageId})")]
++    private partial void LogAccepted(Guid orderId, string providerMessageId);
++}
+diff --git a/src/Quellbrook.Notifier/Channels/IEmailSender.cs b/src/Quellbrook.Notifier/Channels/IEmailSender.cs
+new file mode 100644
+index 0000000..4b8e546
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/IEmailSender.cs
+@@ -0,0 +1,12 @@
++namespace Quellbrook.Notifier.Channels;
++
++public sealed record EmailMessage(Guid OrderId, string To, string ToName, string Subject, string Body);
++
++/// <summary>Sends one plain-text e-mail; throws <see cref="ProviderException"/> when the provider refuses it.</summary>
++public interface IEmailSender
++{
++    Task SendAsync(EmailMessage message, CancellationToken cancellationToken);
++}
++
++/// <summary>A notification provider refused or failed a request.</summary>
++public sealed class ProviderException(string message) : Exception(message);
+diff --git a/src/Quellbrook.Notifier/Notifications/ContactMask.cs b/src/Quellbrook.Notifier/Notifications/ContactMask.cs
+new file mode 100644
+index 0000000..d624218
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/ContactMask.cs
+@@ -0,0 +1,18 @@
++namespace Quellbrook.Notifier.Notifications;
++
++/// <summary>Masks contact details for logs and the notification log: enough to recognise, not enough to contact.</summary>
++public static class ContactMask
++{
++    public static string Email(string email)
++    {
++        ArgumentNullException.ThrowIfNull(email);
++        var at = email.IndexOf('@', StringComparison.Ordinal);
++        return at <= 0 ? "***" : $"{email[0]}***{email[at..]}";
++    }
++
++    public static string Phone(string phone)
++    {
++        ArgumentNullException.ThrowIfNull(phone);
++        return phone.Length < 6 ? "***" : $"{phone[..3]}***{phone[^2..]}";
++    }
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationKind.cs b/src/Quellbrook.Notifier/Notifications/NotificationKind.cs
+new file mode 100644
+index 0000000..55a559b
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/NotificationKind.cs
+@@ -0,0 +1,6 @@
++namespace Quellbrook.Notifier.Notifications;
++
++public enum NotificationKind
++{
++    OrderConfirmed,
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationService.cs b/src/Quellbrook.Notifier/Notifications/NotificationService.cs
+new file mode 100644
+index 0000000..c1ad97f
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/NotificationService.cs
+@@ -0,0 +1,40 @@
++using Microsoft.EntityFrameworkCore;
++using Quellbrook.Notifier.Channels;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.Notifications;
++
++/// <summary>
++/// Sends one kind of notification for an order through every channel the recipient can be reached on, at most once
++/// per order, kind and channel: the notification log is checked before sending and written after.
++/// </summary>
++public sealed class NotificationService(NotifierDbContext db, IEmailSender email, TimeProvider time)
++{
++    public async Task NotifyAsync(Recipient recipient, NotificationKind kind, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(recipient);
++        if (recipient.Email is { } address && !await AlreadySentAsync(recipient.OrderId, kind, "email", cancellationToken).ConfigureAwait(false))
++        {
++            var (subject, body) = NotificationTemplates.Email(kind, recipient.Name, recipient.OrderId);
++            await email.SendAsync(new EmailMessage(recipient.OrderId, address, recipient.Name, subject, body), cancellationToken).ConfigureAwait(false);
++            Record(recipient.OrderId, kind, "email", ContactMask.Email(address));
++        }
++    }
++
++    private Task<bool> AlreadySentAsync(Guid orderId, NotificationKind kind, string channel, CancellationToken cancellationToken)
++    {
++        var kindName = kind.ToString();
++        return db.NotificationLog.AnyAsync(entry => entry.OrderId == orderId && entry.Kind == kindName && entry.Channel == channel, cancellationToken);
++    }
++
++    private void Record(Guid orderId, NotificationKind kind, string channel, string maskedRecipient) =>
++        db.NotificationLog.Add(new NotificationLogEntry
++        {
++            Id = Guid.CreateVersion7(time.GetUtcNow()),
++            OrderId = orderId,
++            Kind = kind.ToString(),
++            Channel = channel,
++            MaskedRecipient = maskedRecipient,
++            SentAt = time.GetUtcNow(),
++        });
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs b/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
+new file mode 100644
+index 0000000..864fa36
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
+@@ -0,0 +1,20 @@
++namespace Quellbrook.Notifier.Notifications;
++
++/// <summary>The plain-text messages the consignee receives. Order references are the first eight characters of the id.</summary>
++public static class NotificationTemplates
++{
++    public static string Reference(Guid orderId) => orderId.ToString("N")[..8].ToUpperInvariant();
++
++    public static (string Subject, string Body) Email(NotificationKind kind, string name, Guid orderId)
++    {
++        var reference = Reference(orderId);
++        return kind switch
++        {
++            NotificationKind.OrderConfirmed => (
++                $"Your Quellbrook delivery {reference} is booked",
++                $"Hello {name},\n\nA parcel delivery to you has been booked with Quellbrook Freight (reference {reference}). " +
++                "We will tell you when it is on its way.\n\nQuellbrook Freight"),
++            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
++        };
++    }
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/OrderPlacedHandler.cs b/src/Quellbrook.Notifier/Notifications/OrderPlacedHandler.cs
+new file mode 100644
+index 0000000..a6e80d5
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/OrderPlacedHandler.cs
+@@ -0,0 +1,28 @@
++using Quellbrook.Notifier.Messaging;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.Notifications;
++
++/// <summary>Keeps the consignee's contact details for the order and confirms the booking by e-mail.</summary>
++public sealed class OrderPlacedHandler(NotifierDbContext db, NotificationService notifications, TimeProvider time)
++{
++    public async Task HandleAsync(OrderPlacedMessage message, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(message);
++        var recipient = await db.Recipients.FindAsync([message.OrderId], cancellationToken).ConfigureAwait(false);
++        if (recipient is null)
++        {
++            recipient = new Recipient
++            {
++                OrderId = message.OrderId,
++                Name = message.Consignee.Name,
++                Email = message.Consignee.Contact.Email,
++                Phone = message.Consignee.Contact.Phone,
++                ReceivedAt = time.GetUtcNow(),
++            };
++            db.Recipients.Add(recipient);
++        }
++
++        await notifications.NotifyAsync(recipient, NotificationKind.OrderConfirmed, cancellationToken).ConfigureAwait(false);
++    }
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Channels/EmailSenderTests.cs b/tests/Quellbrook.Notifier.UnitTests/Channels/EmailSenderTests.cs
+new file mode 100644
+index 0000000..c95ddbe
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/Channels/EmailSenderTests.cs
+@@ -0,0 +1,45 @@
++using System.Net;
++using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Options;
++using Quellbrook.Notifier.Channels;
++using Quellbrook.Notifier.UnitTests.TestSupport;
++
++namespace Quellbrook.Notifier.UnitTests.Channels;
++
++public sealed class EmailSenderTests
++{
++    private const string ProviderKey = "unit-test-provider-key";
++
++    private static readonly EmailMessage Message =
++        new(Guid.Parse("0198f1a2-0000-7000-8000-000000000042"), "maja.holm@post.example", "Maja Holm", "Subject", "Body");
++
++    private static EmailSender Sender(StubHandler handler) =>
++        new(
++            new HttpClient(handler) { BaseAddress = new Uri("https://email.test/") },
++            Options.Create(new EmailProviderOptions { ApiKey = ProviderKey, FromAddress = "deliveries@quellbrook.example" }),
++            NullLogger<EmailSender>.Instance);
++
++    [Fact]
++    public async Task TheMessageIsPostedToTheProviderWithTheKeyAsBearerToken()
++    {
++        var handler = new StubHandler(HttpStatusCode.Accepted, ("X-Message-Id", "abc123"));
++
++        await Sender(handler).SendAsync(Message, TestContext.Current.CancellationToken);
++
++        var (request, body) = Assert.Single(handler.Requests);
++        Assert.Equal(new Uri("https://email.test/v3/mail/send"), request.RequestUri);
++        Assert.Equal(("Bearer", ProviderKey), (request.Headers.Authorization?.Scheme, request.Headers.Authorization?.Parameter));
++        Assert.Contains("\"email\":\"maja.holm@post.example\"", body, StringComparison.Ordinal);
++        Assert.Contains("\"type\":\"text/plain\"", body, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public async Task ARefusalIsAProviderException()
++    {
++        var handler = new StubHandler(HttpStatusCode.Unauthorized);
++
++        var exception = await Assert.ThrowsAsync<ProviderException>(() => Sender(handler).SendAsync(Message, TestContext.Current.CancellationToken));
++
++        Assert.Contains("401", exception.Message, StringComparison.Ordinal);
++    }
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs b/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
+new file mode 100644
+index 0000000..7f4e3f6
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
+@@ -0,0 +1,31 @@
++using Quellbrook.Notifier.Notifications;
++
++namespace Quellbrook.Notifier.UnitTests.Notifications;
++
++public sealed class TemplatesAndMaskTests
++{
++    private static readonly Guid OrderId = Guid.Parse("0198f1a2-7b3c-7000-8000-000000000042");
++
++    [Fact]
++    public void TheReferenceIsTheFirstEightCharactersOfTheOrderId() =>
++        Assert.Equal("0198F1A2", NotificationTemplates.Reference(OrderId));
++
++    [Fact]
++    public void TheConfirmationGreetsTheConsigneeAndNamesTheReference()
++    {
++        var (subject, body) = NotificationTemplates.Email(NotificationKind.OrderConfirmed, "Maja Holm", OrderId);
++
++        Assert.Equal("Your Quellbrook delivery 0198F1A2 is booked", subject);
++        Assert.StartsWith("Hello Maja Holm,", body, StringComparison.Ordinal);
++    }
++
++    [Theory]
++    [InlineData("maja.holm@post.example", "m***@post.example")]
++    [InlineData("@post.example", "***")]
++    public void EmailAddressesAreMasked(string email, string masked) => Assert.Equal(masked, ContactMask.Email(email));
++
++    [Theory]
++    [InlineData("+4520304050", "+45***50")]
++    [InlineData("+45", "***")]
++    public void PhoneNumbersAreMasked(string phone, string masked) => Assert.Equal(masked, ContactMask.Phone(phone));
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/TestSupport/StubHandler.cs b/tests/Quellbrook.Notifier.UnitTests/TestSupport/StubHandler.cs
+new file mode 100644
+index 0000000..57c6a9e
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/TestSupport/StubHandler.cs
+@@ -0,0 +1,22 @@
++using System.Net;
++
++namespace Quellbrook.Notifier.UnitTests.TestSupport;
++
++/// <summary>Answers every request with a fixed status and records what was sent.</summary>
++internal sealed class StubHandler(HttpStatusCode status, params (string Name, string Value)[] headers) : HttpMessageHandler
++{
++    public List<(HttpRequestMessage Request, string Body)> Requests { get; } = [];
++
++    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
++    {
++        var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
++        Requests.Add((request, body));
++        var response = new HttpResponseMessage(status);
++        foreach (var (name, value) in headers)
++        {
++            response.Headers.Add(name, value);
++        }
++
++        return response;
++    }
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+new file mode 100644
+index 0000000..d9a0a7e
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+@@ -0,0 +1,90 @@
++using Microsoft.Data.Sqlite;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Infrastructure;
++using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
++using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Time.Testing;
++using Quellbrook.Notifier.Channels;
++using Quellbrook.Notifier.Notifications;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.UnitTests.TestSupport;
++
++/// <summary>An in-memory SQLite database and the notifier's handlers over it, with recording channels.</summary>
++internal sealed class TestDb : IDisposable
++{
++    public static readonly DateTimeOffset Now = new(2026, 8, 3, 9, 0, 0, TimeSpan.Zero);
++
++    private readonly SqliteConnection _connection = new("Data Source=:memory:");
++
++    public TestDb()
++    {
++        _connection.Open();
++        using (var db = Context())
++        {
++            db.Database.EnsureCreated();
++        }
++
++        Services = new ServiceCollection()
++            .AddScoped(_ => Context())
++            .AddSingleton<TimeProvider>(Time)
++            .AddSingleton<IEmailSender>(Email)
++            .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
++            .AddScoped<NotificationService>()
++            .AddScoped<OrderPlacedHandler>()
++            .BuildServiceProvider();
++    }
++
++    public FakeTimeProvider Time { get; } = new(Now);
++
++    public RecordingEmailSender Email { get; } = new();
++
++    public ServiceProvider Services { get; }
++
++    public NotifierDbContext Context() =>
++        new(new DbContextOptionsBuilder<NotifierDbContext>()
++            .UseSqlite(_connection)
++            .ReplaceService<IModelCustomizer, SqliteModelCustomizer>()
++            .Options);
++
++    public void Dispose()
++    {
++        Services.Dispose();
++        _connection.Dispose();
++    }
++
++    private sealed class SqliteModelCustomizer(ModelCustomizerDependencies dependencies) : RelationalModelCustomizer(dependencies)
++    {
++        public override void Customize(ModelBuilder modelBuilder, DbContext context)
++        {
++            base.Customize(modelBuilder, context);
++            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
++            {
++                if (property.ClrType == typeof(DateTimeOffset) || property.ClrType == typeof(DateTimeOffset?))
++                {
++                    property.SetValueConverter(new DateTimeOffsetToBinaryConverter());
++                }
++            }
++        }
++    }
++}
++
++internal sealed class RecordingEmailSender : IEmailSender
++{
++    public List<EmailMessage> Sent { get; } = [];
++
++    public bool Fail { get; set; }
++
++    public Task SendAsync(EmailMessage message, CancellationToken cancellationToken)
++    {
++        if (Fail)
++        {
++            throw new ProviderException("provider unavailable");
++        }
++
++        Sent.Add(message);
++        return Task.CompletedTask;
++    }
++}

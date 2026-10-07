@@ -1,0 +1,91 @@
+From 0d5a37a53ce7b3e5bc232375e0ca3354ed35342d Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 18 Mar 2026 14:30:12 +0100
+Subject: refactor(policy): name the decision codes
+
+---
+ .../Policies/CancellationPolicy.cs                  | 13 +++++++++----
+ .../Policies/CancellationPolicyTests.cs             |  8 ++++----
+ 2 files changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 2f4e2a7..40ebc8e 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -8,6 +8,11 @@ namespace ClinicScheduling.Domain.Policies;
+ /// </summary>
+ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+ {
++    public const string FreeCancellation = "free";
++    public const string LateCancellation = "late";
++    public const string NoShow = "no-show";
++    public const string ClinicInitiated = "clinic-initiated";
++
+     /// <summary>The consequence of cancelling <paramref name="appointment"/> at <paramref name="at"/>.</summary>
+     public CancellationDecision EvaluateCancellation(Appointment appointment, CancellationReason reason, DateTimeOffset at)
+     {
+@@ -15,22 +20,22 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+ 
+         if (reason == CancellationReason.PractitionerUnavailable)
+         {
+-            return CancellationDecision.Free("clinic-initiated");
++            return CancellationDecision.Free(ClinicInitiated);
+         }
+ 
+         if (at <= appointment.Time.Start - options.FreeCancellationWindow)
+         {
+-            return CancellationDecision.Free("free");
++            return CancellationDecision.Free(FreeCancellation);
+         }
+ 
+-        return new CancellationDecision(options.LateCancellationFee, true, "late");
++        return new CancellationDecision(options.LateCancellationFee, true, LateCancellation);
+     }
+ 
+     /// <summary>The consequence of the patient not turning up at all.</summary>
+     public CancellationDecision EvaluateNoShow(Appointment appointment)
+     {
+         ArgumentNullException.ThrowIfNull(appointment);
+-        return new CancellationDecision(options.NoShowFee, true, "no-show");
++        return new CancellationDecision(options.NoShowFee, true, NoShow);
+     }
+ 
+     /// <summary>Whether a patient with these past strikes must pay a deposit to book at <paramref name="now"/>.</summary>
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 9e0e347..27e8e23 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -18,7 +18,7 @@ public sealed class CancellationPolicyTests
+     {
+         var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PatientRequest, Start.AddHours(-25));
+ 
+-        Assert.Equal(CancellationDecision.Free("free"), decision);
++        Assert.Equal(CancellationDecision.Free(CancellationPolicy.FreeCancellation), decision);
+     }
+ 
+     [Fact]
+@@ -26,7 +26,7 @@ public sealed class CancellationPolicyTests
+     {
+         var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PatientRequest, Start.AddHours(-3));
+ 
+-        Assert.Equal(new CancellationDecision(250m, true, "late"), decision);
++        Assert.Equal(new CancellationDecision(250m, true, CancellationPolicy.LateCancellation), decision);
+     }
+ 
+     [Fact]
+@@ -34,13 +34,13 @@ public sealed class CancellationPolicyTests
+     {
+         var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PractitionerUnavailable, Start.AddMinutes(-5));
+ 
+-        Assert.Equal(CancellationDecision.Free("clinic-initiated"), decision);
++        Assert.Equal(CancellationDecision.Free(CancellationPolicy.ClinicInitiated), decision);
+     }
+ 
+     [Fact]
+     public void NoShowCostsTheFullNoShowFee()
+     {
+-        Assert.Equal(new CancellationDecision(400m, true, "no-show"), _policy.EvaluateNoShow(Booked()));
++        Assert.Equal(new CancellationDecision(400m, true, CancellationPolicy.NoShow), _policy.EvaluateNoShow(Booked()));
+     }
+ 
+     [Fact]

@@ -1,0 +1,313 @@
+From 814da095fdfbaf89d8215348d0a8049ada521618 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Wed, 12 Aug 2026 16:09:44 +0200
+Subject: feat: out-for-delivery and delivered notifications from dispatch
+ events
+
+---
+ .../Hosting/NotifierServices.cs               |  1 +
+ .../Messaging/EventsConsumer.cs               |  7 ++-
+ .../Messaging/InboxProcessor.cs               |  8 ++++
+ src/Quellbrook.Notifier/Messaging/Messages.cs | 12 +++++
+ .../Notifications/DeliveryHandlers.cs         | 45 +++++++++++++++++++
+ .../Notifications/NotificationKind.cs         |  2 +
+ .../Notifications/NotificationService.cs      | 15 +++++--
+ .../Notifications/NotificationTemplates.cs    | 19 +++++++-
+ .../Messaging/InboxTests.cs                   | 34 ++++++++++++++
+ .../Notifications/TemplatesAndMaskTests.cs    | 16 ++++++-
+ .../TestSupport/TestDb.cs                     |  1 +
+ 11 files changed, 152 insertions(+), 8 deletions(-)
+ create mode 100644 src/Quellbrook.Notifier/Notifications/DeliveryHandlers.cs
+
+diff --git a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+index 5852fc8..8ebc5bc 100644
+--- a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
++++ b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+@@ -40,6 +40,7 @@ public static class NotifierServices
+ 
+         services.AddScoped<NotificationService>();
+         services.AddScoped<OrderPlacedHandler>();
++        services.AddScoped<DeliveryHandlers>();
+ 
+         services.AddHealthChecks().AddDbContextCheck<NotifierDbContext>("database");
+         services.AddOptions<HeartbeatOptions>().BindConfiguration(HeartbeatOptions.SectionName);
+diff --git a/src/Quellbrook.Notifier/Messaging/EventsConsumer.cs b/src/Quellbrook.Notifier/Messaging/EventsConsumer.cs
+index c759d04..1fc19e0 100644
+--- a/src/Quellbrook.Notifier/Messaging/EventsConsumer.cs
++++ b/src/Quellbrook.Notifier/Messaging/EventsConsumer.cs
+@@ -20,7 +20,12 @@ public sealed partial class EventsConsumer(
+     public const string QueueName = "notifier.events";
+     public const string DeadLetterExchange = "quellbrook.dead-letter";
+ 
+-    public static readonly IReadOnlyList<string> RoutingKeys = ["orders.order-placed.v1"];
++    public static readonly IReadOnlyList<string> RoutingKeys =
++    [
++        "orders.order-placed.v1",
++        "dispatch.consignment-out-for-delivery.v1",
++        "dispatch.consignment-delivered.v1",
++    ];
+ 
+     public async Task HandleAsync(IChannel channel, BasicDeliverEventArgs delivery, CancellationToken cancellationToken)
+     {
+diff --git a/src/Quellbrook.Notifier/Messaging/InboxProcessor.cs b/src/Quellbrook.Notifier/Messaging/InboxProcessor.cs
+index 904f6fc..3434452 100644
+--- a/src/Quellbrook.Notifier/Messaging/InboxProcessor.cs
++++ b/src/Quellbrook.Notifier/Messaging/InboxProcessor.cs
+@@ -52,6 +52,14 @@ public sealed partial class InboxProcessor(IServiceScopeFactory scopes, TimeProv
+                 await services.GetRequiredService<OrderPlacedHandler>()
+                     .HandleAsync(Deserialize<OrderPlacedMessage>(body), cancellationToken).ConfigureAwait(false);
+                 return true;
++            case ConsignmentOutForDeliveryMessage.EventType:
++                await services.GetRequiredService<DeliveryHandlers>()
++                    .HandleAsync(Deserialize<ConsignmentOutForDeliveryMessage>(body), cancellationToken).ConfigureAwait(false);
++                return true;
++            case ConsignmentDeliveredMessage.EventType:
++                await services.GetRequiredService<DeliveryHandlers>()
++                    .HandleAsync(Deserialize<ConsignmentDeliveredMessage>(body), cancellationToken).ConfigureAwait(false);
++                return true;
+             default:
+                 return false;
+         }
+diff --git a/src/Quellbrook.Notifier/Messaging/Messages.cs b/src/Quellbrook.Notifier/Messaging/Messages.cs
+index 37133f4..1c999d9 100644
+--- a/src/Quellbrook.Notifier/Messaging/Messages.cs
++++ b/src/Quellbrook.Notifier/Messaging/Messages.cs
+@@ -12,3 +12,15 @@ public sealed record OrderPlacedMessage(Guid OrderId, OrderPlacedMessage.Consign
+ 
+     public sealed record ContactPart(string? Email, string? Phone);
+ }
++
++/// <summary>The notifier's copy of <c>dispatch.consignment-out-for-delivery.v1</c>.</summary>
++public sealed record ConsignmentOutForDeliveryMessage(Guid ConsignmentId, Guid OrderId, DateTimeOffset OutForDeliveryAt)
++{
++    public const string EventType = "dispatch.consignment-out-for-delivery.v1";
++}
++
++/// <summary>The notifier's copy of <c>dispatch.consignment-delivered.v1</c>.</summary>
++public sealed record ConsignmentDeliveredMessage(Guid ConsignmentId, Guid OrderId, string Proof, DateTimeOffset DeliveredAt)
++{
++    public const string EventType = "dispatch.consignment-delivered.v1";
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/DeliveryHandlers.cs b/src/Quellbrook.Notifier/Notifications/DeliveryHandlers.cs
+new file mode 100644
+index 0000000..b0f1901
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Notifications/DeliveryHandlers.cs
+@@ -0,0 +1,45 @@
++using Microsoft.Extensions.Logging;
++using Quellbrook.Notifier.Messaging;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.Notifications;
++
++/// <summary>Tells the consignee that the parcels are on their way today, and that they were delivered.</summary>
++public sealed partial class DeliveryHandlers(
++    NotifierDbContext db,
++    NotificationService notifications,
++    ILogger<DeliveryHandlers> logger)
++{
++    public async Task HandleAsync(ConsignmentOutForDeliveryMessage message, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(message);
++        if (await FindAsync(message.OrderId, cancellationToken).ConfigureAwait(false) is { } recipient)
++        {
++            await notifications.NotifyAsync(recipient, NotificationKind.OutForDelivery, cancellationToken).ConfigureAwait(false);
++        }
++    }
++
++    public async Task HandleAsync(ConsignmentDeliveredMessage message, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(message);
++        if (await FindAsync(message.OrderId, cancellationToken).ConfigureAwait(false) is { } recipient)
++        {
++            await notifications.NotifyAsync(recipient, NotificationKind.Delivered, cancellationToken).ConfigureAwait(false);
++            recipient.CompletedAt = message.DeliveredAt;
++        }
++    }
++
++    private async Task<Recipient?> FindAsync(Guid orderId, CancellationToken cancellationToken)
++    {
++        var recipient = await db.Recipients.FindAsync([orderId], cancellationToken).ConfigureAwait(false);
++        if (recipient is null)
++        {
++            LogUnknownOrder(orderId);
++        }
++
++        return recipient;
++    }
++
++    [LoggerMessage(Level = LogLevel.Warning, Message = "No recipient for order {OrderId}; the order was never announced or its data has been deleted")]
++    private partial void LogUnknownOrder(Guid orderId);
++}
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationKind.cs b/src/Quellbrook.Notifier/Notifications/NotificationKind.cs
+index 55a559b..fd0d310 100644
+--- a/src/Quellbrook.Notifier/Notifications/NotificationKind.cs
++++ b/src/Quellbrook.Notifier/Notifications/NotificationKind.cs
+@@ -3,4 +3,6 @@ namespace Quellbrook.Notifier.Notifications;
+ public enum NotificationKind
+ {
+     OrderConfirmed,
++    OutForDelivery,
++    Delivered,
+ }
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationService.cs b/src/Quellbrook.Notifier/Notifications/NotificationService.cs
+index c1ad97f..ba1f6e3 100644
+--- a/src/Quellbrook.Notifier/Notifications/NotificationService.cs
++++ b/src/Quellbrook.Notifier/Notifications/NotificationService.cs
+@@ -6,19 +6,26 @@ namespace Quellbrook.Notifier.Notifications;
+ 
+ /// <summary>
+ /// Sends one kind of notification for an order through every channel the recipient can be reached on, at most once
+-/// per order, kind and channel: the notification log is checked before sending and written after.
++/// per order, kind and channel: the notification log is checked before sending and written after (ADR 0002).
+ /// </summary>
+-public sealed class NotificationService(NotifierDbContext db, IEmailSender email, TimeProvider time)
++public sealed class NotificationService(NotifierDbContext db, IEmailSender email, ISmsSender sms, TimeProvider time)
+ {
+     public async Task NotifyAsync(Recipient recipient, NotificationKind kind, CancellationToken cancellationToken)
+     {
+         ArgumentNullException.ThrowIfNull(recipient);
+-        if (recipient.Email is { } address && !await AlreadySentAsync(recipient.OrderId, kind, "email", cancellationToken).ConfigureAwait(false))
++        if (recipient.Email is { } address && NotificationTemplates.Email(kind, recipient.Name, recipient.OrderId) is var (subject, body)
++            && !await AlreadySentAsync(recipient.OrderId, kind, "email", cancellationToken).ConfigureAwait(false))
+         {
+-            var (subject, body) = NotificationTemplates.Email(kind, recipient.Name, recipient.OrderId);
+             await email.SendAsync(new EmailMessage(recipient.OrderId, address, recipient.Name, subject, body), cancellationToken).ConfigureAwait(false);
+             Record(recipient.OrderId, kind, "email", ContactMask.Email(address));
+         }
++
++        if (recipient.Phone is { } phone && NotificationTemplates.Sms(kind, recipient.OrderId) is { } text
++            && !await AlreadySentAsync(recipient.OrderId, kind, "sms", cancellationToken).ConfigureAwait(false))
++        {
++            await sms.SendAsync(new SmsMessage(recipient.OrderId, phone, text), cancellationToken).ConfigureAwait(false);
++            Record(recipient.OrderId, kind, "sms", ContactMask.Phone(phone));
++        }
+     }
+ 
+     private Task<bool> AlreadySentAsync(Guid orderId, NotificationKind kind, string channel, CancellationToken cancellationToken)
+diff --git a/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs b/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
+index 864fa36..5e80366 100644
+--- a/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
++++ b/src/Quellbrook.Notifier/Notifications/NotificationTemplates.cs
+@@ -5,7 +5,8 @@ public static class NotificationTemplates
+ {
+     public static string Reference(Guid orderId) => orderId.ToString("N")[..8].ToUpperInvariant();
+ 
+-    public static (string Subject, string Body) Email(NotificationKind kind, string name, Guid orderId)
++    /// <summary>The e-mail for a kind of notification, or null when the kind has none.</summary>
++    public static (string Subject, string Body)? Email(NotificationKind kind, string name, Guid orderId)
+     {
+         var reference = Reference(orderId);
+         return kind switch
+@@ -14,7 +15,21 @@ public static class NotificationTemplates
+                 $"Your Quellbrook delivery {reference} is booked",
+                 $"Hello {name},\n\nA parcel delivery to you has been booked with Quellbrook Freight (reference {reference}). " +
+                 "We will tell you when it is on its way.\n\nQuellbrook Freight"),
+-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
++            NotificationKind.OutForDelivery => (
++                $"Your Quellbrook delivery {reference} arrives today",
++                $"Hello {name},\n\nYour parcels (reference {reference}) left our depot this morning and will be delivered " +
++                "today.\n\nQuellbrook Freight"),
++            NotificationKind.Delivered => (
++                $"Your Quellbrook delivery {reference} has been delivered",
++                $"Hello {name},\n\nYour parcels (reference {reference}) have been delivered.\n\nQuellbrook Freight"),
++            _ => null,
+         };
+     }
++
++    /// <summary>The SMS for a kind of notification, or null when the kind has none (only delivery-day messages).</summary>
++    public static string? Sms(NotificationKind kind, Guid orderId) => kind switch
++    {
++        NotificationKind.OutForDelivery => $"Quellbrook: your parcels {Reference(orderId)} are out for delivery and arrive today.",
++        _ => null,
++    };
+ }
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs b/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
+index beab9b9..9dd3af5 100644
+--- a/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
++++ b/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
+@@ -75,6 +75,40 @@ public sealed class InboxTests : IDisposable
+         Assert.Empty(_db.Email.Sent);
+     }
+ 
++    [Fact]
++    public async Task OnTheDeliveryDayTheConsigneeGetsAnSmsAndAnEmailAndAfterwardsADeliveryEmail()
++    {
++        await Inbox().ProcessAsync(Guid.NewGuid(), OrderPlacedMessage.EventType, Encoding.UTF8.GetBytes(OrderPlaced), TestContext.Current.CancellationToken);
++        const string orderId = "0198f1a2-0000-7000-8000-000000000042";
++        var outForDelivery = $$"""{"consignmentId":"{{Guid.NewGuid()}}","orderId":"{{orderId}}","routeId":"{{Guid.NewGuid()}}","outForDeliveryAt":"2026-08-03T07:00:00+00:00"}""";
++        var delivered = $$"""{"consignmentId":"{{Guid.NewGuid()}}","orderId":"{{orderId}}","proof":"signature","deliveredAt":"2026-08-03T11:30:00+00:00"}""";
++
++        await Inbox().ProcessAsync(Guid.NewGuid(), ConsignmentOutForDeliveryMessage.EventType, Encoding.UTF8.GetBytes(outForDelivery), TestContext.Current.CancellationToken);
++        await Inbox().ProcessAsync(Guid.NewGuid(), ConsignmentDeliveredMessage.EventType, Encoding.UTF8.GetBytes(delivered), TestContext.Current.CancellationToken);
++
++        Assert.Collection(
++            _db.Email.Sent,
++            mail => Assert.EndsWith("is booked", mail.Subject, StringComparison.Ordinal),
++            mail => Assert.EndsWith("arrives today", mail.Subject, StringComparison.Ordinal),
++            mail => Assert.EndsWith("has been delivered", mail.Subject, StringComparison.Ordinal));
++        var sms = Assert.Single(_db.Sms.Sent);
++        Assert.Equal("+4520304050", sms.To);
++        using var context = _db.Context();
++        Assert.Equal(new DateTimeOffset(2026, 8, 3, 11, 30, 0, TimeSpan.Zero), (await context.Recipients.SingleAsync(TestContext.Current.CancellationToken)).CompletedAt);
++        Assert.Equal(4, await context.NotificationLog.CountAsync(TestContext.Current.CancellationToken));
++    }
++
++    [Fact]
++    public async Task ADeliveryEventForAnUnknownOrderSendsNothing()
++    {
++        var delivered = $$"""{"consignmentId":"{{Guid.NewGuid()}}","orderId":"{{Guid.NewGuid()}}","proof":"photo","deliveredAt":"2026-08-03T11:30:00+00:00"}""";
++
++        var outcome = await Inbox().ProcessAsync(Guid.NewGuid(), ConsignmentDeliveredMessage.EventType, Encoding.UTF8.GetBytes(delivered), TestContext.Current.CancellationToken);
++
++        Assert.Equal(InboxOutcome.Processed, outcome);
++        Assert.Empty(_db.Email.Sent);
++    }
++
+     [Fact]
+     public async Task AnUnknownEventTypeIsIgnored() =>
+         Assert.Equal(InboxOutcome.Ignored, await Inbox().ProcessAsync(Guid.NewGuid(), "orders.order-archived.v1", "{}"u8.ToArray(), TestContext.Current.CancellationToken));
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs b/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
+index 7f4e3f6..20d899e 100644
+--- a/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
++++ b/tests/Quellbrook.Notifier.UnitTests/Notifications/TemplatesAndMaskTests.cs
+@@ -13,12 +13,26 @@ public sealed class TemplatesAndMaskTests
+     [Fact]
+     public void TheConfirmationGreetsTheConsigneeAndNamesTheReference()
+     {
+-        var (subject, body) = NotificationTemplates.Email(NotificationKind.OrderConfirmed, "Maja Holm", OrderId);
++        var (subject, body) = NotificationTemplates.Email(NotificationKind.OrderConfirmed, "Maja Holm", OrderId) ?? default;
+ 
+         Assert.Equal("Your Quellbrook delivery 0198F1A2 is booked", subject);
+         Assert.StartsWith("Hello Maja Holm,", body, StringComparison.Ordinal);
+     }
+ 
++    [Fact]
++    public void OnlyTheDeliveryDayMessageHasAnSms()
++    {
++        Assert.Contains("0198F1A2", NotificationTemplates.Sms(NotificationKind.OutForDelivery, OrderId), StringComparison.Ordinal);
++        Assert.Null(NotificationTemplates.Sms(NotificationKind.OrderConfirmed, OrderId));
++        Assert.Null(NotificationTemplates.Sms(NotificationKind.Delivered, OrderId));
++    }
++
++    [Theory]
++    [InlineData(NotificationKind.OutForDelivery, "arrives today")]
++    [InlineData(NotificationKind.Delivered, "has been delivered")]
++    public void EveryKindHasAnEmail(NotificationKind kind, string subjectEnding) =>
++        Assert.EndsWith(subjectEnding, NotificationTemplates.Email(kind, "Maja Holm", OrderId)?.Subject, StringComparison.Ordinal);
++
+     [Theory]
+     [InlineData("maja.holm@post.example", "m***@post.example")]
+     [InlineData("@post.example", "***")]
+diff --git a/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+index ba219cc..7babe86 100644
+--- a/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
++++ b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+@@ -35,6 +35,7 @@ internal sealed class TestDb : IDisposable
+             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+             .AddScoped<NotificationService>()
+             .AddScoped<OrderPlacedHandler>()
++            .AddScoped<DeliveryHandlers>()
+             .BuildServiceProvider();
+     }
+ 

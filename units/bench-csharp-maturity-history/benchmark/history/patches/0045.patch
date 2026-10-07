@@ -1,0 +1,36 @@
+From 32661439c81fea990f7d19106653bfce6b2abf44 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 12 Mar 2026 11:20:43 +0100
+Subject: fix(availability): slots were offered across the lunch break
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs          | 2 +-
+ .../ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs  | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 8af29a2..96abd84 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -65,7 +65,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                     if (hours.BreakStarts is { } breakStarts && hours.BreakEnds is { } breakEnds)
+                     {
+                         var lunch = new TimeRange(At(day, breakStarts, schedule.TimeZone), At(day, breakEnds, schedule.TimeZone));
+-                        if (candidate.Start >= lunch.Start && candidate.Start < lunch.End)
++                        if (candidate.Overlaps(lunch))
+                         {
+                             cursor += options.Granularity;
+                             continue;
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 090d585..f5b9b6e 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -50,7 +50,7 @@ public sealed class SlotFinderTests
+ 
+         var slots = Finder().FindOpenSlots(schedule, [], Tuesday(), new SlotSearchOptions());
+ 
+-        Assert.DoesNotContain(slots, s => s.Start >= At(Monday.AddDays(1), 12) && s.Start < At(Monday.AddDays(1), 12, 30));
++        Assert.DoesNotContain(slots, s => s.End > At(Monday.AddDays(1), 12) && s.Start < At(Monday.AddDays(1), 12, 30));
+         Assert.Contains(slots, s => s.Start == At(Monday.AddDays(1), 12, 30));
+     }
+ 

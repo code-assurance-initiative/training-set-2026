@@ -1,0 +1,274 @@
+From b5abfa728cf2b76aef038230b9ca46e583b8d5f5 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Wed, 7 Jan 2026 13:45:50 +0100
+Subject: feat(availability): weekly hours, practitioner schedules and a first
+ slot finder
+
+---
+ .../Availability/PractitionerSchedule.cs      | 32 +++++++++++
+ .../Availability/Slot.cs                      |  3 +
+ .../Availability/SlotFinder.cs                | 55 +++++++++++++++++++
+ .../Availability/SlotQuery.cs                 |  4 ++
+ .../Availability/SlotSearchOptions.cs         |  7 +++
+ .../Availability/WeeklyHours.cs               | 10 ++++
+ .../Holidays/IHolidayCalendar.cs              |  7 +++
+ .../Availability/SlotFinderTests.cs           | 44 +++++++++++++++
+ tests/ClinicScheduling.UnitTests/TestData.cs  | 21 +++++++
+ 9 files changed, 183 insertions(+)
+ create mode 100644 src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/Slot.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+ create mode 100644 src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+ create mode 100644 src/ClinicScheduling.Domain/Holidays/IHolidayCalendar.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+
+diff --git a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+new file mode 100644
+index 0000000..941c729
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+@@ -0,0 +1,32 @@
++namespace ClinicScheduling.Domain.Availability;
++
++/// <summary>When and how a practitioner can be booked.</summary>
++public sealed class PractitionerSchedule
++{
++    private readonly List<WeeklyHours> _hours;
++
++    public PractitionerSchedule(
++        Guid practitionerId,
++        string countryCode,
++        TimeZoneInfo timeZone,
++        IEnumerable<WeeklyHours> hours)
++    {
++        ArgumentException.ThrowIfNullOrWhiteSpace(countryCode);
++        ArgumentNullException.ThrowIfNull(timeZone);
++
++        PractitionerId = practitionerId;
++        CountryCode = countryCode.ToUpperInvariant();
++        TimeZone = timeZone;
++        _hours = [.. hours];
++    }
++
++    public Guid PractitionerId { get; }
++
++    public string CountryCode { get; }
++
++    public TimeZoneInfo TimeZone { get; }
++
++    public IReadOnlyList<WeeklyHours> Hours => _hours;
++
++    public IEnumerable<WeeklyHours> HoursOn(DayOfWeek day) => _hours.Where(h => h.Day == day);
++}
+diff --git a/src/ClinicScheduling.Domain/Availability/Slot.cs b/src/ClinicScheduling.Domain/Availability/Slot.cs
+new file mode 100644
+index 0000000..49b988a
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/Slot.cs
+@@ -0,0 +1,3 @@
++namespace ClinicScheduling.Domain.Availability;
++
++public sealed record Slot(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End);
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+new file mode 100644
+index 0000000..ee1b38e
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -0,0 +1,55 @@
++using ClinicScheduling.Domain.Holidays;
++
++namespace ClinicScheduling.Domain.Availability;
++
++/// <summary>Finds the bookable slots of one practitioner: opening hours minus holidays and existing appointments.</summary>
++public sealed class SlotFinder(IHolidayCalendar holidays)
++{
++    public IReadOnlyList<Slot> FindOpenSlots(
++        PractitionerSchedule schedule,
++        IReadOnlyCollection<TimeRange> booked,
++        SlotQuery query,
++        SlotSearchOptions options)
++    {
++        ArgumentNullException.ThrowIfNull(schedule);
++        ArgumentNullException.ThrowIfNull(booked);
++        ArgumentNullException.ThrowIfNull(query);
++        ArgumentNullException.ThrowIfNull(options);
++
++        var slots = new List<Slot>();
++
++        for (var day = query.From; day <= query.To; day = day.AddDays(1))
++        {
++            if (holidays.IsHoliday(schedule.CountryCode, day))
++            {
++                continue;
++            }
++
++            foreach (var hours in schedule.HoursOn(day.DayOfWeek))
++            {
++                var opens = At(day, hours.Opens, schedule.TimeZone);
++                var closes = At(day, hours.Closes, schedule.TimeZone);
++                var cursor = opens;
++
++                while (cursor + query.Duration <= closes)
++                {
++                    var candidate = new TimeRange(cursor, cursor + query.Duration);
++                    if (!booked.Any(b => b.Overlaps(candidate)))
++                    {
++                        slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End));
++                    }
++
++                    cursor += options.Granularity;
++                }
++            }
++        }
++
++        return slots;
++    }
++
++    private static DateTimeOffset At(DateOnly day, TimeOnly time, TimeZoneInfo zone)
++    {
++        var local = day.ToDateTime(time, DateTimeKind.Unspecified);
++        return new DateTimeOffset(local, zone.GetUtcOffset(local));
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotQuery.cs b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+new file mode 100644
+index 0000000..5603309
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+@@ -0,0 +1,4 @@
++namespace ClinicScheduling.Domain.Availability;
++
++/// <summary>What a patient is looking for: a duration within a date range.</summary>
++public sealed record SlotQuery(DateOnly From, DateOnly To, TimeSpan Duration);
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+new file mode 100644
+index 0000000..c5c145b
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Domain.Availability;
++
++public sealed record SlotSearchOptions
++{
++    /// <summary>Slots start on multiples of this from the opening time.</summary>
++    public TimeSpan Granularity { get; init; } = TimeSpan.FromMinutes(15);
++}
+diff --git a/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+new file mode 100644
+index 0000000..6861ffb
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+@@ -0,0 +1,10 @@
++namespace ClinicScheduling.Domain.Availability;
++
++/// <summary>
++/// One block of a practitioner's weekly opening hours, in the clinic's local time. A practitioner may have several
++/// blocks on one day (a split shift).
++/// </summary>
++public sealed record WeeklyHours(
++    DayOfWeek Day,
++    TimeOnly Opens,
++    TimeOnly Closes);
+diff --git a/src/ClinicScheduling.Domain/Holidays/IHolidayCalendar.cs b/src/ClinicScheduling.Domain/Holidays/IHolidayCalendar.cs
+new file mode 100644
+index 0000000..6963dd6
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Holidays/IHolidayCalendar.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Domain.Holidays;
++
++/// <summary>Public holidays per country (ISO 3166-1 alpha-2), on which no clinic is open.</summary>
++public interface IHolidayCalendar
++{
++    bool IsHoliday(string countryCode, DateOnly day);
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+new file mode 100644
+index 0000000..c761e41
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -0,0 +1,44 @@
++using ClinicScheduling.Domain.Availability;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Availability;
++
++public sealed class SlotFinderTests
++{
++    private static readonly TimeSpan HalfHour = TimeSpan.FromMinutes(30);
++
++    private static SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays));
++
++    private static SlotQuery Tuesday(TimeSpan? duration = null) =>
++        new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour);
++
++    [Fact]
++    public void OffersSlotsOnTheGranularity()
++    {
++        var slots = Finder().FindOpenSlots(Schedule(), [], Tuesday(), new SlotSearchOptions());
++
++        Assert.Equal(At(Monday.AddDays(1), 8), slots[0].Start);
++        Assert.Equal(At(Monday.AddDays(1), 8, 15), slots[1].Start);
++        Assert.Equal(At(Monday.AddDays(1), 16), slots[^1].End);
++    }
++
++    [Fact]
++    public void SkipsHolidays()
++    {
++        var slots = Finder(Monday.AddDays(1)).FindOpenSlots(Schedule(), [], Tuesday(), new SlotSearchOptions());
++
++        Assert.Empty(slots);
++    }
++
++    [Fact]
++    public void DoesNotOfferBookedTimes()
++    {
++        var tuesday = Monday.AddDays(1);
++        var booked = new[] { new TimeRange(At(tuesday, 9), At(tuesday, 10)) };
++
++        var slots = Finder().FindOpenSlots(Schedule(), booked, Tuesday(), new SlotSearchOptions());
++
++        Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 30) && s.Start < At(tuesday, 10));
++        Assert.Contains(slots, s => s.Start == At(tuesday, 10));
++    }
++}
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index 4e75b7e..8581283 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -1,5 +1,14 @@
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Holidays;
++
+ namespace ClinicScheduling.UnitTests;
+ 
++/// <summary>A holiday calendar that knows only the days it is given.</summary>
++public sealed class FixedHolidays(params DateOnly[] days) : IHolidayCalendar
++{
++    public bool IsHoliday(string countryCode, DateOnly day) => days.Contains(day);
++}
++
+ public static class TestData
+ {
+     /// <summary>Monday 2 March 2026, 07:00 UTC.</summary>
+@@ -9,6 +18,18 @@ public static class TestData
+ 
+     public static readonly Guid PractitionerId = Guid.Parse("6f1d2c7e-5a43-4b8e-9c11-0d2f3a4b5c6d");
+ 
++    public static PractitionerSchedule Schedule(
++        IEnumerable<WeeklyHours>? hours = null) =>
++        new(
++            PractitionerId,
++            "DK",
++            TimeZoneInfo.Utc,
++            hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)));
++
++    public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes) =>
++        new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday }
++            .Select(d => new WeeklyHours(d, opens, closes));
++
+     public static DateTimeOffset At(DateOnly day, int hour, int minute = 0) =>
+         new(day.ToDateTime(new TimeOnly(hour, minute)), TimeSpan.Zero);
+ }

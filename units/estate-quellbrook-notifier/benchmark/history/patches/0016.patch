@@ -1,0 +1,111 @@
+From 5d1ed7577edde5b65368df52761b787e0f3b8d6e Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Fri, 21 Aug 2026 10:47:31 +0200
+Subject: docs: SMS and the delivery-day notifications
+
+---
+ README.md            |  8 ++++++--
+ catalog-info.yaml    |  2 ++
+ docs/architecture.md | 12 ++++++++++--
+ 3 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/README.md b/README.md
+index de5a1a8..8117d78 100644
+--- a/README.md
++++ b/README.md
+@@ -2,7 +2,8 @@
+ 
+ The notifier of Quellbrook Freight's operations platform tells consignees about their deliveries. It is a background
+ worker: it consumes the platform's events from RabbitMQ, keeps the consignee's name and contact details that the
+-order service announces with each order, and sends plain-text e-mail through a transactional e-mail provider.
++order service announces with each order, and sends plain-text e-mail through a transactional e-mail provider and SMS
++through an SMS gateway.
+ 
+ **Owner:** the Customer Comms team (`#team-comms`). **System:** Quellbrook operations platform (see
+ `catalog-info.yaml`).
+@@ -12,6 +13,8 @@ order service announces with each order, and sends plain-text e-mail through a t
+ | Event consumed | Notification | Channel |
+ |---|---|---|
+ | `orders.order-placed.v1` | "Your delivery … is booked" | e-mail (when the order has an address) |
++| `dispatch.consignment-out-for-delivery.v1` | "… arrives today" | e-mail and SMS (when the order has a phone number) |
++| `dispatch.consignment-delivered.v1` | "… has been delivered" | e-mail |
+ 
+ Every message is processed once per message id (inbox), and every notification is sent at most once per order, kind
+ and channel (the notification log is checked before sending) — see ADR 0002.
+@@ -36,6 +39,7 @@ dotnet run --project src/Quellbrook.Notifier
+ | `ConnectionStrings__Notifier` | PostgreSQL connection string (a Kubernetes Secret in production) |
+ | `RabbitMq__Uri`, `RabbitMq__UserName`, `RabbitMq__Password`, `RabbitMq__Exchange` | the broker; credentials from a Secret |
+ | `EmailProvider__ApiKey`, `EmailProvider__FromAddress`, `EmailProvider__BaseAddress` | the e-mail provider; the key from a Secret or user secrets |
++| `SmsProvider__ApiKey`, `SmsProvider__Sender`, `SmsProvider__BaseAddress` | the SMS gateway; the key from a Secret or user secrets |
+ | `Heartbeat__Path`, `Heartbeat__Interval` | the file the Kubernetes probes read |
+ | `OTEL_EXPORTER_OTLP_ENDPOINT` | where traces, metrics and logs are exported, when set |
+ 
+@@ -46,7 +50,7 @@ dotnet test Quellbrook.Notifier.slnx
+ ```
+ 
+ `tests/Quellbrook.Notifier.UnitTests` covers the inbox and the notification log over in-memory SQLite, the consumer's
+-acknowledgement and queue setup, the e-mail sender against a stub HTTP handler, the templates and masking, and the
++acknowledgement and queue setup, the e-mail and SMS senders against stub HTTP handlers, the templates and masking, and the
+ heartbeat. No test touches the network or a real provider.
+ 
+ ## Architecture
+diff --git a/catalog-info.yaml b/catalog-info.yaml
+index 5f353a4..f5f277d 100644
+--- a/catalog-info.yaml
++++ b/catalog-info.yaml
+@@ -13,7 +13,9 @@ spec:
+   system: quellbrook-operations
+   consumesApis:
+     - quellbrook-orders-events
++    - quellbrook-dispatch-events
+   dependsOn:
+     - resource:quellbrook-notifier-db
+     - resource:quellbrook-event-broker
+     - resource:email-provider
++    - resource:sms-gateway
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 53a60c0..228edea 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -14,9 +14,13 @@ C4Context
+     System(notifier, "Notifier", "this repository")
+   }
+   System_Ext(email, "E-mail provider", "Transactional e-mail API")
++  System_Ext(sms, "SMS gateway", "SMS API")
+   Rel(orders, notifier, "orders.order-placed.v1", "RabbitMQ")
++  Rel(dispatch, notifier, "dispatch.consignment-*.v1", "RabbitMQ")
+   Rel(notifier, email, "Sends e-mail", "HTTPS")
++  Rel(notifier, sms, "Sends SMS", "HTTPS")
+   Rel(email, consignee, "Delivers e-mail")
++  Rel(sms, consignee, "Delivers SMS")
+ ```
+ 
+ ## Containers
+@@ -30,9 +34,11 @@ C4Container
+     ContainerDb(db, "Notifier database", "PostgreSQL 16", "recipients, processed_messages, notification_log")
+   }
+   System_Ext(email, "E-mail provider", "SendGrid v3 API")
+-  Rel(broker, worker, "Delivers order events", "AMQPS")
++  System_Ext(sms, "SMS gateway", "v1 messages API")
++  Rel(broker, worker, "Delivers order and dispatch events", "AMQPS")
+   Rel(worker, db, "Reads and writes", "EF Core / Npgsql")
+   Rel(worker, email, "POST v3/mail/send", "HTTPS, API key")
++  Rel(worker, sms, "POST v1/messages", "HTTPS, API key")
+ ```
+ 
+ ## Inside the worker
+@@ -41,7 +47,7 @@ C4Container
+ |---|---|
+ | `Messaging/` | the RabbitMQ consumer, the inbox, the notifier's copies of the consumed message types |
+ | `Notifications/` | the handlers per event, the notification service and log, templates, contact masking |
+-| `Channels/` | the provider clients behind `IEmailSender` (resilience: timeouts, retries, circuit breaker) |
++| `Channels/` | the provider clients behind `IEmailSender` and `ISmsSender` (resilience: timeouts, retries, circuit breaker) |
+ | `Persistence/` | EF Core context and migrations |
+ | `Hosting/` | service registration, OpenTelemetry, the heartbeat the probes read |
+ 
+@@ -53,3 +59,5 @@ after each health-check round.
+ | Routing key | Fields the notifier reads | Producer |
+ |---|---|---|
+ | `orders.order-placed.v1` | order id, consignee name, contact e-mail and phone | order service |
++| `dispatch.consignment-out-for-delivery.v1` | order id | dispatch service |
++| `dispatch.consignment-delivered.v1` | order id, delivery time | dispatch service |

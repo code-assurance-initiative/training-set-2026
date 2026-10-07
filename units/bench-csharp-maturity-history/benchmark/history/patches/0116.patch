@@ -1,0 +1,22 @@
+From 17f53b32f90710c9c29feca0555cac835cb87832 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 21 Sep 2026 13:50:49 +0200
+Subject: chore(notifications): English reminder wording
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 72fded2..e402a29 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -18,7 +18,7 @@ public static class ReminderTexts
+         {
+             ["en"] = new Dictionary<string, string>
+             {
+-                [DayBefore] = "Reminder: you have an appointment with {0} on {1}. To cancel or reschedule, please call {2}.",
++                [DayBefore] = "Reminder: you have an appointment with {0} on {1}. To cancel or move it, call {2}.",
+                 [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
+                 [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
+                 [SameDayVideo] = "Your video appointment with {0} starts at {1}. Open the link from your patient portal.",

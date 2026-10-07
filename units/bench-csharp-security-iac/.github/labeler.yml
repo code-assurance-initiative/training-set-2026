@@ -1,0 +1,12 @@
+api:
+  - changed-files:
+      - any-glob-to-any-file: ["src/Depot.Slots.Api/**"]
+reminders:
+  - changed-files:
+      - any-glob-to-any-file: ["src/Depot.Slots.Reminders/**"]
+deploy:
+  - changed-files:
+      - any-glob-to-any-file: ["deploy/**", "**/Dockerfile", "docker-compose.yml"]
+ci:
+  - changed-files:
+      - any-glob-to-any-file: [".github/**"]

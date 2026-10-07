@@ -1,0 +1,209 @@
+From 26c4847db97a731f4faccde8491221e3c8d7aa05 Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Tue, 11 Aug 2026 14:26:03 +0200
+Subject: feat: SMS channel through the gateway
+
+---
+ .../Channels/ISmsSender.cs                    |  9 +++++
+ .../Channels/SmsProviderOptions.cs            | 21 ++++++++++
+ src/Quellbrook.Notifier/Channels/SmsSender.cs | 32 ++++++++++++++++
+ .../Hosting/NotifierServices.cs               |  4 ++
+ src/Quellbrook.Notifier/appsettings.json      |  5 +++
+ .../Channels/SmsSenderTests.cs                | 38 +++++++++++++++++++
+ .../TestSupport/TestDb.cs                     | 14 +++++++
+ 7 files changed, 123 insertions(+)
+ create mode 100644 src/Quellbrook.Notifier/Channels/ISmsSender.cs
+ create mode 100644 src/Quellbrook.Notifier/Channels/SmsProviderOptions.cs
+ create mode 100644 src/Quellbrook.Notifier/Channels/SmsSender.cs
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/Channels/SmsSenderTests.cs
+
+diff --git a/src/Quellbrook.Notifier/Channels/ISmsSender.cs b/src/Quellbrook.Notifier/Channels/ISmsSender.cs
+new file mode 100644
+index 0000000..98322d8
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/ISmsSender.cs
+@@ -0,0 +1,9 @@
++namespace Quellbrook.Notifier.Channels;
++
++public sealed record SmsMessage(Guid OrderId, string To, string Text);
++
++/// <summary>Sends one SMS; throws <see cref="ProviderException"/> when the gateway refuses it.</summary>
++public interface ISmsSender
++{
++    Task SendAsync(SmsMessage message, CancellationToken cancellationToken);
++}
+diff --git a/src/Quellbrook.Notifier/Channels/SmsProviderOptions.cs b/src/Quellbrook.Notifier/Channels/SmsProviderOptions.cs
+new file mode 100644
+index 0000000..d956e26
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/SmsProviderOptions.cs
+@@ -0,0 +1,21 @@
++using System.ComponentModel.DataAnnotations;
++
++namespace Quellbrook.Notifier.Channels;
++
++/// <summary>The SMS gateway.</summary>
++public sealed class SmsProviderOptions
++{
++    public const string SectionName = "SmsProvider";
++
++    [Required]
++    public Uri BaseAddress { get; set; } = new("https://api.sms-gateway.example/");
++
++    /// <summary>The gateway's API key; supplied by the environment, never written in configuration files.</summary>
++    [Required]
++    public string ApiKey { get; set; } = string.Empty;
++
++    /// <summary>The alphanumeric sender name shown on the phone.</summary>
++    [Required]
++    [StringLength(11)]
++    public string Sender { get; set; } = "Quellbrook";
++}
+diff --git a/src/Quellbrook.Notifier/Channels/SmsSender.cs b/src/Quellbrook.Notifier/Channels/SmsSender.cs
+new file mode 100644
+index 0000000..a70a590
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Channels/SmsSender.cs
+@@ -0,0 +1,32 @@
++using System.Net.Http.Json;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Options;
++using Quellbrook.Notifier.Notifications;
++
++namespace Quellbrook.Notifier.Channels;
++
++/// <summary>Sends SMS through the gateway's v1 messages endpoint.</summary>
++public sealed partial class SmsSender(HttpClient http, IOptions<SmsProviderOptions> options, ILogger<SmsSender> logger) : ISmsSender
++{
++    public async Task SendAsync(SmsMessage message, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(message);
++        var settings = options.Value;
++        using var request = new HttpRequestMessage(HttpMethod.Post, "v1/messages")
++        {
++            Content = JsonContent.Create(new { to = message.To, from = settings.Sender, text = message.Text, reference = message.OrderId }),
++        };
++        request.Headers.Add("X-Api-Key", settings.ApiKey);
++        using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
++        if (!response.IsSuccessStatusCode)
++        {
++            throw new ProviderException($"The SMS gateway answered {(int)response.StatusCode} for order {message.OrderId}.");
++        }
++
++        var maskedRecipient = ContactMask.Phone(message.To);
++        LogAccepted(message.OrderId, maskedRecipient);
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "SMS for order {OrderId} accepted by the gateway for {MaskedRecipient}")]
++    private partial void LogAccepted(Guid orderId, string maskedRecipient);
++}
+diff --git a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+index 33ba607..5852fc8 100644
+--- a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
++++ b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+@@ -33,6 +33,10 @@ public static class NotifierServices
+         services.AddHttpClient<IEmailSender, EmailSender>((provider, http) =>
+                 http.BaseAddress = provider.GetRequiredService<IOptions<EmailProviderOptions>>().Value.BaseAddress)
+             .AddStandardResilienceHandler();
++        services.AddOptions<SmsProviderOptions>().BindConfiguration(SmsProviderOptions.SectionName).ValidateDataAnnotations().ValidateOnStart();
++        services.AddHttpClient<ISmsSender, SmsSender>((provider, http) =>
++                http.BaseAddress = provider.GetRequiredService<IOptions<SmsProviderOptions>>().Value.BaseAddress)
++            .AddStandardResilienceHandler();
+ 
+         services.AddScoped<NotificationService>();
+         services.AddScoped<OrderPlacedHandler>();
+diff --git a/src/Quellbrook.Notifier/appsettings.json b/src/Quellbrook.Notifier/appsettings.json
+index 6f0a1da..ad8e8af 100644
+--- a/src/Quellbrook.Notifier/appsettings.json
++++ b/src/Quellbrook.Notifier/appsettings.json
+@@ -15,5 +15,10 @@
+     "ApiKey": "",
+     "FromAddress": "deliveries@quellbrook.example",
+     "FromName": "Quellbrook Freight"
++  },
++  "SmsProvider": {
++    "BaseAddress": "https://api.sms-gateway.example/",
++    "ApiKey": "",
++    "Sender": "Quellbrook"
+   }
+ }
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Channels/SmsSenderTests.cs b/tests/Quellbrook.Notifier.UnitTests/Channels/SmsSenderTests.cs
+new file mode 100644
+index 0000000..183b19e
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/Channels/SmsSenderTests.cs
+@@ -0,0 +1,38 @@
++using System.Net;
++using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Options;
++using Quellbrook.Notifier.Channels;
++using Quellbrook.Notifier.UnitTests.TestSupport;
++
++namespace Quellbrook.Notifier.UnitTests.Channels;
++
++public sealed class SmsSenderTests
++{
++    private static SmsSender Sender(StubHandler handler) =>
++        new(
++            new HttpClient(handler) { BaseAddress = new Uri("https://sms.test/") },
++            Options.Create(new SmsProviderOptions { ApiKey = "unit-test-gateway-key" }),
++            NullLogger<SmsSender>.Instance);
++
++    [Fact]
++    public async Task TheTextIsPostedWithTheKeyAndTheSenderName()
++    {
++        var handler = new StubHandler(HttpStatusCode.Accepted);
++
++        await Sender(handler).SendAsync(new SmsMessage(Guid.NewGuid(), "+4520304050", "Out for delivery"), TestContext.Current.CancellationToken);
++
++        var (request, body) = Assert.Single(handler.Requests);
++        Assert.Equal(new Uri("https://sms.test/v1/messages"), request.RequestUri);
++        Assert.Equal("unit-test-gateway-key", request.Headers.GetValues("X-Api-Key").Single());
++        Assert.Contains("\"from\":\"Quellbrook\"", body, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public async Task ARefusalIsAProviderException()
++    {
++        var handler = new StubHandler(HttpStatusCode.BadRequest);
++
++        await Assert.ThrowsAsync<ProviderException>(() =>
++            Sender(handler).SendAsync(new SmsMessage(Guid.NewGuid(), "+4520304050", "text"), TestContext.Current.CancellationToken));
++    }
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+index d9a0a7e..ba219cc 100644
+--- a/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
++++ b/tests/Quellbrook.Notifier.UnitTests/TestSupport/TestDb.cs
+@@ -31,6 +31,7 @@ internal sealed class TestDb : IDisposable
+             .AddScoped(_ => Context())
+             .AddSingleton<TimeProvider>(Time)
+             .AddSingleton<IEmailSender>(Email)
++            .AddSingleton<ISmsSender>(Sms)
+             .AddSingleton(typeof(ILogger<>), typeof(NullLogger<>))
+             .AddScoped<NotificationService>()
+             .AddScoped<OrderPlacedHandler>()
+@@ -41,6 +42,8 @@ internal sealed class TestDb : IDisposable
+ 
+     public RecordingEmailSender Email { get; } = new();
+ 
++    public RecordingSmsSender Sms { get; } = new();
++
+     public ServiceProvider Services { get; }
+ 
+     public NotifierDbContext Context() =>
+@@ -88,3 +91,14 @@ internal sealed class RecordingEmailSender : IEmailSender
+         return Task.CompletedTask;
+     }
+ }
++
++internal sealed class RecordingSmsSender : ISmsSender
++{
++    public List<SmsMessage> Sent { get; } = [];
++
++    public Task SendAsync(SmsMessage message, CancellationToken cancellationToken)
++    {
++        Sent.Add(message);
++        return Task.CompletedTask;
++    }
++}

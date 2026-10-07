@@ -1,0 +1,79 @@
+From 4fba7188d569fafdfa53941d974aba054e8561ad Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Tue, 25 Aug 2026 09:12:44 +0200
+Subject: fix(security): remove the e-mail provider key from configuration (key
+ revoked and replaced)
+
+The provider's leaked-key alert fired at 07:40. The key committed on 2026-08-18 was revoked at 08:05 and a new
+one stored in the secret store; both provider keys now reach the worker through the quellbrook-notifier-providers
+ExternalSecret. See docs/incidents/2026-08-25-email-provider-key.md.
+---
+ deploy/k8s/deployment.yaml               | 10 ++++++++++
+ deploy/k8s/external-secret.yaml          | 22 ++++++++++++++++++++++
+ src/Quellbrook.Notifier/appsettings.json |  2 +-
+ 3 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/deploy/k8s/deployment.yaml b/deploy/k8s/deployment.yaml
+index 10343b8..5cf0a01 100644
+--- a/deploy/k8s/deployment.yaml
++++ b/deploy/k8s/deployment.yaml
+@@ -66,6 +66,16 @@ spec:
+                 secretKeyRef:
+                   name: quellbrook-notifier-broker
+                   key: password
++            - name: EmailProvider__ApiKey
++              valueFrom:
++                secretKeyRef:
++                  name: quellbrook-notifier-providers
++                  key: email-api-key
++            - name: SmsProvider__ApiKey
++              valueFrom:
++                secretKeyRef:
++                  name: quellbrook-notifier-providers
++                  key: sms-api-key
+           # The heartbeat file is rewritten after every health-check round that is not Unhealthy (every 30 s).
+           readinessProbe:
+             exec:
+diff --git a/deploy/k8s/external-secret.yaml b/deploy/k8s/external-secret.yaml
+index 27c7130..6c43429 100644
+--- a/deploy/k8s/external-secret.yaml
++++ b/deploy/k8s/external-secret.yaml
+@@ -38,3 +38,25 @@ spec:
+       remoteRef:
+         key: notifier/rabbitmq
+         property: password
++---
++apiVersion: external-secrets.io/v1
++kind: ExternalSecret
++metadata:
++  name: quellbrook-notifier-providers
++  namespace: quellbrook-notifier
++spec:
++  refreshInterval: 15m
++  secretStoreRef:
++    kind: ClusterSecretStore
++    name: quellbrook-vault
++  target:
++    name: quellbrook-notifier-providers
++  data:
++    - secretKey: email-api-key
++      remoteRef:
++        key: notifier/email-provider
++        property: api-key
++    - secretKey: sms-api-key
++      remoteRef:
++        key: notifier/sms-gateway
++        property: api-key
+diff --git a/src/Quellbrook.Notifier/appsettings.json b/src/Quellbrook.Notifier/appsettings.json
+index b86be77..ad8e8af 100644
+--- a/src/Quellbrook.Notifier/appsettings.json
++++ b/src/Quellbrook.Notifier/appsettings.json
+@@ -12,7 +12,7 @@
+   },
+   "EmailProvider": {
+     "BaseAddress": "https://api.sendgrid.com/",
+-    "ApiKey": "@@REDACTED_SECRET@@",
++    "ApiKey": "",
+     "FromAddress": "deliveries@quellbrook.example",
+     "FromName": "Quellbrook Freight"
+   },

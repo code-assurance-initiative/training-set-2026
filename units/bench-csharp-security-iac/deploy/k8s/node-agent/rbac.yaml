@@ -1,0 +1,22 @@
+# The log forwarder enriches each record with the pod's labels and namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: depot-node-agent
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: depot-node-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: depot-node-agent
+subjects:
+  - kind: ServiceAccount
+    name: node-agent
+    namespace: depot-slots

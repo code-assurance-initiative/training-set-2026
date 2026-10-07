@@ -1,0 +1,22 @@
+From ce149b2c2a018a477994d9e053503eb0c708ea2c Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Mon, 1 Jun 2026 10:50:29 +0200
+Subject: test: Swedish midsummer and the Norwegian constitution day
+
+---
+ .../Holidays/TableHolidayCalendarTests.cs                       | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/tests/ClinicScheduling.UnitTests/Holidays/TableHolidayCalendarTests.cs b/tests/ClinicScheduling.UnitTests/Holidays/TableHolidayCalendarTests.cs
+index a385e7e..7f6d6fa 100644
+--- a/tests/ClinicScheduling.UnitTests/Holidays/TableHolidayCalendarTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Holidays/TableHolidayCalendarTests.cs
+@@ -10,6 +10,8 @@ public sealed class TableHolidayCalendarTests
+     [InlineData("DK", 2026, 4, 2)]
+     [InlineData("dk", 2026, 12, 24)]
+     [InlineData("DE", 2026, 10, 3)]
++    [InlineData("SE", 2026, 6, 19)]
++    [InlineData("NO", 2027, 5, 17)]
+     public void KnowsTheTabledHolidays(string country, int year, int month, int day)
+     {
+         Assert.True(_calendar.IsHoliday(country, new DateOnly(year, month, day)));

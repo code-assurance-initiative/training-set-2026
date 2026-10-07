@@ -1,0 +1,23 @@
+.room-filters {
+    margin-bottom: 1.5rem;
+}
+
+.room-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+    gap: 1.5rem;
+}
+
+.room-list ::deep .room-card-photo {
+    width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+}
+
+.room-list ::deep .room-card-amenities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+}

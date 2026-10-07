@@ -1,0 +1,30 @@
+From 7a9685d18ede096f21fbb05772c335d7577e7118 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Wed, 16 Sep 2026 09:45:27 +0200
+Subject: perf(availability): compute the earliest start once
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 2d9d7e3..49e6ebd 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -38,6 +38,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+         var localNow = TimeZoneInfo.ConvertTime(now, schedule.TimeZone);
+         var today = DateOnly.FromDateTime(localNow.DateTime);
+         var lastDay = today.AddDays(options.MaxDaysAhead);
++        var earliestStart = now + options.MinimumNotice;
+         var slots = new List<Slot>();
+ 
+         for (var day = query.From; day <= query.To && day <= lastDay; day = day.AddDays(1))
+@@ -84,7 +85,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                         }
+                     }
+ 
+-                    if (candidate.Start < now + options.MinimumNotice)
++                    if (candidate.Start < earliestStart)
+                     {
+                         cursor += options.Granularity;
+                         continue;

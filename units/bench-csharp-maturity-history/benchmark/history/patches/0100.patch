@@ -1,0 +1,26 @@
+From 614cb3e46ff5265d37abe465ab036e0c5eae5ed0 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 4 Aug 2026 10:30:15 +0200
+Subject: fix(availability): after a clash, skip past the latest overlapping
+ appointment
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index c34db03..b409344 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -84,7 +84,10 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                         continue;
+                     }
+ 
+-                    var clash = booked.FirstOrDefault(b => b.Widen(options.BufferBetweenAppointments).Overlaps(candidate));
++                    var clash = booked
++                        .Where(b => b.Widen(options.BufferBetweenAppointments).Overlaps(candidate))
++                        .OrderByDescending(b => b.End)
++                        .FirstOrDefault();
+                     if (clash != default)
+                     {
+                         cursor = AlignUp(clash.End + options.BufferBetweenAppointments, opens, options.Granularity);

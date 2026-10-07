@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ParcelTracking.Benchmarks/ParcelTracking.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ParcelTracking.Api/ParcelTracking.Api.csproj" />
+    <Project Path="src/ParcelTracking.Cli/ParcelTracking.Cli.csproj" />
+    <Project Path="src/ParcelTracking.Client/ParcelTracking.Client.csproj" />
+    <Project Path="src/ParcelTracking.Core/ParcelTracking.Core.csproj" />
+    <Project Path="src/ParcelTracking.Infrastructure/ParcelTracking.Infrastructure.csproj" />
+    <Project Path="src/ParcelTracking.Worker/ParcelTracking.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ParcelTracking.IntegrationTests/ParcelTracking.IntegrationTests.csproj" />
+    <Project Path="tests/ParcelTracking.UnitTests/ParcelTracking.UnitTests.csproj" />
+  </Folder>
+</Solution>

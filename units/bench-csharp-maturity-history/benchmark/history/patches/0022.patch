@@ -1,0 +1,22 @@
+From 9933e8eeda24c7d748e21a56fbb9e6bf42ea4248 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Wed, 28 Jan 2026 15:30:40 +0100
+Subject: fix(availability): keep opening hours sorted by day and time
+
+---
+ .../Availability/PractitionerSchedule.cs                        | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+index ca7c517..4b33571 100644
+--- a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
++++ b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+@@ -19,7 +19,7 @@ public sealed class PractitionerSchedule
+         PractitionerId = practitionerId;
+         CountryCode = countryCode.ToUpperInvariant();
+         TimeZone = timeZone;
+-        _hours = [.. hours];
++        _hours = [.. hours.OrderBy(h => h.Day).ThenBy(h => h.Opens)];
+         _skills = new HashSet<string>(skills, StringComparer.OrdinalIgnoreCase);
+     }
+ 

@@ -1,0 +1,49 @@
+# Applied by the deploy workflow before the Deployments are updated; the rollout waits for it to complete.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parcel-tracking-migrate
+  namespace: parcel-tracking
+  labels:
+    app.kubernetes.io/name: parcel-tracking-migrate
+    app.kubernetes.io/part-of: parcel-tracking
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: parcel-tracking-migrate
+        app.kubernetes.io/part-of: parcel-tracking
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+      containers:
+        - name: migrate
+          image: ghcr.io/code-assurance-initiative/parcel-tracking@sha256:45ccd8b9bd08d1b206595f2f92c940f458b61b9b6287a2dafc2b905a628d9932
+          imagePullPolicy: IfNotPresent
+          # Applies the versioned knex migrations compiled into the image, in order, then exits.
+          command: ["node", "dist/db/migrate.js"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: parcel-tracking-db-owner
+                  key: url
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 500m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

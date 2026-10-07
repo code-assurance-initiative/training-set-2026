@@ -1,0 +1,94 @@
+From 2c03de6f43be1223e8a5da140062cfd7d43ee7fc Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 30 Mar 2026 10:20:54 +0200
+Subject: fix(reminders): no reminders during the quiet hours
+
+---
+ src/ClinicScheduling.Api/appsettings.json        |  4 +++-
+ .../Reminders/ReminderOptions.cs                 |  5 +++++
+ .../Reminders/ReminderPlanner.cs                 | 16 +++++++++++++++-
+ .../Reminders/ReminderPlannerTests.cs            | 10 ++++++++++
+ 4 files changed, 33 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+index 4b3e0c7..5e720ce 100644
+--- a/src/ClinicScheduling.Api/appsettings.json
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -11,7 +11,9 @@
+   },
+   "Reminders": {
+     "DayBeforeLead": "2.00:00:00",
+-    "SameDayLead": "02:00:00"
++    "SameDayLead": "02:00:00",
++    "QuietHoursStart": "21:00",
++    "QuietHoursEnd": "08:00"
+   },
+   "ReminderDispatch": {
+     "PollInterval": "00:00:30",
+diff --git a/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs b/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
+index 60fc3ac..4dc89ad 100644
+--- a/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
++++ b/src/ClinicScheduling.Application/Reminders/ReminderOptions.cs
+@@ -7,4 +7,9 @@ public sealed record ReminderOptions
+     public TimeSpan DayBeforeLead { get; init; } = TimeSpan.FromHours(48);
+ 
+     public TimeSpan SameDayLead { get; init; } = TimeSpan.FromHours(2);
++
++    /// <summary>No reminder is sent between these local times; one that would be is sent at the start of the evening instead.</summary>
++    public TimeOnly QuietHoursStart { get; init; } = new(21, 0);
++
++    public TimeOnly QuietHoursEnd { get; init; } = new(8, 0);
+ }
+diff --git a/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+index 73f6201..d2772e4 100644
+--- a/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
++++ b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+@@ -17,7 +17,7 @@ public sealed class ReminderPlanner(IOptions<ReminderOptions> options, IClock cl
+         var plan = new List<PlannedReminder>(2);
+         foreach (var (kind, lead) in new[] { (ReminderKind.DayBefore, settings.DayBeforeLead), (ReminderKind.SameDay, settings.SameDayLead) })
+         {
+-            var sendAt = appointment.Time.Start - lead;
++            var sendAt = OutsideQuietHours(appointment.Time.Start - lead, zone, settings);
+             if (sendAt > now && sendAt < appointment.Time.Start)
+             {
+                 plan.Add(new PlannedReminder(Guid.NewGuid(), appointment.Id, appointment.PatientId, sendAt, kind));
+@@ -26,4 +26,18 @@ public sealed class ReminderPlanner(IOptions<ReminderOptions> options, IClock cl
+ 
+         return plan;
+     }
++
++    private static DateTimeOffset OutsideQuietHours(DateTimeOffset instant, TimeZoneInfo zone, ReminderOptions settings)
++    {
++        var local = TimeZoneInfo.ConvertTime(instant, zone);
++        var clock = TimeOnly.FromDateTime(local.DateTime);
++        if (!clock.IsBetween(settings.QuietHoursStart, settings.QuietHoursEnd))
++        {
++            return instant;
++        }
++
++        var eveningDay = clock >= settings.QuietHoursStart ? local.Date : local.Date.AddDays(-1);
++        var evening = eveningDay + settings.QuietHoursStart.ToTimeSpan() - TimeSpan.FromMinutes(30);
++        return new DateTimeOffset(evening, zone.GetUtcOffset(evening));
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+index 34227d7..a600eab 100644
+--- a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+@@ -25,6 +25,16 @@ public sealed class ReminderPlannerTests
+             plan.Select(r => (r.Kind, r.SendAt)));
+     }
+ 
++    [Fact]
++    public void MovesAReminderOutOfTheQuietHours()
++    {
++        var appointment = At(TestData.At(Monday.AddDays(3), 9));
++
++        var plan = _planner.Plan(appointment, TimeZoneInfo.Utc);
++
++        Assert.Equal(TestData.At(Monday.AddDays(2), 20, 30), plan.Single(r => r.Kind == ReminderKind.SameDay).SendAt);
++    }
++
+     [Fact]
+     public void SkipsRemindersThatAreAlreadyDue()
+     {

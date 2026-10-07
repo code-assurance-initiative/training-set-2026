@@ -1,0 +1,451 @@
+date,country,name
+2026-01-01,DE,Neujahr
+2026-04-03,DE,Karfreitag
+2026-04-06,DE,Ostermontag
+2026-05-01,DE,Tag der Arbeit
+2026-05-14,DE,Christi Himmelfahrt
+2026-05-25,DE,Pfingstmontag
+2026-10-03,DE,Tag der Deutschen Einheit
+2026-12-25,DE,1. Weihnachtstag
+2026-12-26,DE,2. Weihnachtstag
+2027-01-01,DE,Neujahr
+2027-03-26,DE,Karfreitag
+2027-03-29,DE,Ostermontag
+2027-05-01,DE,Tag der Arbeit
+2027-05-06,DE,Christi Himmelfahrt
+2027-05-17,DE,Pfingstmontag
+2027-10-03,DE,Tag der Deutschen Einheit
+2027-12-25,DE,1. Weihnachtstag
+2027-12-26,DE,2. Weihnachtstag
+2028-01-01,DE,Neujahr
+2028-04-14,DE,Karfreitag
+2028-04-17,DE,Ostermontag
+2028-05-01,DE,Tag der Arbeit
+2028-05-25,DE,Christi Himmelfahrt
+2028-06-05,DE,Pfingstmontag
+2028-10-03,DE,Tag der Deutschen Einheit
+2028-12-25,DE,1. Weihnachtstag
+2028-12-26,DE,2. Weihnachtstag
+2029-01-01,DE,Neujahr
+2029-03-30,DE,Karfreitag
+2029-04-02,DE,Ostermontag
+2029-05-01,DE,Tag der Arbeit
+2029-05-10,DE,Christi Himmelfahrt
+2029-05-21,DE,Pfingstmontag
+2029-10-03,DE,Tag der Deutschen Einheit
+2029-12-25,DE,1. Weihnachtstag
+2029-12-26,DE,2. Weihnachtstag
+2030-01-01,DE,Neujahr
+2030-04-19,DE,Karfreitag
+2030-04-22,DE,Ostermontag
+2030-05-01,DE,Tag der Arbeit
+2030-05-30,DE,Christi Himmelfahrt
+2030-06-10,DE,Pfingstmontag
+2030-10-03,DE,Tag der Deutschen Einheit
+2030-12-25,DE,1. Weihnachtstag
+2030-12-26,DE,2. Weihnachtstag
+2031-01-01,DE,Neujahr
+2031-04-11,DE,Karfreitag
+2031-04-14,DE,Ostermontag
+2031-05-01,DE,Tag der Arbeit
+2031-05-22,DE,Christi Himmelfahrt
+2031-06-02,DE,Pfingstmontag
+2031-10-03,DE,Tag der Deutschen Einheit
+2031-12-25,DE,1. Weihnachtstag
+2031-12-26,DE,2. Weihnachtstag
+2032-01-01,DE,Neujahr
+2032-03-26,DE,Karfreitag
+2032-03-29,DE,Ostermontag
+2032-05-01,DE,Tag der Arbeit
+2032-05-06,DE,Christi Himmelfahrt
+2032-05-17,DE,Pfingstmontag
+2032-10-03,DE,Tag der Deutschen Einheit
+2032-12-25,DE,1. Weihnachtstag
+2032-12-26,DE,2. Weihnachtstag
+2033-01-01,DE,Neujahr
+2033-04-15,DE,Karfreitag
+2033-04-18,DE,Ostermontag
+2033-05-01,DE,Tag der Arbeit
+2033-05-26,DE,Christi Himmelfahrt
+2033-06-06,DE,Pfingstmontag
+2033-10-03,DE,Tag der Deutschen Einheit
+2033-12-25,DE,1. Weihnachtstag
+2033-12-26,DE,2. Weihnachtstag
+2034-01-01,DE,Neujahr
+2034-04-07,DE,Karfreitag
+2034-04-10,DE,Ostermontag
+2034-05-01,DE,Tag der Arbeit
+2034-05-18,DE,Christi Himmelfahrt
+2034-05-29,DE,Pfingstmontag
+2034-10-03,DE,Tag der Deutschen Einheit
+2034-12-25,DE,1. Weihnachtstag
+2034-12-26,DE,2. Weihnachtstag
+2035-01-01,DE,Neujahr
+2035-03-23,DE,Karfreitag
+2035-03-26,DE,Ostermontag
+2035-05-01,DE,Tag der Arbeit
+2035-05-03,DE,Christi Himmelfahrt
+2035-05-14,DE,Pfingstmontag
+2035-10-03,DE,Tag der Deutschen Einheit
+2035-12-25,DE,1. Weihnachtstag
+2035-12-26,DE,2. Weihnachtstag
+2026-01-01,DK,Nytårsdag
+2026-04-02,DK,Skærtorsdag
+2026-04-03,DK,Langfredag
+2026-04-05,DK,Påskedag
+2026-04-06,DK,2. påskedag
+2026-05-14,DK,Kristi himmelfartsdag
+2026-05-24,DK,Pinsedag
+2026-05-25,DK,2. pinsedag
+2026-06-05,DK,Grundlovsdag
+2026-12-24,DK,Juleaften
+2026-12-25,DK,Juledag
+2026-12-26,DK,2. juledag
+2027-01-01,DK,Nytårsdag
+2027-03-25,DK,Skærtorsdag
+2027-03-26,DK,Langfredag
+2027-03-28,DK,Påskedag
+2027-03-29,DK,2. påskedag
+2027-05-06,DK,Kristi himmelfartsdag
+2027-05-16,DK,Pinsedag
+2027-05-17,DK,2. pinsedag
+2027-06-05,DK,Grundlovsdag
+2027-12-24,DK,Juleaften
+2027-12-25,DK,Juledag
+2027-12-26,DK,2. juledag
+2028-01-01,DK,Nytårsdag
+2028-04-13,DK,Skærtorsdag
+2028-04-14,DK,Langfredag
+2028-04-16,DK,Påskedag
+2028-04-17,DK,2. påskedag
+2028-05-25,DK,Kristi himmelfartsdag
+2028-06-04,DK,Pinsedag
+2028-06-05,DK,2. pinsedag
+2028-06-05,DK,Grundlovsdag
+2028-12-24,DK,Juleaften
+2028-12-25,DK,Juledag
+2028-12-26,DK,2. juledag
+2029-01-01,DK,Nytårsdag
+2029-03-29,DK,Skærtorsdag
+2029-03-30,DK,Langfredag
+2029-04-01,DK,Påskedag
+2029-04-02,DK,2. påskedag
+2029-05-10,DK,Kristi himmelfartsdag
+2029-05-20,DK,Pinsedag
+2029-05-21,DK,2. pinsedag
+2029-06-05,DK,Grundlovsdag
+2029-12-24,DK,Juleaften
+2029-12-25,DK,Juledag
+2029-12-26,DK,2. juledag
+2030-01-01,DK,Nytårsdag
+2030-04-18,DK,Skærtorsdag
+2030-04-19,DK,Langfredag
+2030-04-21,DK,Påskedag
+2030-04-22,DK,2. påskedag
+2030-05-30,DK,Kristi himmelfartsdag
+2030-06-05,DK,Grundlovsdag
+2030-06-09,DK,Pinsedag
+2030-06-10,DK,2. pinsedag
+2030-12-24,DK,Juleaften
+2030-12-25,DK,Juledag
+2030-12-26,DK,2. juledag
+2031-01-01,DK,Nytårsdag
+2031-04-10,DK,Skærtorsdag
+2031-04-11,DK,Langfredag
+2031-04-13,DK,Påskedag
+2031-04-14,DK,2. påskedag
+2031-05-22,DK,Kristi himmelfartsdag
+2031-06-01,DK,Pinsedag
+2031-06-02,DK,2. pinsedag
+2031-06-05,DK,Grundlovsdag
+2031-12-24,DK,Juleaften
+2031-12-25,DK,Juledag
+2031-12-26,DK,2. juledag
+2032-01-01,DK,Nytårsdag
+2032-03-25,DK,Skærtorsdag
+2032-03-26,DK,Langfredag
+2032-03-28,DK,Påskedag
+2032-03-29,DK,2. påskedag
+2032-05-06,DK,Kristi himmelfartsdag
+2032-05-16,DK,Pinsedag
+2032-05-17,DK,2. pinsedag
+2032-06-05,DK,Grundlovsdag
+2032-12-24,DK,Juleaften
+2032-12-25,DK,Juledag
+2032-12-26,DK,2. juledag
+2033-01-01,DK,Nytårsdag
+2033-04-14,DK,Skærtorsdag
+2033-04-15,DK,Langfredag
+2033-04-17,DK,Påskedag
+2033-04-18,DK,2. påskedag
+2033-05-26,DK,Kristi himmelfartsdag
+2033-06-05,DK,Grundlovsdag
+2033-06-05,DK,Pinsedag
+2033-06-06,DK,2. pinsedag
+2033-12-24,DK,Juleaften
+2033-12-25,DK,Juledag
+2033-12-26,DK,2. juledag
+2034-01-01,DK,Nytårsdag
+2034-04-06,DK,Skærtorsdag
+2034-04-07,DK,Langfredag
+2034-04-09,DK,Påskedag
+2034-04-10,DK,2. påskedag
+2034-05-18,DK,Kristi himmelfartsdag
+2034-05-28,DK,Pinsedag
+2034-05-29,DK,2. pinsedag
+2034-06-05,DK,Grundlovsdag
+2034-12-24,DK,Juleaften
+2034-12-25,DK,Juledag
+2034-12-26,DK,2. juledag
+2035-01-01,DK,Nytårsdag
+2035-03-22,DK,Skærtorsdag
+2035-03-23,DK,Langfredag
+2035-03-25,DK,Påskedag
+2035-03-26,DK,2. påskedag
+2035-05-03,DK,Kristi himmelfartsdag
+2035-05-13,DK,Pinsedag
+2035-05-14,DK,2. pinsedag
+2035-06-05,DK,Grundlovsdag
+2035-12-24,DK,Juleaften
+2035-12-25,DK,Juledag
+2035-12-26,DK,2. juledag
+2026-01-01,NO,Første nyttårsdag
+2026-04-02,NO,Skjærtorsdag
+2026-04-03,NO,Langfredag
+2026-04-06,NO,Andre påskedag
+2026-05-01,NO,Offentlig høytidsdag
+2026-05-14,NO,Kristi himmelfartsdag
+2026-05-17,NO,Grunnlovsdag
+2026-05-25,NO,Andre pinsedag
+2026-12-25,NO,Første juledag
+2026-12-26,NO,Andre juledag
+2027-01-01,NO,Første nyttårsdag
+2027-03-25,NO,Skjærtorsdag
+2027-03-26,NO,Langfredag
+2027-03-29,NO,Andre påskedag
+2027-05-01,NO,Offentlig høytidsdag
+2027-05-06,NO,Kristi himmelfartsdag
+2027-05-17,NO,Andre pinsedag
+2027-05-17,NO,Grunnlovsdag
+2027-12-25,NO,Første juledag
+2027-12-26,NO,Andre juledag
+2028-01-01,NO,Første nyttårsdag
+2028-04-13,NO,Skjærtorsdag
+2028-04-14,NO,Langfredag
+2028-04-17,NO,Andre påskedag
+2028-05-01,NO,Offentlig høytidsdag
+2028-05-17,NO,Grunnlovsdag
+2028-05-25,NO,Kristi himmelfartsdag
+2028-06-05,NO,Andre pinsedag
+2028-12-25,NO,Første juledag
+2028-12-26,NO,Andre juledag
+2029-01-01,NO,Første nyttårsdag
+2029-03-29,NO,Skjærtorsdag
+2029-03-30,NO,Langfredag
+2029-04-02,NO,Andre påskedag
+2029-05-01,NO,Offentlig høytidsdag
+2029-05-10,NO,Kristi himmelfartsdag
+2029-05-17,NO,Grunnlovsdag
+2029-05-21,NO,Andre pinsedag
+2029-12-25,NO,Første juledag
+2029-12-26,NO,Andre juledag
+2030-01-01,NO,Første nyttårsdag
+2030-04-18,NO,Skjærtorsdag
+2030-04-19,NO,Langfredag
+2030-04-22,NO,Andre påskedag
+2030-05-01,NO,Offentlig høytidsdag
+2030-05-17,NO,Grunnlovsdag
+2030-05-30,NO,Kristi himmelfartsdag
+2030-06-10,NO,Andre pinsedag
+2030-12-25,NO,Første juledag
+2030-12-26,NO,Andre juledag
+2031-01-01,NO,Første nyttårsdag
+2031-04-10,NO,Skjærtorsdag
+2031-04-11,NO,Langfredag
+2031-04-14,NO,Andre påskedag
+2031-05-01,NO,Offentlig høytidsdag
+2031-05-17,NO,Grunnlovsdag
+2031-05-22,NO,Kristi himmelfartsdag
+2031-06-02,NO,Andre pinsedag
+2031-12-25,NO,Første juledag
+2031-12-26,NO,Andre juledag
+2032-01-01,NO,Første nyttårsdag
+2032-03-25,NO,Skjærtorsdag
+2032-03-26,NO,Langfredag
+2032-03-29,NO,Andre påskedag
+2032-05-01,NO,Offentlig høytidsdag
+2032-05-06,NO,Kristi himmelfartsdag
+2032-05-17,NO,Andre pinsedag
+2032-05-17,NO,Grunnlovsdag
+2032-12-25,NO,Første juledag
+2032-12-26,NO,Andre juledag
+2033-01-01,NO,Første nyttårsdag
+2033-04-14,NO,Skjærtorsdag
+2033-04-15,NO,Langfredag
+2033-04-18,NO,Andre påskedag
+2033-05-01,NO,Offentlig høytidsdag
+2033-05-17,NO,Grunnlovsdag
+2033-05-26,NO,Kristi himmelfartsdag
+2033-06-06,NO,Andre pinsedag
+2033-12-25,NO,Første juledag
+2033-12-26,NO,Andre juledag
+2034-01-01,NO,Første nyttårsdag
+2034-04-06,NO,Skjærtorsdag
+2034-04-07,NO,Langfredag
+2034-04-10,NO,Andre påskedag
+2034-05-01,NO,Offentlig høytidsdag
+2034-05-17,NO,Grunnlovsdag
+2034-05-18,NO,Kristi himmelfartsdag
+2034-05-29,NO,Andre pinsedag
+2034-12-25,NO,Første juledag
+2034-12-26,NO,Andre juledag
+2035-01-01,NO,Første nyttårsdag
+2035-03-22,NO,Skjærtorsdag
+2035-03-23,NO,Langfredag
+2035-03-26,NO,Andre påskedag
+2035-05-01,NO,Offentlig høytidsdag
+2035-05-03,NO,Kristi himmelfartsdag
+2035-05-14,NO,Andre pinsedag
+2035-05-17,NO,Grunnlovsdag
+2035-12-25,NO,Første juledag
+2035-12-26,NO,Andre juledag
+2026-01-01,SE,Nyårsdagen
+2026-01-06,SE,Trettondedag jul
+2026-04-03,SE,Långfredagen
+2026-04-06,SE,Annandag påsk
+2026-05-01,SE,Första maj
+2026-05-14,SE,Kristi himmelsfärdsdag
+2026-06-06,SE,Sveriges nationaldag
+2026-06-19,SE,Midsommarafton
+2026-06-20,SE,Midsommardagen
+2026-10-31,SE,Alla helgons dag
+2026-12-24,SE,Julafton
+2026-12-25,SE,Juldagen
+2026-12-26,SE,Annandag jul
+2026-12-31,SE,Nyårsafton
+2027-01-01,SE,Nyårsdagen
+2027-01-06,SE,Trettondedag jul
+2027-03-26,SE,Långfredagen
+2027-03-29,SE,Annandag påsk
+2027-05-01,SE,Första maj
+2027-05-06,SE,Kristi himmelsfärdsdag
+2027-06-06,SE,Sveriges nationaldag
+2027-06-25,SE,Midsommarafton
+2027-06-26,SE,Midsommardagen
+2027-11-06,SE,Alla helgons dag
+2027-12-24,SE,Julafton
+2027-12-25,SE,Juldagen
+2027-12-26,SE,Annandag jul
+2027-12-31,SE,Nyårsafton
+2028-01-01,SE,Nyårsdagen
+2028-01-06,SE,Trettondedag jul
+2028-04-14,SE,Långfredagen
+2028-04-17,SE,Annandag påsk
+2028-05-01,SE,Första maj
+2028-05-25,SE,Kristi himmelsfärdsdag
+2028-06-06,SE,Sveriges nationaldag
+2028-06-23,SE,Midsommarafton
+2028-06-24,SE,Midsommardagen
+2028-11-04,SE,Alla helgons dag
+2028-12-24,SE,Julafton
+2028-12-25,SE,Juldagen
+2028-12-26,SE,Annandag jul
+2028-12-31,SE,Nyårsafton
+2029-01-01,SE,Nyårsdagen
+2029-01-06,SE,Trettondedag jul
+2029-03-30,SE,Långfredagen
+2029-04-02,SE,Annandag påsk
+2029-05-01,SE,Första maj
+2029-05-10,SE,Kristi himmelsfärdsdag
+2029-06-06,SE,Sveriges nationaldag
+2029-06-22,SE,Midsommarafton
+2029-06-23,SE,Midsommardagen
+2029-11-03,SE,Alla helgons dag
+2029-12-24,SE,Julafton
+2029-12-25,SE,Juldagen
+2029-12-26,SE,Annandag jul
+2029-12-31,SE,Nyårsafton
+2030-01-01,SE,Nyårsdagen
+2030-01-06,SE,Trettondedag jul
+2030-04-19,SE,Långfredagen
+2030-04-22,SE,Annandag påsk
+2030-05-01,SE,Första maj
+2030-05-30,SE,Kristi himmelsfärdsdag
+2030-06-06,SE,Sveriges nationaldag
+2030-06-21,SE,Midsommarafton
+2030-06-22,SE,Midsommardagen
+2030-11-02,SE,Alla helgons dag
+2030-12-24,SE,Julafton
+2030-12-25,SE,Juldagen
+2030-12-26,SE,Annandag jul
+2030-12-31,SE,Nyårsafton
+2031-01-01,SE,Nyårsdagen
+2031-01-06,SE,Trettondedag jul
+2031-04-11,SE,Långfredagen
+2031-04-14,SE,Annandag påsk
+2031-05-01,SE,Första maj
+2031-05-22,SE,Kristi himmelsfärdsdag
+2031-06-06,SE,Sveriges nationaldag
+2031-06-20,SE,Midsommarafton
+2031-06-21,SE,Midsommardagen
+2031-11-01,SE,Alla helgons dag
+2031-12-24,SE,Julafton
+2031-12-25,SE,Juldagen
+2031-12-26,SE,Annandag jul
+2031-12-31,SE,Nyårsafton
+2032-01-01,SE,Nyårsdagen
+2032-01-06,SE,Trettondedag jul
+2032-03-26,SE,Långfredagen
+2032-03-29,SE,Annandag påsk
+2032-05-01,SE,Första maj
+2032-05-06,SE,Kristi himmelsfärdsdag
+2032-06-06,SE,Sveriges nationaldag
+2032-06-25,SE,Midsommarafton
+2032-06-26,SE,Midsommardagen
+2032-11-06,SE,Alla helgons dag
+2032-12-24,SE,Julafton
+2032-12-25,SE,Juldagen
+2032-12-26,SE,Annandag jul
+2032-12-31,SE,Nyårsafton
+2033-01-01,SE,Nyårsdagen
+2033-01-06,SE,Trettondedag jul
+2033-04-15,SE,Långfredagen
+2033-04-18,SE,Annandag påsk
+2033-05-01,SE,Första maj
+2033-05-26,SE,Kristi himmelsfärdsdag
+2033-06-06,SE,Sveriges nationaldag
+2033-06-24,SE,Midsommarafton
+2033-06-25,SE,Midsommardagen
+2033-11-05,SE,Alla helgons dag
+2033-12-24,SE,Julafton
+2033-12-25,SE,Juldagen
+2033-12-26,SE,Annandag jul
+2033-12-31,SE,Nyårsafton
+2034-01-01,SE,Nyårsdagen
+2034-01-06,SE,Trettondedag jul
+2034-04-07,SE,Långfredagen
+2034-04-10,SE,Annandag påsk
+2034-05-01,SE,Första maj
+2034-05-18,SE,Kristi himmelsfärdsdag
+2034-06-06,SE,Sveriges nationaldag
+2034-06-23,SE,Midsommarafton
+2034-06-24,SE,Midsommardagen
+2034-11-04,SE,Alla helgons dag
+2034-12-24,SE,Julafton
+2034-12-25,SE,Juldagen
+2034-12-26,SE,Annandag jul
+2034-12-31,SE,Nyårsafton
+2035-01-01,SE,Nyårsdagen
+2035-01-06,SE,Trettondedag jul
+2035-03-23,SE,Långfredagen
+2035-03-26,SE,Annandag påsk
+2035-05-01,SE,Första maj
+2035-05-03,SE,Kristi himmelsfärdsdag
+2035-06-06,SE,Sveriges nationaldag
+2035-06-22,SE,Midsommarafton
+2035-06-23,SE,Midsommardagen
+2035-11-03,SE,Alla helgons dag
+2035-12-24,SE,Julafton
+2035-12-25,SE,Juldagen
+2035-12-26,SE,Annandag jul
+2035-12-31,SE,Nyårsafton

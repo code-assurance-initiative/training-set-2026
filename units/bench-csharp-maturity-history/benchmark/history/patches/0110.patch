@@ -1,0 +1,22 @@
+From df09377b712f4956add8cbef0e12eef43a4f3eea Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Thu, 27 Aug 2026 15:40:21 +0200
+Subject: chore(notifications): a shorter video reminder
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 44b7e84..72fded2 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -21,7 +21,7 @@ public static class ReminderTexts
+                 [DayBefore] = "Reminder: you have an appointment with {0} on {1}. To cancel or reschedule, please call {2}.",
+                 [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
+                 [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
+-                [SameDayVideo] = "Your video appointment with {0} starts at {1}. Please open the link from your patient portal a few minutes early.",
++                [SameDayVideo] = "Your video appointment with {0} starts at {1}. Open the link from your patient portal.",
+                 ["cancellation-fee"] = "Cancellations less than 24 hours before the appointment are charged.",
+                 ["signature"] = "Kind regards, your physiotherapy clinic",
+             },

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>FleetOps.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FleetOps.Infrastructure.Telematics\FleetOps.Infrastructure.Telematics.csproj" />
+  </ItemGroup>
+
+</Project>

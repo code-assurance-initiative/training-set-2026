@@ -1,0 +1,104 @@
+From 213d022539a7440495d16a0c1941aa5e9b5faf7f Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 28 Apr 2026 10:30:26 +0200
+Subject: docs: README and architecture for video appointments and the patient
+ portal
+
+---
+ README.md            | 17 +++++++++++------
+ docs/architecture.md |  5 ++++-
+ 2 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/README.md b/README.md
+index b5e8f64..15a3c69 100644
+--- a/README.md
++++ b/README.md
+@@ -1,13 +1,15 @@
+ # ClinicScheduling
+ 
+ ClinicScheduling is the appointment-scheduling API behind a chain of physiotherapy clinics. Practitioners publish
+-their weekly opening hours; the front desk searches for open slots, books, moves and cancels appointments; and
+-treatment series are booked in one go.
++their weekly opening hours; the front desk and the patient portal search for open slots, book, move and cancel
++appointments; treatment series are booked in one go; patients get SMS reminders; and the patient portal keeps a feed
++and a calendar subscription of each patient's appointments.
+ 
+ ## Features
+ 
+ - **Slot search** per practitioner: opening hours and breaks, public holidays (Denmark, Germany, Norway, Sweden),
+-  buffers between appointments, minimum notice, a same-day cut-off and a daily cap.
++  buffers between appointments, minimum notice, a same-day cut-off and a daily cap. Video (telehealth) slots for
++  practitioners who offer them.
+ - **Booking, rescheduling and cancellation** with the clinic's cancellation policy: free until 24 hours before, a fee
+   for late cancellations and no-shows, and a deposit after two strikes within six months.
+ - **Treatment series**: a weekly recurrence (`WEEKLY;INTERVAL=1;COUNT=8;BYDAY=MO,TH`) booked as one request; sessions
+@@ -16,6 +18,7 @@ treatment series are booked in one go.
+   night.
+ - **Waitlist back-fill**: when an appointment is cancelled, the first matching patient on the practitioner's waitlist
+   is offered the freed slot automatically.
++- **Patient portal** feed (JSON) and calendar subscription (iCalendar).
+ 
+ ## Getting started
+ 
+@@ -29,7 +32,7 @@ dotnet run --project src/ClinicScheduling.Api
+ The API validates bearer tokens from the identity provider configured under `Authentication` (an `https` authority
+ and the audience `clinic-scheduling-api`). In development the authority is a realm of a local identity provider
+ (`appsettings.Development.json`). Every endpoint except `/health` needs a token with the matching scope:
+-`appointments.read`, `appointments.write` or `schedules.write`.
++`appointments.read`, `appointments.write`, `schedules.write` or `portal.read`.
+ 
+ ## Testing
+ 
+@@ -38,7 +41,7 @@ dotnet test ClinicScheduling.slnx
+ ```
+ 
+ `tests/ClinicScheduling.UnitTests` covers the domain rules (slot search, cancellation policy, recurrence), the
+-reminder planner and composer and the booking handlers.
++reminder planner and composer, the iCalendar writer, the portal feed and the booking handlers.
+ `tests/ClinicScheduling.IntegrationTests` hosts the API in memory with `WebApplicationFactory`, signs its own test
+ tokens and drives the endpoints over HTTPS.
+ 
+@@ -51,7 +54,7 @@ A layered solution (see [`docs/architecture.md`](docs/architecture.md) and the d
+ |---|---|
+ | `ClinicScheduling.Domain` | Appointments, slot search, cancellation policy, recurrence. No dependencies. |
+ | `ClinicScheduling.Application` | Use cases (book, cancel, reschedule, find slots, book a series) and their ports. |
+-| `ClinicScheduling.Infrastructure` | In-memory stores, the public-holiday table and reminders. |
++| `ClinicScheduling.Infrastructure` | In-memory stores, the public-holiday table, reminders, the patient-portal feed and the calendar writer. |
+ | `ClinicScheduling.Waitlist` | The waitlist and the back-fill of cancelled slots. |
+ | `ClinicScheduling.Api` | The ASP.NET Core host: endpoints, authentication, security headers. |
+ 
+@@ -78,6 +81,8 @@ for 30 minutes before it moves on to the next patient.
+ | `POST /api/appointments/{id}/cancellation` | `appointments.write` | Cancel; returns the fee, if any. |
+ | `POST /api/appointments/{id}/no-show` | `appointments.write` | Record a no-show. |
+ | `POST /api/series` | `appointments.write` | Book a treatment series. |
++| `GET /api/patients/{id}/feed` | `portal.read` | The patient-portal feed. |
++| `GET /api/patients/{id}/calendar.ics` | `portal.read` | The patient's calendar subscription. |
+ 
+ ## Persistence
+ 
+diff --git a/docs/architecture.md b/docs/architecture.md
+index a024c54..d4479f5 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -6,10 +6,11 @@ implements those ports; the API project hosts everything and is the composition
+ 
+ ```mermaid
+ flowchart LR
++    Portal[Patient portal] -->|feed, calendar| Api
+     FrontDesk[Front desk app] -->|bookings, schedules| Api
+     subgraph Service[ClinicScheduling service]
+         Api[ClinicScheduling.Api<br/>Minimal API endpoints] --> Application[ClinicScheduling.Application<br/>use cases, ports]
+-        Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays, reminders]
++        Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays, reminders, portal feed]
+         Api --> Waitlist[ClinicScheduling.Waitlist<br/>waitlist, back-fill]
+         Waitlist --> Application
+         Infrastructure --> Application
+@@ -31,6 +32,8 @@ flowchart LR
+   move a session to the next free weekday) and books all sessions or none.
+ - **Reminders** - planned on booking and stored in the reminder outbox; `ReminderDispatchWorker` sends due reminders
+   (ADR 0005). Texts live in `ReminderTexts` (English, Danish, German).
++- **Patient portal** - the portal polls `/api/patients/{id}/feed` (JSON written by `PortalAppointmentFeed`) and
++  subscribes to `/api/patients/{id}/calendar.ics` (written by `IcsCalendarWriter`).
+ - **Waitlist** - when the API cancels an appointment, `WaitlistBackfill` offers the freed slot to the first waiting
+   patient whose window fits.
+ 

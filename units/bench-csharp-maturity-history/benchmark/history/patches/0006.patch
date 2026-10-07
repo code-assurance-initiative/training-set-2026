@@ -1,0 +1,137 @@
+From 93846e62de637988ea7fc2d500564b31d99a8c43 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 8 Jan 2026 10:05:26 +0100
+Subject: feat(api): host with health checks, HSTS and security headers
+
+---
+ .../ApiApplicationBuilderExtensions.cs        | 22 +++++++++++++++++++
+ .../Hosting/ApiServiceCollectionExtensions.cs | 12 ++++++++++
+ src/ClinicScheduling.Api/Program.cs           | 11 ++++++++++
+ .../Security/SecurityHeadersMiddleware.cs     | 20 +++++++++++++++++
+ .../appsettings.Development.json              |  8 +++++++
+ src/ClinicScheduling.Api/appsettings.json     |  8 +++++++
+ 6 files changed, 81 insertions(+)
+ create mode 100644 src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+ create mode 100644 src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+ create mode 100644 src/ClinicScheduling.Api/Program.cs
+ create mode 100644 src/ClinicScheduling.Api/Security/SecurityHeadersMiddleware.cs
+ create mode 100644 src/ClinicScheduling.Api/appsettings.Development.json
+ create mode 100644 src/ClinicScheduling.Api/appsettings.json
+
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+new file mode 100644
+index 0000000..3746fad
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -0,0 +1,22 @@
++using ClinicScheduling.Api.Security;
++
++namespace ClinicScheduling.Api.Hosting;
++
++public static class ApiApplicationBuilderExtensions
++{
++    public static WebApplication UseSchedulingApi(this WebApplication app)
++    {
++        if (!app.Environment.IsDevelopment())
++        {
++            app.UseHsts();
++        }
++
++        app.UseExceptionHandler();
++        app.UseStatusCodePages();
++        app.UseHttpsRedirection();
++        app.UseMiddleware<SecurityHeadersMiddleware>();
++
++        app.MapHealthChecks("/health").AllowAnonymous();
++        return app;
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+new file mode 100644
+index 0000000..fb78851
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -0,0 +1,12 @@
++namespace ClinicScheduling.Api.Hosting;
++
++public static class ApiServiceCollectionExtensions
++{
++    public static IServiceCollection AddSchedulingApi(this IServiceCollection services)
++    {
++        services.AddProblemDetails();
++        services.AddHealthChecks();
++        services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
++        return services;
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Program.cs b/src/ClinicScheduling.Api/Program.cs
+new file mode 100644
+index 0000000..1f937e2
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Program.cs
+@@ -0,0 +1,11 @@
++using ClinicScheduling.Api.Hosting;
++
++var builder = WebApplication.CreateBuilder(args);
++builder.Services.AddSchedulingApi();
++
++var app = builder.Build();
++app.UseSchedulingApi();
++app.Run();
++
++/// <summary>Entry point, public so the integration tests can host it.</summary>
++public partial class Program;
+diff --git a/src/ClinicScheduling.Api/Security/SecurityHeadersMiddleware.cs b/src/ClinicScheduling.Api/Security/SecurityHeadersMiddleware.cs
+new file mode 100644
+index 0000000..e3fc70a
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Security/SecurityHeadersMiddleware.cs
+@@ -0,0 +1,20 @@
++namespace ClinicScheduling.Api.Security;
++
++/// <summary>
++/// Adds response headers that tell browsers to treat every response as inert data: nothing may be framed, sniffed
++/// into another content type, or used to load further resources.
++/// </summary>
++public sealed class SecurityHeadersMiddleware(RequestDelegate next)
++{
++    public Task Invoke(HttpContext context)
++    {
++        ArgumentNullException.ThrowIfNull(context);
++        var headers = context.Response.Headers;
++        headers.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";
++        headers.XContentTypeOptions = "nosniff";
++        headers.XFrameOptions = "DENY";
++        headers["Referrer-Policy"] = "no-referrer";
++        headers["Cross-Origin-Resource-Policy"] = "same-origin";
++        return next(context);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/appsettings.Development.json b/src/ClinicScheduling.Api/appsettings.Development.json
+new file mode 100644
+index 0000000..3e1a225
+--- /dev/null
++++ b/src/ClinicScheduling.Api/appsettings.Development.json
+@@ -0,0 +1,8 @@
++{
++  "Logging": {
++    "LogLevel": {
++      "Default": "Information",
++      "Microsoft.AspNetCore": "Information"
++    }
++  }
++}
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+new file mode 100644
+index 0000000..0c208ae
+--- /dev/null
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -0,0 +1,8 @@
++{
++  "Logging": {
++    "LogLevel": {
++      "Default": "Information",
++      "Microsoft.AspNetCore": "Warning"
++    }
++  }
++}

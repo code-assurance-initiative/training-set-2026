@@ -1,0 +1,143 @@
+From 2ae20c425a21ed8d0fdd8274dae6753e1303b20e Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Tue, 25 Aug 2026 13:36:05 +0200
+Subject: feat(orders): search the page by consignee or city; filter by status
+
+---
+ src/features/orders/OrdersPage.tsx | 27 ++++++++++++++++++++++++++-
+ src/features/orders/orderFilter.ts | 17 +++++++++++++++++
+ src/styles/app.css                 |  8 ++++++++
+ tests/OrdersPage.test.tsx          | 29 +++++++++++++++++++++++++++++
+ 4 files changed, 80 insertions(+), 1 deletion(-)
+ create mode 100644 src/features/orders/orderFilter.ts
+
+diff --git a/src/features/orders/OrdersPage.tsx b/src/features/orders/OrdersPage.tsx
+index 3c8e2dc..c69de45 100644
+--- a/src/features/orders/OrdersPage.tsx
++++ b/src/features/orders/OrdersPage.tsx
+@@ -2,20 +2,45 @@ import { useState } from 'react';
+ import { listOrders } from '../../api/orders';
+ import { ErrorMessage } from '../../components/ErrorMessage';
+ import { useLoad } from '../../useLoad';
++import { matching } from './orderFilter';
+ import { OrdersTable } from './OrdersTable';
+ 
+ export function OrdersPage() {
+   const [page, setPage] = useState(1);
+   const [orders] = useLoad((signal) => listOrders(page, signal), String(page));
++  const [search, setSearch] = useState('');
++  const [status, setStatus] = useState('all');
+ 
+   return (
+     <section aria-labelledby="orders-heading">
+       <h1 id="orders-heading">Orders</h1>
++      <div className="filters">
++        <input
++          type="search"
++          placeholder="Search consignee or city"
++          value={search}
++          onChange={(event) => {
++            setSearch(event.target.value);
++          }}
++        />
++        <label htmlFor="status-filter">Status</label>
++        <select
++          id="status-filter"
++          value={status}
++          onChange={(event) => {
++            setStatus(event.target.value);
++          }}
++        >
++          <option value="all">All</option>
++          <option value="placed">Placed</option>
++          <option value="cancelled">Cancelled</option>
++        </select>
++      </div>
+       {orders.state === 'loading' && <p role="status">Loading orders…</p>}
+       {orders.state === 'failed' && <ErrorMessage error={orders.error} />}
+       {orders.state === 'loaded' && (
+         <>
+-          <OrdersTable orders={orders.value.items} />
++          <OrdersTable orders={matching(orders.value.items, search, status)} />
+           <nav className="paging" aria-label="Pages">
+             <button
+               type="button"
+diff --git a/src/features/orders/orderFilter.ts b/src/features/orders/orderFilter.ts
+new file mode 100644
+index 0000000..9773d89
+--- /dev/null
++++ b/src/features/orders/orderFilter.ts
+@@ -0,0 +1,17 @@
++import type { OrderSummary } from '../../api/types';
++
++/** Narrows the loaded page by consignee or city and by status. */
++export function matching(
++  orders: readonly OrderSummary[],
++  search: string,
++  status: string,
++): readonly OrderSummary[] {
++  const needle = search.trim().toLocaleLowerCase();
++  return orders.filter(
++    (order) =>
++      (status === 'all' || order.status.toLowerCase() === status) &&
++      (needle === '' ||
++        order.consigneeName.toLocaleLowerCase().includes(needle) ||
++        order.destinationCity.toLocaleLowerCase().includes(needle)),
++  );
++}
+diff --git a/src/styles/app.css b/src/styles/app.css
+index 07d36ed..e2d7656 100644
+--- a/src/styles/app.css
++++ b/src/styles/app.css
+@@ -183,3 +183,11 @@ dialog textarea {
+   display: flex;
+   gap: 0.5rem;
+ }
++
++.filters {
++  display: flex;
++  flex-wrap: wrap;
++  align-items: center;
++  gap: 0.5rem 1rem;
++  margin-bottom: 1rem;
++}
+diff --git a/tests/OrdersPage.test.tsx b/tests/OrdersPage.test.tsx
+index a0d9641..4f8b9a9 100644
+--- a/tests/OrdersPage.test.tsx
++++ b/tests/OrdersPage.test.tsx
+@@ -41,6 +41,35 @@ describe('orders page', () => {
+     ]);
+   });
+ 
++  it('narrows the page by consignee, city and status', async () => {
++    fakeApi({
++      '/api/orders?page=1': () =>
++        json(200, {
++          items: [
++            orderSummary(first, 'Halden Bikes ApS'),
++            {
++              ...orderSummary('0198f1a2-0000-7000-8000-000000000002', 'Fjord Kaffe'),
++              destinationCity: 'Odense',
++              status: 'Cancelled',
++            },
++          ],
++          page: 1,
++          pageSize: 25,
++          totalCount: 2,
++        }),
++    });
++    render(<App />);
++
++    await userEvent.type(await screen.findByPlaceholderText('Search consignee or city'), 'odense');
++    expect(screen.queryByRole('cell', { name: 'Halden Bikes ApS' })).not.toBeInTheDocument();
++    expect(screen.getByRole('cell', { name: 'Fjord Kaffe' })).toBeInTheDocument();
++    await userEvent.clear(screen.getByPlaceholderText('Search consignee or city'));
++    await userEvent.selectOptions(screen.getByLabelText('Status'), 'placed');
++
++    expect(screen.getByRole('cell', { name: 'Halden Bikes ApS' })).toBeInTheDocument();
++    expect(screen.queryByRole('cell', { name: 'Fjord Kaffe' })).not.toBeInTheDocument();
++  });
++
+   it('opens an order from its row', async () => {
+     fakeApi({
+       '/api/orders?page=1': () =>

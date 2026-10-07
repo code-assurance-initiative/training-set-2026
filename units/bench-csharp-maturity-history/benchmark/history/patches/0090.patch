@@ -1,0 +1,21 @@
+From 69575e9c988e85ee3efdb683649d644d96f20aac Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Wed, 8 Jul 2026 13:40:33 +0200
+Subject: feat(portal): clinic id in the feed
+
+---
+ .../PatientPortal/PortalAppointmentFeed.cs                       | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index c6efccf..7d71c21 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -27,6 +27,7 @@ public static class PortalAppointmentFeed
+                 json.WriteStartObject();
+                 json.WriteString("id", a.Id);
+                 json.WriteString("practitionerId", a.PractitionerId);
++                json.WriteString("clinicId", a.ClinicId);
+                 json.WriteString("startsAt", Local(a.Time.Start, zone));
+                 json.WriteString("endsAt", Local(a.Time.End, zone));
+                 json.WriteNumber("durationMinutes", (int)a.Time.Duration.TotalMinutes);

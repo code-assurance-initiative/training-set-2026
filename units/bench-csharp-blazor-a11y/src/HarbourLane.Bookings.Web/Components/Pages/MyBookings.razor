@@ -1,0 +1,45 @@
+@page "/bookings"
+@attribute [Authorize(Policy = AuthorizationPolicies.Member)]
+@using HarbourLane.Bookings.Web.Security
+
+<PageTitle>Your bookings · Harbour Lane Community Centre</PageTitle>
+
+<h1>Your bookings</h1>
+
+<div class="form-row">
+    <input type="search" placeholder="Filter by room or reference" @bind="Filter" @bind:event="oninput" />
+</div>
+
+@if (Visible is null)
+{
+    <LoadingSkeleton Lines="3" Label="Loading your bookings" />
+}
+else if (Visible.Count == 0)
+{
+    <p>You have no bookings yet. <a href="rooms">Find a room to book</a>.</p>
+}
+else
+{
+    <ul class="booking-list">
+        @foreach (var booking in Visible)
+        {
+            <li class="booking-item" @key="booking.Reference">
+                <h2>@RoomName(booking) · @booking.Start.ToString("dddd d MMMM, HH:mm", Culture)</h2>
+                <p>Reference @booking.Reference · @booking.Attendees attending · @Describe(booking.Status)</p>
+                @if (booking.Status == BookingStatus.Confirmed)
+                {
+                    <button type="button" class="button button--secondary" @onclick="() => AddToCalendarAsync(booking)">Add to my calendar</button>
+                    <a href="#" class="cancel-link" @onclick="() => AskToCancel(booking)" @onclick:preventDefault>
+                        Cancel booking
+                    </a>
+                }
+            </li>
+        }
+    </ul>
+}
+
+<ConfirmDialog Open="@(PendingCancel is not null)"
+               Title="Cancel this booking?"
+               Message="@CancelMessage"
+               ConfirmText="Cancel booking"
+               Closed="OnCancelDialogClosedAsync" />

@@ -1,0 +1,541 @@
+From afbbbc91b0d1db24a6080c29bef7bea8cdb86df7 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Fri, 31 Jul 2026 10:09:44 +0200
+Subject: feat(orders): orders list and order page against the gateway
+
+---
+ src/api/http.ts                         | 45 ++++++++++++++
+ src/api/orders.ts                       | 14 +++++
+ src/api/types.ts                        | 36 +++++++++++
+ src/features/orders/OrderDetailPage.tsx | 47 +++++++++++++++
+ src/features/orders/OrdersPage.tsx      | 47 +++++++++++++++
+ src/features/orders/OrdersTable.tsx     | 43 ++++++++++++++
+ src/useLoad.ts                          | 43 ++++++++++++++
+ tests/OrderDetailPage.test.tsx          | 32 ++++++++++
+ tests/OrdersPage.test.tsx               | 79 +++++++++++++++++++++++++
+ tests/support/fakeApi.ts                | 67 +++++++++++++++++++++
+ 10 files changed, 453 insertions(+)
+ create mode 100644 src/api/http.ts
+ create mode 100644 src/api/orders.ts
+ create mode 100644 src/api/types.ts
+ create mode 100644 src/features/orders/OrderDetailPage.tsx
+ create mode 100644 src/features/orders/OrdersPage.tsx
+ create mode 100644 src/features/orders/OrdersTable.tsx
+ create mode 100644 src/useLoad.ts
+ create mode 100644 tests/OrderDetailPage.test.tsx
+ create mode 100644 tests/OrdersPage.test.tsx
+ create mode 100644 tests/support/fakeApi.ts
+
+diff --git a/src/api/http.ts b/src/api/http.ts
+new file mode 100644
+index 0000000..3e26df4
+--- /dev/null
++++ b/src/api/http.ts
+@@ -0,0 +1,45 @@
++/** A problem-details answer from the gateway (RFC 9457). */
++export class ApiError extends Error {
++  constructor(
++    readonly status: number,
++    readonly title: string,
++    readonly detail: string,
++  ) {
++    super(detail || title);
++    this.name = 'ApiError';
++  }
++}
++
++/**
++ * Calls the gateway under /api on the console's own origin. The session is the authentication proxy's cookie, sent by
++ * the browser; the console never sees or stores a token.
++ */
++export async function request<T>(
++  path: string,
++  init: {
++    method?: 'GET' | 'POST';
++    body?: unknown;
++    signal?: AbortSignal;
++    headers?: Record<string, string>;
++  } = {},
++): Promise<T | undefined> {
++  const response = await fetch(`/api${path}`, {
++    method: init.method ?? 'GET',
++    credentials: 'same-origin',
++    headers: {
++      accept: 'application/json',
++      ...(init.body === undefined ? {} : { 'content-type': 'application/json' }),
++      ...init.headers,
++    },
++    body: init.body === undefined ? null : JSON.stringify(init.body),
++    signal: init.signal ?? null,
++  });
++  if (!response.ok) {
++    const problem = (await response.json().catch(() => ({}))) as {
++      title?: string;
++      detail?: string;
++    };
++    throw new ApiError(response.status, problem.title ?? response.statusText, problem.detail ?? '');
++  }
++  return response.status === 204 ? undefined : ((await response.json()) as T);
++}
+diff --git a/src/api/orders.ts b/src/api/orders.ts
+new file mode 100644
+index 0000000..06e98aa
+--- /dev/null
++++ b/src/api/orders.ts
+@@ -0,0 +1,14 @@
++import { request } from './http';
++import type { Order, OrderPage } from './types';
++
++export async function listOrders(page: number, signal?: AbortSignal): Promise<OrderPage> {
++  const result = await request<OrderPage>(
++    `/orders?page=${page}&pageSize=25`,
++    signal ? { signal } : {},
++  );
++  return result ?? { items: [], page, pageSize: 25, totalCount: 0 };
++}
++
++export async function getOrder(orderId: string, signal?: AbortSignal): Promise<Order | undefined> {
++  return request<Order>(`/orders/${encodeURIComponent(orderId)}`, signal ? { signal } : {});
++}
+diff --git a/src/api/types.ts b/src/api/types.ts
+new file mode 100644
+index 0000000..54911df
+--- /dev/null
++++ b/src/api/types.ts
+@@ -0,0 +1,36 @@
++export interface OrderSummary {
++  readonly orderId: string;
++  readonly customerAccountId: string;
++  readonly serviceLevel: string;
++  readonly status: string;
++  readonly consigneeName: string;
++  readonly destinationCity: string;
++  readonly parcelCount: number;
++  readonly placedAt: string;
++}
++
++export interface OrderPage {
++  readonly items: readonly OrderSummary[];
++  readonly page: number;
++  readonly pageSize: number;
++  readonly totalCount: number;
++}
++
++export interface Order {
++  readonly id: string;
++  readonly customerAccountId: string;
++  readonly serviceLevel: string;
++  readonly status: string;
++  readonly consignee: {
++    readonly name: string;
++    readonly line1: string;
++    readonly line2?: string | null;
++    readonly postalCode: string;
++    readonly city: string;
++    readonly countryCode: string;
++  };
++  readonly parcels: readonly { readonly number: number; readonly weightGrams: number }[];
++  readonly totalWeightGrams: number;
++  readonly placedBy: string;
++  readonly placedAt: string;
++}
+diff --git a/src/features/orders/OrderDetailPage.tsx b/src/features/orders/OrderDetailPage.tsx
+new file mode 100644
+index 0000000..ca545e0
+--- /dev/null
++++ b/src/features/orders/OrderDetailPage.tsx
+@@ -0,0 +1,47 @@
++import { getOrder } from '../../api/orders';
++import { AppLink } from '../../components/AppLink';
++import { ErrorMessage } from '../../components/ErrorMessage';
++import { StatusBadge } from '../../components/StatusBadge';
++import { useLoad } from '../../useLoad';
++
++export function OrderDetailPage({ orderId }: { orderId: string }) {
++  const [order] = useLoad((signal) => getOrder(orderId, signal), orderId);
++
++  if (order.state === 'loading') {
++    return <p role="status">Loading the order…</p>;
++  }
++  if (order.state === 'failed' || !order.value) {
++    return order.state === 'failed' ? <ErrorMessage error={order.error} /> : null;
++  }
++  const value = order.value;
++  return (
++    <article aria-labelledby="order-heading">
++      <p>
++        <AppLink to="/orders">Back to orders</AppLink>
++      </p>
++      <h1 id="order-heading">Order for {value.consignee.name}</h1>
++      <dl className="facts">
++        <dt>Status</dt>
++        <dd>
++          <StatusBadge status={value.status} />
++        </dd>
++        <dt>Customer account</dt>
++        <dd>{value.customerAccountId}</dd>
++        <dt>Service</dt>
++        <dd>{value.serviceLevel}</dd>
++        <dt>Deliver to</dt>
++        <dd>
++          {value.consignee.line1}
++          {value.consignee.line2 ? `, ${value.consignee.line2}` : ''}, {value.consignee.postalCode}{' '}
++          {value.consignee.city}, {value.consignee.countryCode}
++        </dd>
++        <dt>Parcels</dt>
++        <dd>
++          {value.parcels.length} parcels, {(value.totalWeightGrams / 1000).toFixed(1)} kg
++        </dd>
++        <dt>Placed by</dt>
++        <dd>{value.placedBy}</dd>
++      </dl>
++    </article>
++  );
++}
+diff --git a/src/features/orders/OrdersPage.tsx b/src/features/orders/OrdersPage.tsx
+new file mode 100644
+index 0000000..3c8e2dc
+--- /dev/null
++++ b/src/features/orders/OrdersPage.tsx
+@@ -0,0 +1,47 @@
++import { useState } from 'react';
++import { listOrders } from '../../api/orders';
++import { ErrorMessage } from '../../components/ErrorMessage';
++import { useLoad } from '../../useLoad';
++import { OrdersTable } from './OrdersTable';
++
++export function OrdersPage() {
++  const [page, setPage] = useState(1);
++  const [orders] = useLoad((signal) => listOrders(page, signal), String(page));
++
++  return (
++    <section aria-labelledby="orders-heading">
++      <h1 id="orders-heading">Orders</h1>
++      {orders.state === 'loading' && <p role="status">Loading orders…</p>}
++      {orders.state === 'failed' && <ErrorMessage error={orders.error} />}
++      {orders.state === 'loaded' && (
++        <>
++          <OrdersTable orders={orders.value.items} />
++          <nav className="paging" aria-label="Pages">
++            <button
++              type="button"
++              disabled={page === 1}
++              onClick={() => {
++                setPage(page - 1);
++              }}
++            >
++              Newer
++            </button>
++            <span>
++              Page {page} of{' '}
++              {Math.max(1, Math.ceil(orders.value.totalCount / orders.value.pageSize))}
++            </span>
++            <button
++              type="button"
++              disabled={page * orders.value.pageSize >= orders.value.totalCount}
++              onClick={() => {
++                setPage(page + 1);
++              }}
++            >
++              Older
++            </button>
++          </nav>
++        </>
++      )}
++    </section>
++  );
++}
+diff --git a/src/features/orders/OrdersTable.tsx b/src/features/orders/OrdersTable.tsx
+new file mode 100644
+index 0000000..68e9be8
+--- /dev/null
++++ b/src/features/orders/OrdersTable.tsx
+@@ -0,0 +1,43 @@
++import type { OrderSummary } from '../../api/types';
++import { StatusBadge } from '../../components/StatusBadge';
++import { navigate } from '../../routing';
++
++const placed = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
++
++export function OrdersTable({ orders }: { orders: readonly OrderSummary[] }) {
++  return (
++    <table className="orders">
++      <caption className="visually-hidden">Orders, newest first</caption>
++      <thead>
++        <tr>
++          <th scope="col">Placed</th>
++          <th scope="col">Consignee</th>
++          <th scope="col">Destination</th>
++          <th scope="col">Service</th>
++          <th scope="col">Parcels</th>
++          <th scope="col">Status</th>
++        </tr>
++      </thead>
++      <tbody>
++        {orders.map((order) => (
++          <tr
++            key={order.orderId}
++            className="clickable"
++            onClick={() => {
++              navigate(`/orders/${order.orderId}`);
++            }}
++          >
++            <td>{placed.format(new Date(order.placedAt))}</td>
++            <td>{order.consigneeName}</td>
++            <td>{order.destinationCity}</td>
++            <td>{order.serviceLevel}</td>
++            <td>{order.parcelCount}</td>
++            <td>
++              <StatusBadge status={order.status.toLowerCase()} />
++            </td>
++          </tr>
++        ))}
++      </tbody>
++    </table>
++  );
++}
+diff --git a/src/useLoad.ts b/src/useLoad.ts
+new file mode 100644
+index 0000000..1e79e7e
+--- /dev/null
++++ b/src/useLoad.ts
+@@ -0,0 +1,43 @@
++import { useEffect, useEffectEvent, useState } from 'react';
++
++export type Load<T> =
++  | { readonly state: 'loading' }
++  | { readonly state: 'loaded'; readonly value: T }
++  | { readonly state: 'failed'; readonly error: unknown };
++
++/**
++ * Runs a request whenever `key` changes (or `reload` is called) and cancels the previous one. The result is kept
++ * per key, so a new key shows "loading" until its own answer arrives.
++ */
++export function useLoad<T>(
++  load: (signal: AbortSignal) => Promise<T>,
++  key: string,
++): [Load<T>, () => void] {
++  const [attempt, setAttempt] = useState(0);
++  const [result, setResult] = useState<{ key: string; attempt: number; load: Load<T> }>();
++  const run = useEffectEvent(load);
++  useEffect(() => {
++    const controller = new AbortController();
++    run(controller.signal).then(
++      (value) => {
++        setResult({ key, attempt, load: { state: 'loaded', value } });
++      },
++      (error: unknown) => {
++        if (!controller.signal.aborted) {
++          setResult({ key, attempt, load: { state: 'failed', error } });
++        }
++      },
++    );
++    return () => {
++      controller.abort();
++    };
++  }, [key, attempt]);
++  const current: Load<T> =
++    result?.key === key && result.attempt === attempt ? result.load : { state: 'loading' };
++  return [
++    current,
++    () => {
++      setAttempt((value) => value + 1);
++    },
++  ];
++}
+diff --git a/tests/OrderDetailPage.test.tsx b/tests/OrderDetailPage.test.tsx
+new file mode 100644
+index 0000000..f1c08a7
+--- /dev/null
++++ b/tests/OrderDetailPage.test.tsx
+@@ -0,0 +1,32 @@
++import { render, screen } from '@testing-library/react';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { App } from '../src/App';
++import { fakeApi, json, order } from './support/fakeApi';
++
++const id = '0198f1a2-0000-7000-8000-000000000001';
++
++describe('order page', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals();
++  });
++
++  it('shows the order', async () => {
++    fakeApi({ [`/api/orders/${id}`]: () => json(200, order(id)) });
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    expect(
++      await screen.findByRole('heading', { name: 'Order for Halden Bikes ApS' }),
++    ).toBeInTheDocument();
++    expect(screen.getByText('2 parcels, 3.5 kg')).toBeInTheDocument();
++    expect(screen.getByText('Placed')).toBeInTheDocument();
++  });
++
++  it('says so when the order does not exist', async () => {
++    fakeApi({});
++    window.history.replaceState(null, '', `/orders/${id}`);
++    render(<App />);
++
++    expect(await screen.findByRole('alert')).toHaveTextContent('Not Found');
++  });
++});
+diff --git a/tests/OrdersPage.test.tsx b/tests/OrdersPage.test.tsx
+new file mode 100644
+index 0000000..a0d9641
+--- /dev/null
++++ b/tests/OrdersPage.test.tsx
+@@ -0,0 +1,79 @@
++import { render, screen } from '@testing-library/react';
++import userEvent from '@testing-library/user-event';
++import { afterEach, describe, expect, it, vi } from 'vitest';
++import { App } from '../src/App';
++import { fakeApi, json, orderSummary } from './support/fakeApi';
++
++const first = '0198f1a2-0000-7000-8000-000000000001';
++
++describe('orders page', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals();
++  });
++
++  it('lists the orders newest first and pages through them', async () => {
++    const calls = fakeApi({
++      '/api/orders?page=1': () =>
++        json(200, {
++          items: [orderSummary(first, 'Halden Bikes ApS')],
++          page: 1,
++          pageSize: 25,
++          totalCount: 30,
++        }),
++      '/api/orders?page=2': () =>
++        json(200, {
++          items: [orderSummary(first, 'Fjord Kaffe')],
++          page: 2,
++          pageSize: 25,
++          totalCount: 30,
++        }),
++    });
++    render(<App />);
++
++    expect(await screen.findByRole('cell', { name: 'Halden Bikes ApS' })).toBeInTheDocument();
++    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
++    await userEvent.click(screen.getByRole('button', { name: 'Older' }));
++
++    expect(await screen.findByRole('cell', { name: 'Fjord Kaffe' })).toBeInTheDocument();
++    expect(calls.map((call) => call.url)).toEqual([
++      '/api/orders?page=1&pageSize=25',
++      '/api/orders?page=2&pageSize=25',
++    ]);
++  });
++
++  it('opens an order from its row', async () => {
++    fakeApi({
++      '/api/orders?page=1': () =>
++        json(200, {
++          items: [orderSummary(first, 'Halden Bikes ApS')],
++          page: 1,
++          pageSize: 25,
++          totalCount: 1,
++        }),
++    });
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('cell', { name: 'Halden Bikes ApS' }));
++
++    expect(window.location.pathname).toBe(`/orders/${first}`);
++  });
++
++  it('tells the operator when the session has ended', async () => {
++    fakeApi({ '/api/orders': () => json(401, { title: 'Unauthorized', status: 401 }) });
++    render(<App />);
++
++    expect(await screen.findByRole('alert')).toHaveTextContent('Your session has ended');
++  });
++
++  it('shows the gateway problem otherwise', async () => {
++    fakeApi({
++      '/api/orders': () =>
++        json(502, { title: 'Bad Gateway', detail: 'The orders service did not answer.' }),
++    });
++    render(<App />);
++
++    expect(await screen.findByRole('alert')).toHaveTextContent(
++      'The orders service did not answer.',
++    );
++  });
++});
+diff --git a/tests/support/fakeApi.ts b/tests/support/fakeApi.ts
+new file mode 100644
+index 0000000..62f52d8
+--- /dev/null
++++ b/tests/support/fakeApi.ts
+@@ -0,0 +1,67 @@
++import { vi } from 'vitest';
++
++export interface FakeCall {
++  readonly url: string;
++  readonly method: string;
++  readonly body: unknown;
++  readonly headers: Record<string, string>;
++}
++
++/** Replaces fetch with answers by path; records every call. */
++export function fakeApi(routes: Record<string, () => Response>) {
++  const calls: FakeCall[] = [];
++  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
++    const url = input instanceof Request ? input.url : input.toString();
++    calls.push({
++      url,
++      method: init?.method ?? 'GET',
++      body: typeof init?.body === 'string' ? (JSON.parse(init.body) as unknown) : undefined,
++      headers: Object.fromEntries(new Headers(init?.headers).entries()),
++    });
++    const key = Object.keys(routes).find((route) => url.startsWith(route));
++    const answer = key ? routes[key] : undefined;
++    return Promise.resolve(answer ? answer() : json(404, { title: 'Not Found', status: 404 }));
++  });
++  vi.stubGlobal('fetch', fetchMock);
++  return calls;
++}
++
++export function json(status: number, body: unknown): Response {
++  return new Response(JSON.stringify(body), {
++    status,
++    headers: { 'content-type': 'application/json' },
++  });
++}
++
++export const orderSummary = (id: string, name: string) => ({
++  orderId: id,
++  customerAccountId: 'QB-104233',
++  serviceLevel: 'standard',
++  status: 'Placed',
++  consigneeName: name,
++  destinationCity: 'Aarhus C',
++  parcelCount: 2,
++  placedAt: '2026-08-03T07:30:00Z',
++});
++
++export const order = (id: string) => ({
++  id,
++  customerAccountId: 'QB-104233',
++  serviceLevel: 'express',
++  status: 'placed',
++  consignee: {
++    name: 'Halden Bikes ApS',
++    line1: 'Søndergade 12',
++    line2: null,
++    postalCode: '8000',
++    city: 'Aarhus C',
++    countryCode: 'DK',
++  },
++  parcels: [
++    { number: 1, weightGrams: 2400 },
++    { number: 2, weightGrams: 1100 },
++  ],
++  totalWeightGrams: 3500,
++  placedBy: 'operator-17',
++  placedAt: '2026-08-03T07:30:00Z',
++});

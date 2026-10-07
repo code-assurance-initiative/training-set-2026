@@ -1,0 +1,73 @@
+@page "/rooms"
+@inject IRoomCatalog Catalog
+
+<PageTitle>Rooms · Harbour Lane Community Centre</PageTitle>
+
+<h1>Rooms</h1>
+
+<div class="room-filters">
+    <div class="form-row">
+        <label class="visually-hidden" for="room-search">Search rooms by name or floor</label>
+        <input id="room-search" type="search" placeholder="Search rooms" @bind="_text" @bind:event="oninput" @bind:after="Apply" />
+    </div>
+    <div class="form-row">
+        <label for="min-capacity">Number of people</label>
+        <select id="min-capacity" @bind="_minimumCapacity" @bind:after="Apply">
+            <option value="0">Any number</option>
+            <option value="10">10 or more</option>
+            <option value="20">20 or more</option>
+            <option value="50">50 or more</option>
+        </select>
+    </div>
+    <AmenityChips Selected="_amenities" SelectedChanged="OnAmenitiesChanged" />
+</div>
+
+<h2>Available rooms</h2>
+@if (_matches is null)
+{
+    <LoadingSkeleton Lines="4" Label="Loading rooms" />
+}
+else
+{
+    <p role="status">@_matches.Count @(_matches.Count == 1 ? "room matches" : "rooms match")</p>
+    <div class="room-list">
+        @foreach (var room in _matches.Take(_shown))
+        {
+            <RoomCard Room="room" @key="room.Id" />
+        }
+    </div>
+    @if (_matches.Count > _shown)
+    {
+        <button type="button" class="link-button" @onclick="ShowMore">Show more rooms</button>
+    }
+}
+
+@code {
+    private const int PageSize = 6;
+    private IReadOnlyList<Room> _all = [];
+    private IReadOnlyList<Room>? _matches;
+    private IReadOnlySet<Amenity> _amenities = new HashSet<Amenity>();
+    private string? _text;
+    private int _minimumCapacity;
+    private int _shown = PageSize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _all = await Catalog.GetAllAsync(CancellationToken.None);
+        Apply();
+    }
+
+    private void Apply()
+    {
+        _matches = new RoomFilter(_text, _amenities, _minimumCapacity).Apply(_all);
+        _shown = PageSize;
+    }
+
+    private void OnAmenitiesChanged(IReadOnlySet<Amenity> amenities)
+    {
+        _amenities = amenities;
+        Apply();
+    }
+
+    private void ShowMore() => _shown += PageSize;
+}

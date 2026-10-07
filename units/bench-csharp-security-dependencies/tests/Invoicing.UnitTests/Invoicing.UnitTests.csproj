@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Invoicing.UnitTests</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Invoicing.Api\Invoicing.Api.csproj" />
+    <ProjectReference Include="..\..\src\Invoicing.Contracts\Invoicing.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Invoicing.Rendering\Invoicing.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\Invoicing.Worker\Invoicing.Worker.csproj" />
+    <ProjectReference Include="..\..\tools\Invoicing.ArchiveExporter\Invoicing.ArchiveExporter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="SharpCompress" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

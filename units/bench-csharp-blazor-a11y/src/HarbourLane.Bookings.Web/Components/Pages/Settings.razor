@@ -1,0 +1,91 @@
+@page "/settings"
+@attribute [Authorize(Policy = AuthorizationPolicies.Member)]
+@using HarbourLane.Bookings.Preferences
+@using HarbourLane.Bookings.Web.Security
+@inject IUserPreferencesStore Preferences
+
+<PageTitle>Settings · Harbour Lane Community Centre</PageTitle>
+
+<h1>Settings</h1>
+
+<form class="settings" @onsubmit="SaveAsync">
+    <section aria-labelledby="reminders-title">
+        <h3 id="reminders-title">Reminders</h3>
+        <div class="setting">
+            <span id="email-reminders-label">E-mail reminders</span>
+            <span class="@SwitchClass"
+                  role="switch"
+                  aria-labelledby="email-reminders-label"
+                  tabindex="0"
+                  @onclick="ToggleReminders"
+                  @onkeydown="OnSwitchKeyDown"></span>
+        </div>
+        <div class="form-row">
+            <label for="reminder-hours">Send the reminder</label>
+            <select id="reminder-hours" @bind="_reminderHours" disabled="@(!_emailReminders)">
+                @foreach (var hours in UserPreferences.ReminderChoices)
+                {
+                    <option value="@hours">@hours hours before the booking</option>
+                }
+            </select>
+        </div>
+    </section>
+
+    <section aria-labelledby="display-title">
+        <h3 id="display-title">Display</h3>
+        <div class="form-row form-row--inline">
+            <input id="compact-calendar" type="checkbox" @bind="_compactCalendar" />
+            <label for="compact-calendar">Show the calendar in compact rows</label>
+        </div>
+    </section>
+
+    <button type="submit" class="button">Save settings</button>
+    <SavedIndicator Visible="_saved" />
+</form>
+
+@code {
+    private string _userId = string.Empty;
+    private bool _emailReminders;
+    private int _reminderHours;
+    private bool _compactCalendar;
+    private bool _saved;
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? Authentication { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Authentication is not null)
+        {
+            _userId = UserIdentity.Subject((await Authentication).User) ?? string.Empty;
+        }
+
+        var current = await Preferences.GetAsync(_userId, CancellationToken.None);
+        _emailReminders = current.EmailReminders;
+        _reminderHours = current.ReminderHoursBefore;
+        _compactCalendar = current.CompactCalendar;
+    }
+
+    private string SwitchClass => _emailReminders ? "switch switch--on" : "switch";
+
+    private void ToggleReminders()
+    {
+        _emailReminders = !_emailReminders;
+        _saved = false;
+    }
+
+    private void OnSwitchKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is " " or "Enter")
+        {
+            ToggleReminders();
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        var preferences = new UserPreferences(_emailReminders, _reminderHours, _compactCalendar);
+        await Preferences.SaveAsync(_userId, preferences, CancellationToken.None);
+        _saved = true;
+    }
+}

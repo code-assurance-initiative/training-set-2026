@@ -1,0 +1,33 @@
+{
+  "name": "@parcel-tracking/client",
+  "version": "2.3.0",
+  "description": "Typed client for the parcel-tracking merchant API.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/code-assurance-initiative/bench-ts-readiness.git",
+    "directory": "packages/tracking-client"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

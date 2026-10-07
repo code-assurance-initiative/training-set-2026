@@ -1,0 +1,120 @@
+From b94760d8d8ee60c742b44b5fdc98fbead7d9786e Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 4 Feb 2026 14:50:27 +0100
+Subject: feat(policy): cancellation policy with late-cancellation fees
+
+---
+ .../Policies/CancellationDecision.cs          |  7 ++++
+ .../Policies/CancellationPolicy.cs            | 25 ++++++++++++
+ .../Policies/CancellationPolicyOptions.cs     |  9 +++++
+ .../Policies/CancellationPolicyTests.cs       | 39 +++++++++++++++++++
+ 4 files changed, 80 insertions(+)
+ create mode 100644 src/ClinicScheduling.Domain/Policies/CancellationDecision.cs
+ create mode 100644 src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+ create mode 100644 src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationDecision.cs b/src/ClinicScheduling.Domain/Policies/CancellationDecision.cs
+new file mode 100644
+index 0000000..7de6b9a
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Policies/CancellationDecision.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Domain.Policies;
++
++/// <summary>What cancelling (or missing) an appointment costs the patient, and whether it counts against them.</summary>
++public sealed record CancellationDecision(decimal Fee, bool CountsAsStrike, string Code)
++{
++    public static CancellationDecision Free(string code) => new(0m, false, code);
++}
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+new file mode 100644
+index 0000000..00dc658
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -0,0 +1,25 @@
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Domain.Policies;
++
++/// <summary>The clinic's cancellation rules: who pays a fee for cancelling, and how much.</summary>
++public sealed class CancellationPolicy(CancellationPolicyOptions options)
++{
++    /// <summary>The consequence of cancelling <paramref name="appointment"/> at <paramref name="at"/>.</summary>
++    public CancellationDecision EvaluateCancellation(Appointment appointment, CancellationReason reason, DateTimeOffset at)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++
++        if (reason == CancellationReason.PractitionerUnavailable)
++        {
++            return CancellationDecision.Free("clinic-initiated");
++        }
++
++        if (at <= appointment.Time.Start - options.FreeCancellationWindow)
++        {
++            return CancellationDecision.Free("free");
++        }
++
++        return new CancellationDecision(options.LateCancellationFee, true, "late");
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+new file mode 100644
+index 0000000..f0a72cf
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+@@ -0,0 +1,9 @@
++namespace ClinicScheduling.Domain.Policies;
++
++public sealed record CancellationPolicyOptions
++{
++    /// <summary>A patient may cancel free of charge up to this long before the appointment starts.</summary>
++    public TimeSpan FreeCancellationWindow { get; init; } = TimeSpan.FromHours(24);
++
++    public decimal LateCancellationFee { get; init; } = 250m;
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+new file mode 100644
+index 0000000..ca99277
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -0,0 +1,39 @@
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Policies;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Policies;
++
++public sealed class CancellationPolicyTests
++{
++    private static readonly DateTimeOffset Start = At(Monday.AddDays(3), 10);
++    private readonly CancellationPolicy _policy = new(new CancellationPolicyOptions());
++
++    private static Appointment Booked() =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)));
++
++    [Fact]
++    public void CancellingInGoodTimeIsFree()
++    {
++        var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PatientRequest, Start.AddHours(-25));
++
++        Assert.Equal(CancellationDecision.Free("free"), decision);
++    }
++
++    [Fact]
++    public void LateCancellationCostsAFeeAndAStrike()
++    {
++        var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PatientRequest, Start.AddHours(-3));
++
++        Assert.Equal(new CancellationDecision(250m, true, "late"), decision);
++    }
++
++    [Fact]
++    public void ClinicInitiatedCancellationsNeverCostThePatient()
++    {
++        var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PractitionerUnavailable, Start.AddMinutes(-5));
++
++        Assert.Equal(CancellationDecision.Free("clinic-initiated"), decision);
++    }
++}

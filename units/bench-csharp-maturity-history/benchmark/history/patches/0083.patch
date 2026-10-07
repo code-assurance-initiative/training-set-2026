@@ -1,0 +1,116 @@
+From 571224dfbea9019ce474eea1b5eadd4aeb723cd6 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 22 Jun 2026 14:05:18 +0200
+Subject: feat(portal): feed times in the patient's time zone
+
+---
+ .../Endpoints/PatientEndpoints.cs                     |  5 +++--
+ .../PatientPortal/PortalAppointmentFeed.cs            | 11 ++++++-----
+ .../ClinicScheduling.IntegrationTests/PortalTests.cs  |  2 +-
+ .../PatientPortal/PortalAppointmentFeedTests.cs       |  9 +++++----
+ 4 files changed, 15 insertions(+), 12 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+index eb83c5f..43d3138 100644
+--- a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+@@ -20,10 +20,11 @@ public static class PatientEndpoints
+     }
+ 
+     private static async Task<IResult> FeedAsync(
+-        Guid patientId, IAppointmentRepository appointments, CancellationToken cancellationToken)
++        Guid patientId, string? timeZone, IAppointmentRepository appointments, CancellationToken cancellationToken)
+     {
++        var zone = timeZone is not null && TimeZoneInfo.TryFindSystemTimeZoneById(timeZone, out var found) ? found : TimeZoneInfo.Utc;
+         var mine = await appointments.ForPatientAsync(patientId, cancellationToken).ConfigureAwait(false);
+-        return Results.Text(PortalAppointmentFeed.Serialize(patientId, mine), "application/json");
++        return Results.Text(PortalAppointmentFeed.Serialize(patientId, mine, zone), "application/json");
+     }
+ 
+     private static async Task<IResult> CalendarAsync(
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index 86822ef..dbdb276 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -11,9 +11,10 @@ namespace ClinicScheduling.Infrastructure.PatientPortal;
+ /// </summary>
+ public static class PortalAppointmentFeed
+ {
+-    public static string Serialize(Guid patientId, IEnumerable<Appointment> appointments)
++    public static string Serialize(Guid patientId, IEnumerable<Appointment> appointments, TimeZoneInfo zone)
+     {
+         ArgumentNullException.ThrowIfNull(appointments);
++        ArgumentNullException.ThrowIfNull(zone);
+ 
+         using var buffer = new MemoryStream();
+         using (var json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = false }))
+@@ -26,8 +27,8 @@ public static class PortalAppointmentFeed
+                 json.WriteStartObject();
+                 json.WriteString("id", a.Id);
+                 json.WriteString("practitionerId", a.PractitionerId);
+-                json.WriteString("startsAt", Timestamp(a.Time.Start));
+-                json.WriteString("endsAt", Timestamp(a.Time.End));
++                json.WriteString("startsAt", Local(a.Time.Start, zone));
++                json.WriteString("endsAt", Local(a.Time.End, zone));
+                 json.WriteString("status", Status(a.Status));
+                 json.WriteBoolean("isTelehealth", a.IsTelehealth);
+                 if (a.SeriesId is { } series)
+@@ -51,8 +52,8 @@ public static class PortalAppointmentFeed
+         return Encoding.UTF8.GetString(buffer.ToArray());
+     }
+ 
+-    private static string Timestamp(DateTimeOffset instant) =>
+-        instant.ToString("O", CultureInfo.InvariantCulture);
++    private static string Local(DateTimeOffset instant, TimeZoneInfo zone) =>
++        TimeZoneInfo.ConvertTime(instant, zone).ToString("O", CultureInfo.InvariantCulture);
+ 
+     private static string Status(AppointmentStatus status) => status switch
+     {
+diff --git a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+index 33e11eb..13b6580 100644
+--- a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+@@ -14,7 +14,7 @@ public sealed class PortalTests(SchedulingApiFactory factory) : IClassFixture<Sc
+         using var booked = await client.BookAsync(patient, new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(1)));
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+ 
+-        using var feed = JsonDocument.Parse(await client.GetStringAsync($"api/patients/{patient}/feed", ApiClient.Token));
++        using var feed = JsonDocument.Parse(await client.GetStringAsync($"api/patients/{patient}/feed?timeZone=Europe/Copenhagen", ApiClient.Token));
+         var ics = await client.GetStringAsync($"api/patients/{patient}/calendar.ics", ApiClient.Token);
+ 
+         Assert.Equal("2026-03-12T10:00:00.0000000+01:00", feed.RootElement.GetProperty("appointments")[0].GetProperty("startsAt").GetString());
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+index 7a1deb6..dfba81e 100644
+--- a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -11,18 +11,19 @@ public sealed class PortalAppointmentFeedTests
+     private static readonly Guid PatientId = Guid.Parse("0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60");
+ 
+     [Fact]
+-    public void WritesEveryAppointmentNewestFirst()
++    public void WritesEveryAppointmentNewestFirstInTheGivenZone()
+     {
+         var early = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 9, 45)), false);
+         var late = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(7), 9), At(Monday.AddDays(7), 10)), true);
+         late.Cancel(CancellationReason.PatientIllness, At(Monday.AddDays(6), 18));
++        var zone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Copenhagen");
+ 
+-        using var feed = JsonDocument.Parse(PortalAppointmentFeed.Serialize(PatientId, [early, late]));
++        using var feed = JsonDocument.Parse(PortalAppointmentFeed.Serialize(PatientId, [early, late], zone));
+ 
+         var items = feed.RootElement.GetProperty("appointments").EnumerateArray().ToList();
+         Assert.Equal(PatientId, feed.RootElement.GetProperty("patientId").GetGuid());
+         Assert.Equal(late.Id, items[0].GetProperty("id").GetGuid());
+-        Assert.Equal("2026-03-09T09:00:00.0000000+00:00", items[0].GetProperty("startsAt").GetString());
++        Assert.Equal("2026-03-09T10:00:00.0000000+01:00", items[0].GetProperty("startsAt").GetString());
+         Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
+         Assert.Equal("patient-illness", items[0].GetProperty("cancellationReason").GetString());
+         Assert.True(items[0].GetProperty("isTelehealth").GetBoolean());
+@@ -35,6 +36,6 @@ public sealed class PortalAppointmentFeedTests
+     {
+         Assert.Equal(
+             $"{{\"patientId\":\"{PatientId}\",\"appointments\":[]}}",
+-            PortalAppointmentFeed.Serialize(PatientId, []));
++            PortalAppointmentFeed.Serialize(PatientId, [], TimeZoneInfo.Utc));
+     }
+ }

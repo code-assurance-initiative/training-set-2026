@@ -1,0 +1,454 @@
+From c930a09a4f4ea6c375777561a8cf767cd46b50dd Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 6 Apr 2026 14:15:04 +0200
+Subject: feat: video (telehealth) appointments and slots
+
+---
+ .../Contracts/BookAppointmentRequest.cs                  | 2 +-
+ src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs    | 1 +
+ src/ClinicScheduling.Api/Contracts/SlotResponse.cs       | 4 ++--
+ .../Endpoints/AppointmentEndpoints.cs                    | 2 +-
+ .../Endpoints/AvailabilityEndpoints.cs                   | 3 ++-
+ src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs   | 4 ++--
+ src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs  | 1 +
+ .../Booking/BookAppointment.cs                           | 6 +++---
+ .../Booking/RescheduleAppointment.cs                     | 2 +-
+ .../Series/BookTreatmentSeries.cs                        | 2 +-
+ src/ClinicScheduling.Domain/Appointments/Appointment.cs  | 9 +++++++--
+ .../Availability/PractitionerSchedule.cs                 | 4 ++++
+ src/ClinicScheduling.Domain/Availability/Slot.cs         | 2 +-
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs   | 7 ++++++-
+ src/ClinicScheduling.Domain/Availability/SlotQuery.cs    | 4 ++--
+ .../Appointments/AppointmentTests.cs                     | 2 +-
+ .../Availability/SlotFinderTests.cs                      | 9 ++++++---
+ .../Booking/BookingHandlersTests.cs                      | 2 +-
+ .../Notifications/ReminderComposerTests.cs               | 6 +++---
+ .../Policies/CancellationPolicyTests.cs                  | 2 +-
+ .../Reminders/ReminderPlannerTests.cs                    | 2 +-
+ tests/ClinicScheduling.UnitTests/TestData.cs             | 2 ++
+ .../Waitlist/WaitlistBackfillTests.cs                    | 2 +-
+ 23 files changed, 51 insertions(+), 29 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs b/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
+index a70e969..fc23cc3 100644
+--- a/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
+@@ -1,7 +1,7 @@
+ namespace ClinicScheduling.Api.Contracts;
+ 
+ public sealed record BookAppointmentRequest(
+-    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, int DurationMinutes)
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, int DurationMinutes, bool Telehealth)
+ {
+     public RequestErrors Validate() =>
+         new RequestErrors()
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+index ef125ed..cf3e9bd 100644
+--- a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -8,6 +8,7 @@ public sealed record ScheduleRequest(
+     string? TimeZone,
+     IReadOnlyList<WeeklyHoursRequest>? Hours,
+     IReadOnlyList<string>? Skills,
++    bool OffersTelehealth,
+     int MaxAppointmentsPerDay)
+ {
+     public TimeZoneInfo? Zone => TimeZone is not null && TimeZoneInfo.TryFindSystemTimeZoneById(TimeZone, out var zone) ? zone : null;
+diff --git a/src/ClinicScheduling.Api/Contracts/SlotResponse.cs b/src/ClinicScheduling.Api/Contracts/SlotResponse.cs
+index 8362634..1fb2c82 100644
+--- a/src/ClinicScheduling.Api/Contracts/SlotResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/SlotResponse.cs
+@@ -2,11 +2,11 @@ using ClinicScheduling.Domain.Availability;
+ 
+ namespace ClinicScheduling.Api.Contracts;
+ 
+-public sealed record SlotResponse(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End)
++public sealed record SlotResponse(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth)
+ {
+     public static SlotResponse From(Slot slot)
+     {
+         ArgumentNullException.ThrowIfNull(slot);
+-        return new SlotResponse(slot.PractitionerId, slot.Start, slot.End);
++        return new SlotResponse(slot.PractitionerId, slot.Start, slot.End, slot.IsTelehealth);
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index 80d92f7..126cd4b 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -29,7 +29,7 @@ public static class AppointmentEndpoints
+         }
+ 
+         var command = new BookAppointmentCommand(
+-            request.PatientId, request.PractitionerId, request.ClinicId, request.Start, TimeSpan.FromMinutes(request.DurationMinutes));
++            request.PatientId, request.PractitionerId, request.ClinicId, request.Start, TimeSpan.FromMinutes(request.DurationMinutes), request.Telehealth);
+         var result = await handler.HandleAsync(command, cancellationToken).ConfigureAwait(false);
+         return result is { Status: OperationStatus.Ok, Value: { } appointment }
+             ? Results.CreatedAtRoute("GetAppointment", new { id = appointment.Id }, AppointmentResponse.From(appointment))
+diff --git a/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+index e816ca3..2c302e3 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+@@ -22,6 +22,7 @@ public static class AvailabilityEndpoints
+         DateOnly to,
+         int durationMinutes,
+         string? skill,
++        bool? telehealth,
+         FindSlotsHandler handler,
+         CancellationToken cancellationToken)
+     {
+@@ -33,7 +34,7 @@ public static class AvailabilityEndpoints
+             return Results.ValidationProblem(errors.ToDictionary());
+         }
+ 
+-        var query = new SlotQuery(from, to, TimeSpan.FromMinutes(durationMinutes), skill);
++        var query = new SlotQuery(from, to, TimeSpan.FromMinutes(durationMinutes), skill, telehealth ?? false);
+         var result = await handler.HandleAsync(practitionerId, query, cancellationToken).ConfigureAwait(false);
+         return result is { Status: OperationStatus.Ok, Value: { } slots }
+             ? Results.Ok(slots.Select(SlotResponse.From).ToList())
+diff --git a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+index 6bdeb65..370c33f 100644
+--- a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+@@ -29,8 +29,8 @@ public static class PatientEndpoints
+                 $"{a.Id}@clinic-scheduling",
+                 a.Time.Start,
+                 a.Time.End,
+-                "Physiotherapy appointment",
+-                "Clinic",
++                a.IsTelehealth ? "Video physiotherapy appointment" : "Physiotherapy appointment",
++                a.IsTelehealth ? null : "Clinic",
+                 stamp));
+         return Results.Text(IcsCalendarWriter.Write(events), "text/calendar");
+     }
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+index a792706..07b7528 100644
+--- a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -30,6 +30,7 @@ public static class ScheduleEndpoints
+             zone,
+             hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)),
+             request.Skills ?? [],
++            request.OffersTelehealth,
+             request.MaxAppointmentsPerDay);
+         await schedules.UpsertAsync(schedule, cancellationToken).ConfigureAwait(false);
+         return Results.NoContent();
+diff --git a/src/ClinicScheduling.Application/Booking/BookAppointment.cs b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+index 238a878..315b7c3 100644
+--- a/src/ClinicScheduling.Application/Booking/BookAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
+ namespace ClinicScheduling.Application.Booking;
+ 
+ public sealed record BookAppointmentCommand(
+-    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, TimeSpan Duration);
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, TimeSpan Duration, bool Telehealth);
+ 
+ public sealed partial class BookAppointmentHandler(
+     IScheduleRepository schedules,
+@@ -40,7 +40,7 @@ public sealed partial class BookAppointmentHandler(
+ 
+         var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.Start, schedule.TimeZone).DateTime);
+         var booked = await BookedRangesAsync(schedule, day, cancellationToken).ConfigureAwait(false);
+-        var open = slotFinder.FindOpenSlots(schedule, booked, new SlotQuery(day, day, command.Duration), searchOptions);
++        var open = slotFinder.FindOpenSlots(schedule, booked, new SlotQuery(day, day, command.Duration, Telehealth: command.Telehealth), searchOptions);
+         if (!open.Any(s => s.Start == command.Start))
+         {
+             return Operation.Conflict<Appointment>("The requested time is not an open slot.");
+@@ -48,7 +48,7 @@ public sealed partial class BookAppointmentHandler(
+ 
+         var appointment = Appointment.Book(
+             command.PatientId, command.PractitionerId, command.ClinicId,
+-            new TimeRange(command.Start, command.Start + command.Duration));
++            new TimeRange(command.Start, command.Start + command.Duration), command.Telehealth);
+         await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
+         await reminders.ScheduleAsync(planner.Plan(appointment, schedule.TimeZone), cancellationToken).ConfigureAwait(false);
+         LogBooked(appointment.Id, appointment.PractitionerId, appointment.Time.Start);
+diff --git a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+index 1346d4e..5596d5c 100644
+--- a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+@@ -39,7 +39,7 @@ public sealed class RescheduleAppointmentHandler(
+         var from = command.NewStart.AddDays(-1);
+         var others = await appointments.BookedForPractitionerAsync(schedule.PractitionerId, from, from.AddDays(3), cancellationToken).ConfigureAwait(false);
+         var booked = others.Where(a => a.Id != appointment.Id).Select(a => a.Time).ToList();
+-        var query = new SlotQuery(day, day, appointment.Time.Duration);
++        var query = new SlotQuery(day, day, appointment.Time.Duration, Telehealth: appointment.IsTelehealth);
+         if (!slotFinder.FindOpenSlots(schedule, booked, query, searchOptions).Any(s => s.Start == command.NewStart))
+         {
+             return Operation.Conflict<Appointment>("The requested time is not an open slot.");
+diff --git a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+index 70d999d..8a463d1 100644
+--- a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
++++ b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+@@ -38,7 +38,7 @@ public sealed class BookTreatmentSeriesHandler(
+         var created = new List<Appointment>(sessions.Count);
+         foreach (var session in sessions)
+         {
+-            var appointment = Appointment.Book(command.PatientId, command.PractitionerId, command.ClinicId, session, seriesId);
++            var appointment = Appointment.Book(command.PatientId, command.PractitionerId, command.ClinicId, session, isTelehealth: false, seriesId);
+             await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
+             await reminders.ScheduleAsync(planner.Plan(appointment, schedule.TimeZone), cancellationToken).ConfigureAwait(false);
+             created.Add(appointment);
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 3a6b887..79dfbc2 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -2,7 +2,7 @@ using ClinicScheduling.Domain.Availability;
+ 
+ namespace ClinicScheduling.Domain.Appointments;
+ 
+-/// <summary>One booked visit of a patient with a practitioner.</summary>
++/// <summary>One booked visit of a patient with a practitioner, in a clinic or by video.</summary>
+ public sealed class Appointment
+ {
+     private Appointment(
+@@ -11,6 +11,7 @@ public sealed class Appointment
+         Guid practitionerId,
+         Guid clinicId,
+         TimeRange time,
++        bool isTelehealth,
+         Guid? seriesId)
+     {
+         Id = id;
+@@ -18,6 +19,7 @@ public sealed class Appointment
+         PractitionerId = practitionerId;
+         ClinicId = clinicId;
+         Time = time;
++        IsTelehealth = isTelehealth;
+         SeriesId = seriesId;
+         Status = AppointmentStatus.Booked;
+     }
+@@ -32,6 +34,8 @@ public sealed class Appointment
+ 
+     public TimeRange Time { get; private set; }
+ 
++    public bool IsTelehealth { get; }
++
+     /// <summary>The treatment series this appointment belongs to, if it was booked as part of one.</summary>
+     public Guid? SeriesId { get; }
+ 
+@@ -46,8 +50,9 @@ public sealed class Appointment
+         Guid practitionerId,
+         Guid clinicId,
+         TimeRange time,
++        bool isTelehealth,
+         Guid? seriesId = null) =>
+-        new(Guid.NewGuid(), patientId, practitionerId, clinicId, time, seriesId);
++        new(Guid.NewGuid(), patientId, practitionerId, clinicId, time, isTelehealth, seriesId);
+ 
+     public void Cancel(CancellationReason reason, DateTimeOffset at)
+     {
+diff --git a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+index f915764..7589b57 100644
+--- a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
++++ b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+@@ -12,6 +12,7 @@ public sealed class PractitionerSchedule
+         TimeZoneInfo timeZone,
+         IEnumerable<WeeklyHours> hours,
+         IEnumerable<string> skills,
++        bool offersTelehealth,
+         int maxAppointmentsPerDay)
+     {
+         ArgumentException.ThrowIfNullOrWhiteSpace(countryCode);
+@@ -23,6 +24,7 @@ public sealed class PractitionerSchedule
+         TimeZone = timeZone;
+         _hours = [.. hours.OrderBy(h => h.Day).ThenBy(h => h.Opens)];
+         _skills = new HashSet<string>(skills, StringComparer.OrdinalIgnoreCase);
++        OffersTelehealth = offersTelehealth;
+         MaxAppointmentsPerDay = maxAppointmentsPerDay;
+     }
+ 
+@@ -32,6 +34,8 @@ public sealed class PractitionerSchedule
+ 
+     public TimeZoneInfo TimeZone { get; }
+ 
++    public bool OffersTelehealth { get; }
++
+     public int MaxAppointmentsPerDay { get; }
+ 
+     public IReadOnlyCollection<string> Skills => _skills;
+diff --git a/src/ClinicScheduling.Domain/Availability/Slot.cs b/src/ClinicScheduling.Domain/Availability/Slot.cs
+index 49b988a..53910d5 100644
+--- a/src/ClinicScheduling.Domain/Availability/Slot.cs
++++ b/src/ClinicScheduling.Domain/Availability/Slot.cs
+@@ -1,3 +1,3 @@
+ namespace ClinicScheduling.Domain.Availability;
+ 
+-public sealed record Slot(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End);
++public sealed record Slot(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 96abd84..5041b14 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -25,6 +25,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+             return [];
+         }
+ 
++        if (query.Telehealth && !schedule.OffersTelehealth)
++        {
++            return [];
++        }
++
+         if (query.RequiredSkill is not null && !schedule.HasSkill(query.RequiredSkill))
+         {
+             return [];
+@@ -85,7 +90,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                         continue;
+                     }
+ 
+-                    slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End));
++                    slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End, query.Telehealth));
+                     cursor += options.Granularity;
+                 }
+             }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotQuery.cs b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+index 3fae54d..9a04b13 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+@@ -1,4 +1,4 @@
+ namespace ClinicScheduling.Domain.Availability;
+ 
+-/// <summary>What a patient is looking for: a duration within a date range, optionally a skill.</summary>
+-public sealed record SlotQuery(DateOnly From, DateOnly To, TimeSpan Duration, string? RequiredSkill = null);
++/// <summary>What a patient is looking for: a duration within a date range, optionally a skill or a video visit.</summary>
++public sealed record SlotQuery(DateOnly From, DateOnly To, TimeSpan Duration, string? RequiredSkill = null, bool Telehealth = false);
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+index f50c1e2..ed6af7c 100644
+--- a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -7,7 +7,7 @@ namespace ClinicScheduling.UnitTests.Appointments;
+ public sealed class AppointmentTests
+ {
+     private static Appointment Booked() =>
+-        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 10)));
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 10)), false);
+ 
+     [Fact]
+     public void ABookedAppointmentCanBeCancelledOnce()
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index f5b9b6e..285a05b 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -10,8 +10,8 @@ public sealed class SlotFinderTests
+ 
+     private SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays), _clock);
+ 
+-    private static SlotQuery Tuesday(TimeSpan? duration = null, string? skill = null) =>
+-        new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour, skill);
++    private static SlotQuery Tuesday(TimeSpan? duration = null, string? skill = null, bool telehealth = false) =>
++        new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour, skill, telehealth);
+ 
+     [Fact]
+     public void OffersSlotsOnTheGranularity()
+@@ -79,10 +79,13 @@ public sealed class SlotFinderTests
+     }
+ 
+     [Fact]
+-    public void MatchesSkills()
++    public void MatchesSkillsAndTelehealth()
+     {
++        var noVideo = Schedule(telehealth: false);
++
+         Assert.Empty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "pelvic-floor"), new SlotSearchOptions()));
+         Assert.NotEmpty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "SPORTS"), new SlotSearchOptions()));
++        Assert.Empty(Finder().FindOpenSlots(noVideo, [], Tuesday(telehealth: true), new SlotSearchOptions()));
+     }
+ 
+     [Fact]
+diff --git a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+index fe8a54a..da8f062 100644
+--- a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+@@ -30,7 +30,7 @@ public sealed class BookingHandlersTests
+         new(_appointments, _strikes, _outbox, _policy, _clock, NullLogger<CancelAppointmentHandler>.Instance);
+ 
+     private static BookAppointmentCommand Command(Guid patientId, DateTimeOffset start) =>
+-        new(patientId, PractitionerId, Guid.NewGuid(), start, TimeSpan.FromMinutes(30));
++        new(patientId, PractitionerId, Guid.NewGuid(), start, TimeSpan.FromMinutes(30), false);
+ 
+     [Fact]
+     public async Task BooksAnOpenSlotAndPlansItsReminders()
+diff --git a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+index 005c8cc..6767a9d 100644
+--- a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+@@ -10,8 +10,8 @@ public sealed class ReminderComposerTests
+ {
+     private static readonly DateTimeOffset Start = At(Monday.AddDays(3), 9);
+ 
+-    private static Appointment Booked() =>
+-        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)));
++    private static Appointment Booked(bool telehealth = false) =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)), telehealth);
+ 
+     private static PlannedReminder Reminder(Appointment appointment, ReminderKind kind) =>
+         new(Guid.NewGuid(), appointment.Id, appointment.PatientId, Start.AddHours(-2), kind);
+@@ -31,7 +31,7 @@ public sealed class ReminderComposerTests
+     public void FallsBackToEnglish()
+     {
+         var appointment = Booked();
+-        var swedish = new PractitionerSchedule(PractitionerId, "SE", TimeZoneInfo.Utc, Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)), [], 8);
++        var swedish = new PractitionerSchedule(PractitionerId, "SE", TimeZoneInfo.Utc, Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)), [], false, 8);
+ 
+         var text = ReminderComposer.Compose(Reminder(appointment, ReminderKind.SameDay), appointment, swedish, "Ida", "+46 8 00 00 00");
+ 
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 27e8e23..6ea0c0d 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -11,7 +11,7 @@ public sealed class CancellationPolicyTests
+     private readonly CancellationPolicy _policy = new(new CancellationPolicyOptions());
+ 
+     private static Appointment Booked() =>
+-        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)));
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)), false);
+ 
+     [Fact]
+     public void CancellingInGoodTimeIsFree()
+diff --git a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+index a600eab..314e547 100644
+--- a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+@@ -11,7 +11,7 @@ public sealed class ReminderPlannerTests
+     private readonly ReminderPlanner _planner = new(Options.Create(new ReminderOptions()), new FixedClock(Now));
+ 
+     private static Appointment At(DateTimeOffset start) =>
+-        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(start, start.AddHours(1)));
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(start, start.AddHours(1)), false);
+ 
+     [Fact]
+     public void PlansADayBeforeAndASameDayReminder()
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index 6a85c2d..d82b94a 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -28,6 +28,7 @@ public static class TestData
+     public static PractitionerSchedule Schedule(
+         IEnumerable<WeeklyHours>? hours = null,
+         IEnumerable<string>? skills = null,
++        bool telehealth = true,
+         int maxPerDay = 12) =>
+         new(
+             PractitionerId,
+@@ -35,6 +36,7 @@ public static class TestData
+             TimeZoneInfo.Utc,
+             hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)),
+             skills ?? ["sports"],
++            telehealth,
+             maxPerDay);
+ 
+     public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes, TimeOnly? breakStarts = null, TimeOnly? breakEnds = null) =>
+diff --git a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+index 4b13087..05cbfe1 100644
+--- a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+@@ -11,7 +11,7 @@ public sealed class WaitlistBackfillTests
+ 
+     private static Appointment Cancelled(int day)
+     {
+-        var appointment = Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(day), 9), At(Monday.AddDays(day), 10)));
++        var appointment = Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(day), 9), At(Monday.AddDays(day), 10)), false);
+         appointment.Cancel(CancellationReason.PatientRequest, Now);
+         return appointment;
+     }

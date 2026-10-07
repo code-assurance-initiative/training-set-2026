@@ -1,0 +1,34 @@
+From 83d2d0aa53dd78ac97ac577ad5cada493dc3442f Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Fri, 27 Feb 2026 15:00:33 +0100
+Subject: release 0.1.0
+
+---
+ CHANGELOG.md | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+ create mode 100644 CHANGELOG.md
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..785a139
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,18 @@
++# Changelog
++
++All notable changes to this project are documented in this file. The format is based on
++[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
++[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
++
++## [Unreleased]
++
++## [0.1.0] - 2026-02-27
++
++### Added
++
++- Practitioner schedules, slot search with public holidays, booking, cancellation with late-cancellation fees.
++- Treatment series from a weekly recurrence rule.
++- JWT bearer authentication with scope policies, security headers and health checks.
++
++[Unreleased]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/compare/v0.1.0...HEAD
++[0.1.0]: https://github.com/code-assurance-initiative/bench-csharp-maturity-history/releases/tag/v0.1.0

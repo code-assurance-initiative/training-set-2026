@@ -1,0 +1,88 @@
+From 67bdbdd7b410787743bd63a5c756f77fe71ce525 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Wed, 21 Jan 2026 15:10:22 +0100
+Subject: fix(availability): keep a buffer around booked appointments
+
+---
+ .../Availability/SlotFinder.cs                      | 13 +++++++++++--
+ .../Availability/SlotSearchOptions.cs               |  3 +++
+ .../Availability/TimeRange.cs                       |  3 +++
+ .../Availability/SlotFinderTests.cs                 |  6 +++---
+ 4 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 5d1bccb..95df0b3 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -37,11 +37,20 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                 while (cursor + query.Duration <= closes)
+                 {
+                     var candidate = new TimeRange(cursor, cursor + query.Duration);
+-                    if (candidate.Start >= now + options.MinimumNotice && !booked.Any(b => b.Overlaps(candidate)))
++                    if (candidate.Start < now + options.MinimumNotice)
+                     {
+-                        slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End));
++                        cursor += options.Granularity;
++                        continue;
+                     }
+ 
++                    var clash = booked.FirstOrDefault(b => b.Widen(options.BufferBetweenAppointments).Overlaps(candidate));
++                    if (clash != default)
++                    {
++                        cursor = clash.End + options.BufferBetweenAppointments;
++                        continue;
++                    }
++
++                    slots.Add(new Slot(schedule.PractitionerId, candidate.Start, candidate.End));
+                     cursor += options.Granularity;
+                 }
+             }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+index a1582e1..b23ff10 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotSearchOptions.cs
+@@ -5,6 +5,9 @@ public sealed record SlotSearchOptions
+     /// <summary>Slots start on multiples of this from the opening time.</summary>
+     public TimeSpan Granularity { get; init; } = TimeSpan.FromMinutes(15);
+ 
++    /// <summary>Kept free before and after every booked appointment.</summary>
++    public TimeSpan BufferBetweenAppointments { get; init; } = TimeSpan.FromMinutes(5);
++
+     /// <summary>The earliest a slot may start, measured from now.</summary>
+     public TimeSpan MinimumNotice { get; init; } = TimeSpan.FromHours(2);
+ }
+diff --git a/src/ClinicScheduling.Domain/Availability/TimeRange.cs b/src/ClinicScheduling.Domain/Availability/TimeRange.cs
+index 8219e2d..76b72bd 100644
+--- a/src/ClinicScheduling.Domain/Availability/TimeRange.cs
++++ b/src/ClinicScheduling.Domain/Availability/TimeRange.cs
+@@ -21,4 +21,7 @@ public readonly record struct TimeRange
+     public TimeSpan Duration => End - Start;
+ 
+     public bool Overlaps(TimeRange other) => Start < other.End && other.Start < End;
++
++    /// <summary>The same range grown by <paramref name="margin"/> on both sides.</summary>
++    public TimeRange Widen(TimeSpan margin) => new(Start - margin, End + margin);
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index c486c88..a836851 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -32,15 +32,15 @@ public sealed class SlotFinderTests
+     }
+ 
+     [Fact]
+-    public void DoesNotOfferBookedTimes()
++    public void KeepsTheBufferAroundBookedAppointments()
+     {
+         var tuesday = Monday.AddDays(1);
+         var booked = new[] { new TimeRange(At(tuesday, 9), At(tuesday, 10)) };
+ 
+         var slots = Finder().FindOpenSlots(Schedule(), booked, Tuesday(), new SlotSearchOptions());
+ 
+-        Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 30) && s.Start < At(tuesday, 10));
+-        Assert.Contains(slots, s => s.Start == At(tuesday, 10));
++        Assert.DoesNotContain(slots, s => s.Start > At(tuesday, 8, 25) && s.Start < At(tuesday, 10, 5));
++        Assert.Contains(slots, s => s.Start == At(tuesday, 10, 5));
+     }
+ 
+     [Fact]

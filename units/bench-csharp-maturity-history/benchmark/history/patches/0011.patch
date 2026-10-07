@@ -1,0 +1,307 @@
+From 596f063a79c76f2a9eeea7cd8e3431d5fcaa5439 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 13 Jan 2026 14:00:52 +0100
+Subject: feat(application): book appointments and find slots over in-memory
+ stores
+
+---
+ .../Abstractions/IAppointmentRepository.cs    | 16 ++++++
+ .../Abstractions/IScheduleRepository.cs       | 10 ++++
+ .../ApplicationServiceCollectionExtensions.cs | 18 +++++++
+ .../Availability/FindSlots.cs                 | 27 ++++++++++
+ .../Booking/BookAppointment.cs                | 52 +++++++++++++++++++
+ .../OperationResult.cs                        | 23 ++++++++
+ ...frastructureServiceCollectionExtensions.cs | 21 ++++++++
+ .../InMemoryAppointmentRepository.cs          | 39 ++++++++++++++
+ .../Persistence/InMemoryScheduleRepository.cs | 20 +++++++
+ 9 files changed, 226 insertions(+)
+ create mode 100644 src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+ create mode 100644 src/ClinicScheduling.Application/Abstractions/IScheduleRepository.cs
+ create mode 100644 src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+ create mode 100644 src/ClinicScheduling.Application/Availability/FindSlots.cs
+ create mode 100644 src/ClinicScheduling.Application/Booking/BookAppointment.cs
+ create mode 100644 src/ClinicScheduling.Application/OperationResult.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Persistence/InMemoryScheduleRepository.cs
+
+diff --git a/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+new file mode 100644
+index 0000000..ca69d48
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+@@ -0,0 +1,16 @@
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Application.Abstractions;
++
++public interface IAppointmentRepository
++{
++    Task<Appointment?> FindAsync(Guid id, CancellationToken cancellationToken);
++
++    /// <summary>The practitioner's appointments that are still booked and start within [startsFrom, startsBefore).</summary>
++    Task<IReadOnlyList<Appointment>> BookedForPractitionerAsync(
++        Guid practitionerId, DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken);
++
++    Task AddAsync(Appointment appointment, CancellationToken cancellationToken);
++
++    Task SaveAsync(Appointment appointment, CancellationToken cancellationToken);
++}
+diff --git a/src/ClinicScheduling.Application/Abstractions/IScheduleRepository.cs b/src/ClinicScheduling.Application/Abstractions/IScheduleRepository.cs
+new file mode 100644
+index 0000000..47267f1
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Abstractions/IScheduleRepository.cs
+@@ -0,0 +1,10 @@
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Application.Abstractions;
++
++public interface IScheduleRepository
++{
++    Task<PractitionerSchedule?> FindAsync(Guid practitionerId, CancellationToken cancellationToken);
++
++    Task UpsertAsync(PractitionerSchedule schedule, CancellationToken cancellationToken);
++}
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+new file mode 100644
+index 0000000..3884381
+--- /dev/null
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -0,0 +1,18 @@
++using ClinicScheduling.Application.Availability;
++using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Domain.Availability;
++using Microsoft.Extensions.DependencyInjection;
++
++namespace ClinicScheduling.Application;
++
++public static class ApplicationServiceCollectionExtensions
++{
++    public static IServiceCollection AddSchedulingApplication(this IServiceCollection services)
++    {
++        services.AddSingleton(new SlotSearchOptions());
++        services.AddSingleton<SlotFinder>();
++        services.AddScoped<BookAppointmentHandler>();
++        services.AddScoped<FindSlotsHandler>();
++        return services;
++    }
++}
+diff --git a/src/ClinicScheduling.Application/Availability/FindSlots.cs b/src/ClinicScheduling.Application/Availability/FindSlots.cs
+new file mode 100644
+index 0000000..27682c7
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Availability/FindSlots.cs
+@@ -0,0 +1,27 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Application.Availability;
++
++public sealed class FindSlotsHandler(
++    IScheduleRepository schedules,
++    IAppointmentRepository appointments,
++    SlotFinder slotFinder,
++    SlotSearchOptions searchOptions)
++{
++    public async Task<OperationResult<IReadOnlyList<Slot>>> HandleAsync(Guid practitionerId, SlotQuery query, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(query);
++        var schedule = await schedules.FindAsync(practitionerId, cancellationToken).ConfigureAwait(false);
++        if (schedule is null)
++        {
++            return Operation.NotFound<IReadOnlyList<Slot>>($"Practitioner {practitionerId} has no schedule.");
++        }
++
++        var from = new DateTimeOffset(query.From.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).AddDays(-1);
++        var to = new DateTimeOffset(query.To.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).AddDays(2);
++        var booked = await appointments.BookedForPractitionerAsync(practitionerId, from, to, cancellationToken).ConfigureAwait(false);
++        var slots = slotFinder.FindOpenSlots(schedule, [.. booked.Select(a => a.Time)], query, searchOptions);
++        return Operation.Ok<IReadOnlyList<Slot>>(slots);
++    }
++}
+diff --git a/src/ClinicScheduling.Application/Booking/BookAppointment.cs b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+new file mode 100644
+index 0000000..632d6fa
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+@@ -0,0 +1,52 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using Microsoft.Extensions.Logging;
++
++namespace ClinicScheduling.Application.Booking;
++
++public sealed record BookAppointmentCommand(
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, TimeSpan Duration);
++
++public sealed partial class BookAppointmentHandler(
++    IScheduleRepository schedules,
++    IAppointmentRepository appointments,
++    SlotFinder slotFinder,
++    SlotSearchOptions searchOptions,
++    ILogger<BookAppointmentHandler> logger)
++{
++    public async Task<OperationResult<Appointment>> HandleAsync(BookAppointmentCommand command, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(command);
++        var schedule = await schedules.FindAsync(command.PractitionerId, cancellationToken).ConfigureAwait(false);
++        if (schedule is null)
++        {
++            return Operation.NotFound<Appointment>($"Practitioner {command.PractitionerId} has no schedule.");
++        }
++
++        var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.Start, schedule.TimeZone).DateTime);
++        var booked = await BookedRangesAsync(schedule, day, cancellationToken).ConfigureAwait(false);
++        var open = slotFinder.FindOpenSlots(schedule, booked, new SlotQuery(day, day, command.Duration), searchOptions);
++        if (!open.Any(s => s.Start == command.Start))
++        {
++            return Operation.Conflict<Appointment>("The requested time is not an open slot.");
++        }
++
++        var appointment = Appointment.Book(
++            command.PatientId, command.PractitionerId, command.ClinicId,
++            new TimeRange(command.Start, command.Start + command.Duration));
++        await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
++        LogBooked(appointment.Id, appointment.PractitionerId, appointment.Time.Start);
++        return Operation.Ok<Appointment>(appointment);
++    }
++
++    private async Task<IReadOnlyCollection<TimeRange>> BookedRangesAsync(PractitionerSchedule schedule, DateOnly day, CancellationToken cancellationToken)
++    {
++        var from = new DateTimeOffset(day.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero).AddDays(-1);
++        var existing = await appointments.BookedForPractitionerAsync(schedule.PractitionerId, from, from.AddDays(3), cancellationToken).ConfigureAwait(false);
++        return [.. existing.Select(a => a.Time)];
++    }
++
++    [LoggerMessage(Level = LogLevel.Information, Message = "Booked appointment {AppointmentId} with practitioner {PractitionerId} at {Start}")]
++    private partial void LogBooked(Guid appointmentId, Guid practitionerId, DateTimeOffset start);
++}
+diff --git a/src/ClinicScheduling.Application/OperationResult.cs b/src/ClinicScheduling.Application/OperationResult.cs
+new file mode 100644
+index 0000000..fe1c25a
+--- /dev/null
++++ b/src/ClinicScheduling.Application/OperationResult.cs
+@@ -0,0 +1,23 @@
++namespace ClinicScheduling.Application;
++
++public enum OperationStatus
++{
++    Ok,
++    NotFound,
++    Conflict,
++    Invalid,
++}
++
++/// <summary>The outcome of a use case: a value, or the reason there is none.</summary>
++public sealed record OperationResult<T>(OperationStatus Status, T? Value, string? Error);
++
++public static class Operation
++{
++    public static OperationResult<T> Ok<T>(T value) => new(OperationStatus.Ok, value, null);
++
++    public static OperationResult<T> NotFound<T>(string error) => new(OperationStatus.NotFound, default, error);
++
++    public static OperationResult<T> Conflict<T>(string error) => new(OperationStatus.Conflict, default, error);
++
++    public static OperationResult<T> Invalid<T>(string error) => new(OperationStatus.Invalid, default, error);
++}
+diff --git a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+new file mode 100644
+index 0000000..477486b
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+@@ -0,0 +1,21 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Holidays;
++using ClinicScheduling.Domain.Time;
++using ClinicScheduling.Infrastructure.Holidays;
++using ClinicScheduling.Infrastructure.Persistence;
++using ClinicScheduling.Infrastructure.Time;
++using Microsoft.Extensions.DependencyInjection;
++
++namespace ClinicScheduling.Infrastructure;
++
++public static class InfrastructureServiceCollectionExtensions
++{
++    public static IServiceCollection AddSchedulingInfrastructure(this IServiceCollection services)
++    {
++        services.AddSingleton<IHolidayCalendar, TableHolidayCalendar>();
++        services.AddSingleton<IClock, SystemClock>();
++        services.AddSingleton<IAppointmentRepository, InMemoryAppointmentRepository>();
++        services.AddSingleton<IScheduleRepository, InMemoryScheduleRepository>();
++        return services;
++    }
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+new file mode 100644
+index 0000000..63c66ad
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+@@ -0,0 +1,39 @@
++using System.Collections.Concurrent;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Infrastructure.Persistence;
++
++/// <summary>Process-memory store: appointments live as long as the process (see README, "Persistence").</summary>
++public sealed class InMemoryAppointmentRepository : IAppointmentRepository
++{
++    private readonly ConcurrentDictionary<Guid, Appointment> _appointments = new();
++
++    public Task<Appointment?> FindAsync(Guid id, CancellationToken cancellationToken) =>
++        Task.FromResult(_appointments.GetValueOrDefault(id));
++
++    public Task<IReadOnlyList<Appointment>> BookedForPractitionerAsync(
++        Guid practitionerId, DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken) =>
++        Query(a => a.PractitionerId == practitionerId && a.Status == AppointmentStatus.Booked && a.Time.Start >= startsFrom && a.Time.Start < startsBefore);
++
++    public Task AddAsync(Appointment appointment, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        if (!_appointments.TryAdd(appointment.Id, appointment))
++        {
++            throw new InvalidOperationException($"Appointment {appointment.Id} already exists.");
++        }
++
++        return Task.CompletedTask;
++    }
++
++    public Task SaveAsync(Appointment appointment, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        _appointments[appointment.Id] = appointment;
++        return Task.CompletedTask;
++    }
++
++    private Task<IReadOnlyList<Appointment>> Query(Func<Appointment, bool> predicate) =>
++        Task.FromResult<IReadOnlyList<Appointment>>([.. _appointments.Values.Where(predicate).OrderBy(a => a.Time.Start)]);
++}
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryScheduleRepository.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryScheduleRepository.cs
+new file mode 100644
+index 0000000..50b5c0b
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryScheduleRepository.cs
+@@ -0,0 +1,20 @@
++using System.Collections.Concurrent;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Infrastructure.Persistence;
++
++public sealed class InMemoryScheduleRepository : IScheduleRepository
++{
++    private readonly ConcurrentDictionary<Guid, PractitionerSchedule> _schedules = new();
++
++    public Task<PractitionerSchedule?> FindAsync(Guid practitionerId, CancellationToken cancellationToken) =>
++        Task.FromResult(_schedules.GetValueOrDefault(practitionerId));
++
++    public Task UpsertAsync(PractitionerSchedule schedule, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(schedule);
++        _schedules[schedule.PractitionerId] = schedule;
++        return Task.CompletedTask;
++    }
++}

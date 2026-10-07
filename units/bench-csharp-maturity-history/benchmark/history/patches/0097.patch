@@ -1,0 +1,36 @@
+From 3b111ac3d7d4cf465520af160413431eef07f5d0 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 28 Jul 2026 14:10:52 +0200
+Subject: chore(notifications): Danish wording
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ .../Notifications/ReminderComposerTests.cs                      | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index 67b3402..6738c00 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -27,7 +27,7 @@ public static class ReminderTexts
+             },
+             ["da"] = new Dictionary<string, string>
+             {
+-                [DayBefore] = "Påmindelse: du har tid hos {0} den {1}. Ring til {2}, hvis du vil aflyse eller flytte.",
++                [DayBefore] = "Påmindelse: du har en tid hos {0} den {1}. Ring {2} for at aflyse eller flytte den.",
+                 [SameDay] = "Vi ses snart: din tid hos {0} er i dag kl. {1}.",
+                 [DayBeforeVideo] = "Påmindelse: din videokonsultation med {0} er den {1}. Linket kommer en time før.",
+                 [SameDayVideo] = "Din videokonsultation med {0} starter kl. {1}. Åbn linket fra patientportalen.",
+diff --git a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+index 9ddb8af..e8a9c0e 100644
+--- a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+@@ -23,7 +23,7 @@ public sealed class ReminderComposerTests
+ 
+         var text = ReminderComposer.Compose(Reminder(appointment, ReminderKind.DayBefore), appointment, Schedule(), "Ida", "+45 11 22 33 44");
+ 
+-        Assert.StartsWith("Påmindelse: du har tid hos Ida den ", text, StringComparison.Ordinal);
++        Assert.StartsWith("Påmindelse: du har en tid hos Ida den ", text, StringComparison.Ordinal);
+         Assert.Contains("+45 11 22 33 44", text, StringComparison.Ordinal);
+         Assert.Contains(ReminderTexts.ByLanguage["da"]["cancellation-fee"], text, StringComparison.Ordinal);
+     }

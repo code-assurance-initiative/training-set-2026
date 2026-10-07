@@ -1,0 +1,59 @@
+From 770c9885501adf7475c49d1a143fae03b5e6c572 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 9 Jun 2026 15:15:24 +0200
+Subject: fix: write the no-show status as no-show
+
+---
+ .../Contracts/AppointmentResponse.cs                  | 11 ++++++++++-
+ .../PatientPortal/PortalAppointmentFeed.cs            |  9 ++++++++-
+ 2 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 98f493b..952a597 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -29,7 +29,7 @@ public sealed record AppointmentResponse(
+             appointment.ClinicId,
+             Timestamp(appointment.Time.Start),
+             Timestamp(appointment.Time.End),
+-            appointment.Status.ToString().ToLowerInvariant(),
++            StatusCode(appointment.Status),
+             appointment.IsTelehealth,
+             appointment.SeriesId,
+             appointment.CancellationReason is { } reason ? ReasonCode(reason) : null,
+@@ -40,6 +40,15 @@ public sealed record AppointmentResponse(
+     private static string Timestamp(DateTimeOffset instant) =>
+         instant.ToString("O", CultureInfo.InvariantCulture);
+ 
++    private static string StatusCode(AppointmentStatus status) => status switch
++    {
++        AppointmentStatus.Booked => "booked",
++        AppointmentStatus.Cancelled => "cancelled",
++        AppointmentStatus.Completed => "completed",
++        AppointmentStatus.NoShow => "no-show",
++        _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
++    };
++
+     private static string ReasonCode(Reason reason) => reason switch
+     {
+         Reason.PatientRequest => "patient-request",
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index da5b1e1..86822ef 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -54,7 +54,14 @@ public static class PortalAppointmentFeed
+     private static string Timestamp(DateTimeOffset instant) =>
+         instant.ToString("O", CultureInfo.InvariantCulture);
+ 
+-    private static string Status(AppointmentStatus status) => status.ToString().ToLowerInvariant();
++    private static string Status(AppointmentStatus status) => status switch
++    {
++        AppointmentStatus.Booked => "booked",
++        AppointmentStatus.Cancelled => "cancelled",
++        AppointmentStatus.Completed => "completed",
++        AppointmentStatus.NoShow => "no-show",
++        _ => throw new ArgumentOutOfRangeException(nameof(status), status, null),
++    };
+ 
+     private static string Reason(CancellationReason reason) => reason switch
+     {

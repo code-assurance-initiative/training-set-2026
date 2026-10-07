@@ -1,0 +1,19 @@
+{
+  "name": "manifest-export",
+  "version": "2.3.1",
+  "description": "Turns an exported dispatch run into the CSV manifest the depot label printers read.",
+  "private": true,
+  "bin": {
+    "manifest-export": "bin/manifest-export.js"
+  },
+  "main": "lib/manifest.js",
+  "engines": {
+    "node": "16.x"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "minimist": "1.2.5"
+  }
+}

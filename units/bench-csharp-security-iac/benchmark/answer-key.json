@@ -1,0 +1,2263 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.1",
+  "repo": "code-assurance-initiative/bench-csharp-security-iac",
+  "keyVersion": "1.2.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Infrastructure-as-code, container and CI-workflow security around a small ASP.NET Core dock-booking service",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "IAC-001",
+      "label": "must-fire",
+      "concept": "container-runs-as-root",
+      "cwe": "CWE-250",
+      "file": "src/Depot.Slots.Reminders/Dockerfile",
+      "rationale": "The reminder worker image has no USER instruction anywhere, so its process runs as root (the aspnet base image's default user). Nothing in the worker needs root. An absence that holds for the whole file: whole-file site."
+    },
+    {
+      "id": "IAC-002",
+      "label": "must-fire",
+      "concept": "mutable-image-reference",
+      "file": "src/Depot.Slots.Reminders/Dockerfile",
+      "lines": [
+        17,
+        17
+      ],
+      "rationale": "The runtime base image is `aspnet:latest`: every rebuild can silently pick up a different major version or a compromised image, and a release cannot be rebuilt bit-for-bit."
+    },
+    {
+      "id": "IAC-003",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/Depot.Slots.Reminders/Dockerfile",
+      "lines": [
+        21,
+        22
+      ],
+      "rationale": "A chat bot token (xoxb- format) for the yard team's test workspace baked into the image with ENV: it is readable by anyone who can pull the image (`docker inspect`, image history) and is shipped into production with every release."
+    },
+    {
+      "id": "IAC-004",
+      "label": "must-fire",
+      "concept": "host-namespace-sharing",
+      "cwe": "CWE-250",
+      "file": "deploy/k8s/node-agent/daemonset.yaml",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "The log forwarder runs in the node's network namespace (`hostNetwork: true`). Tailing files under /var/log needs no host networking; it exposes every host-bound port to the pod and takes the pod outside NetworkPolicy enforcement."
+    },
+    {
+      "id": "IAC-005",
+      "label": "must-fire",
+      "concept": "privileged-container",
+      "cwe": "CWE-250",
+      "file": "deploy/k8s/node-agent/daemonset.yaml",
+      "lines": [
+        29,
+        33
+      ],
+      "rationale": "The log forwarder container is `privileged: true` - every capability and every host device - although reading log files needs neither. A compromise of the forwarder is a compromise of the node."
+    },
+    {
+      "id": "IAC-006",
+      "label": "must-fire",
+      "concept": "host-path-mount",
+      "cwe": "CWE-250",
+      "file": "deploy/k8s/node-agent/daemonset.yaml",
+      "lines": [
+        71,
+        74
+      ],
+      "rationale": "The node's containerd socket is mounted read-write (hostPath, type Socket) into the forwarder: control of the container runtime is root on the node. Metadata enrichment comes from the Kubernetes API, not the runtime socket."
+    },
+    {
+      "id": "IAC-007",
+      "label": "must-fire",
+      "concept": "mutable-image-reference",
+      "file": "deploy/k8s/node-agent/daemonset.yaml",
+      "lines": [
+        30,
+        30
+      ],
+      "rationale": "The forwarder image is `fluent-bit:latest`: each node pulls whatever the tag points at when the pod starts, so nodes can run different versions and a tag push changes production without a commit."
+    },
+    {
+      "id": "IAC-010",
+      "label": "must-fire",
+      "concept": "missing-health-probes",
+      "file": "deploy/k8s/reminders/deployment.yaml",
+      "lines": [
+        24,
+        41
+      ],
+      "rationale": "The reminder worker's container declares port 8080 and the worker serves /health/live and /health/ready, but the Deployment defines no liveness or readiness probe: a hung reminder loop is never restarted and a rollout is never gated on the new pod being healthy."
+    },
+    {
+      "id": "IAC-008",
+      "label": "must-fire",
+      "concept": "container-security-context-missing",
+      "cwe": "CWE-250",
+      "file": "deploy/k8s/reminders/deployment.yaml",
+      "lines": [
+        24,
+        41
+      ],
+      "rationale": "The reminder worker's container has no securityContext at all: privilege escalation is allowed, default capabilities are kept, the root filesystem is writable and nothing requires a non-root user (and the image runs as root, IAC-001)."
+    },
+    {
+      "id": "IAC-009",
+      "label": "must-fire",
+      "concept": "container-missing-resource-limits",
+      "cwe": "CWE-770",
+      "file": "deploy/k8s/reminders/deployment.yaml",
+      "lines": [
+        24,
+        41
+      ],
+      "rationale": "The reminder worker's container sets no CPU or memory requests or limits, so it can starve its node and the scheduler cannot place it sensibly."
+    },
+    {
+      "id": "IAC-011",
+      "label": "must-fire",
+      "concept": "automounted-service-account-token",
+      "file": "deploy/k8s/reminders/deployment.yaml",
+      "lines": [
+        19,
+        19
+      ],
+      "rationale": "The pod names no service account and does not set automountServiceAccountToken: false, so the namespace's default service-account token is mounted into a worker that never calls the Kubernetes API - a credential available to anyone who compromises the pod."
+    },
+    {
+      "id": "IAC-012",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/k8s/reminders/secret.yaml",
+      "lines": [
+        7,
+        8
+      ],
+      "rationale": "A committed `kind: Secret` whose `data` holds the production chat bot token (xoxb- format), base64-encoded. Base64 is an encoding, not encryption: anyone who can read the repository has the token."
+    },
+    {
+      "id": "IAC-013",
+      "label": "must-fire",
+      "concept": "cleartext-transmission",
+      "cwe": "CWE-319",
+      "file": "deploy/k8s/api/ingress.yaml",
+      "lines": [
+        8,
+        20
+      ],
+      "rationale": "The Ingress has no `tls:` section, so the booking API - bearer tokens included - is served over plain HTTP at the edge, although the documentation says clients connect over HTTPS."
+    },
+    {
+      "id": "IAC-014",
+      "label": "must-fire",
+      "concept": "overly-permissive-rbac",
+      "file": "deploy/k8s/node-agent/rbac.yaml",
+      "lines": [
+        6,
+        9
+      ],
+      "rationale": "The forwarder's ClusterRole grants every verb on every resource in every API group - cluster-admin in all but name - while the Kubernetes filter needs only get/list/watch on pods and namespaces."
+    },
+    {
+      "id": "IAC-015",
+      "label": "must-fire",
+      "concept": "ci-token-excessive-permissions",
+      "cwe": "CWE-250",
+      "file": ".github/workflows/release.yml",
+      "lines": [
+        7,
+        7
+      ],
+      "rationale": "The release workflow grants its automatic token `write-all` although its jobs only check out code (contents: read) and push images with a separate registry token: any compromised step can push code, rewrite releases and change repository settings."
+    },
+    {
+      "id": "IAC-016",
+      "label": "must-fire",
+      "concept": "unpinned-ci-action",
+      "cwe": "CWE-829",
+      "file": ".github/workflows/release.yml",
+      "lines": [
+        23,
+        23
+      ],
+      "rationale": "A third-party action referenced by the mutable tag `v3` in the release job (which holds a registry push token and a write-all GITHUB_TOKEN): whoever controls the tag controls the release."
+    },
+    {
+      "id": "IAC-017",
+      "label": "must-fire",
+      "concept": "ci-secret-exposure",
+      "file": ".github/workflows/pr-preview.yml",
+      "lines": [
+        16,
+        28
+      ],
+      "rationale": "A `pull_request_target` workflow checks out the pull request's HEAD and builds it with `docker build` in a step that holds the registry push token: a fork's Dockerfile runs with the base repository's secrets and write token."
+    },
+    {
+      "id": "IAC-018",
+      "label": "must-fire",
+      "concept": "secret-in-process-arguments",
+      "cwe": "CWE-214",
+      "file": ".github/workflows/deploy.yml",
+      "lines": [
+        33,
+        34
+      ],
+      "rationale": "The cluster deploy token is interpolated (`${{ secrets.KUBE_DEPLOY_TOKEN }}`) into the run script and passed to kubectl as `--token`, so it is written into the generated script and visible in the runner's process list."
+    },
+    {
+      "id": "IAC-019",
+      "label": "must-fire",
+      "concept": "ci-workflow-injection",
+      "cwe": "CWE-78",
+      "file": ".github/workflows/issue-triage.yml",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "The issue title - attacker-controlled, anyone can open an issue - is expanded by `${{ }}` into the shell script before it runs; a title containing `\"; curl ... | sh; \"` executes with the job's issues:write token."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "mutable-image-reference",
+      "file": "src/Depot.Slots.Api/Dockerfile",
+      "lines": [
+        5,
+        7
+      ],
+      "rationale": "The build-stage base image is pinned by sha256 digest; the comment above it says the digest was taken from the moving (latest 10.0) tag. A comment is not a reference."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "mutable-image-reference",
+      "file": "src/Depot.Slots.Api/Dockerfile",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "`aspnet:10.0@sha256:...`: a tag followed by a digest is resolved by the digest; the tag is informational."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "container-runs-as-root",
+      "file": "src/Depot.Slots.Api/Dockerfile",
+      "lines": [
+        26,
+        27
+      ],
+      "rationale": "`USER 1654:1654` - the image's unprivileged app account given by number (so the kubelet can verify runAsNonRoot). A numeric USER is a non-root user."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "missing-image-healthcheck",
+      "file": "src/Depot.Slots.Api/Dockerfile",
+      "rationale": "No Dockerfile HEALTHCHECK anywhere in the API image: the image runs only on Kubernetes, which ignores HEALTHCHECK and probes /health/live and /health/ready through the Deployment's probes. Whole-file site (an absence)."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "missing-image-healthcheck",
+      "file": "src/Depot.Slots.Reminders/Dockerfile",
+      "rationale": "No Dockerfile HEALTHCHECK anywhere in the worker image: Kubernetes ignores the instruction, so its absence is not the defect. (The missing probes ARE a defect, and sit in the Deployment: IAC-010.) Whole-file site (an absence)."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "mutable-image-reference",
+      "file": "deploy/k8s/api/deployment.yaml",
+      "lines": [
+        39,
+        39
+      ],
+      "rationale": "The API container image is referenced by digest."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "container-runs-as-root",
+      "file": "deploy/k8s/api/deployment.yaml",
+      "lines": [
+        32,
+        33
+      ],
+      "rationale": "runAsUser/runAsGroup 1654: a non-root numeric UID with runAsNonRoot, no privilege escalation, all capabilities dropped and a read-only root filesystem. A UID below 10000 is not a privilege."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "missing-health-probes",
+      "file": "deploy/k8s/api/deployment.yaml",
+      "lines": [
+        55,
+        66
+      ],
+      "rationale": "Both probes are defined: readiness inline with a YAML anchor on its httpGet, liveness through a `<<: *health` merge of that anchor with a different path. A parser that does not resolve anchors and merge keys may think liveness has no httpGet."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "host-path-mount",
+      "file": "deploy/k8s/api/deployment.yaml",
+      "lines": [
+        83,
+        85
+      ],
+      "rationale": "`emptyDir` (size-limited) for /tmp under a read-only root filesystem - pod-scoped scratch space, not a host path."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/k8s/api/deployment.yaml",
+      "lines": [
+        50,
+        54
+      ],
+      "rationale": "`ConnectionStrings__Slots` comes from a secretKeyRef to the ExternalSecret-managed Secret; no value is in the manifest."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/k8s/api/external-secret.yaml",
+      "lines": [
+        4,
+        20
+      ],
+      "rationale": "An ExternalSecret only names a key in the platform secret store; the operator materialises the Secret in the cluster. No credential is in the repository."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/k8s/api/ghcr-pull.sealedsecret.yaml",
+      "lines": [
+        9,
+        10
+      ],
+      "rationale": "SealedSecret `encryptedData`: ciphertext under the cluster's sealed-secrets public key, decryptable only by the in-cluster controller. High entropy, but safe to commit by design."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "ci-secret-exposure",
+      "file": ".github/workflows/pr-labeler.yml",
+      "lines": [
+        5,
+        18
+      ],
+      "rationale": "`pull_request_target` used as documented for labelling: the job never checks out or runs the pull request's code, holds no secret, and its token is scoped to contents:read + pull-requests:write."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "ci-token-excessive-permissions",
+      "cwe": "CWE-250",
+      "file": ".github/workflows/ci.yml",
+      "lines": [
+        13,
+        14
+      ],
+      "rationale": "The CI workflow restricts its token to `contents: read`."
+    },
+    {
+      "id": "TRP-015",
+      "label": "must-not-fire",
+      "concept": "unpinned-ci-action",
+      "cwe": "CWE-829",
+      "file": ".github/workflows/ci.yml",
+      "lines": [
+        29,
+        33
+      ],
+      "rationale": "First-party actions (actions/checkout, actions/setup-dotnet) pinned by full 40-hex commit SHA, version in a trailing comment."
+    },
+    {
+      "id": "TRP-016",
+      "label": "must-not-fire",
+      "concept": "secret-in-process-arguments",
+      "cwe": "CWE-214",
+      "file": ".github/workflows/release.yml",
+      "lines": [
+        25,
+        29
+      ],
+      "rationale": "The registry token reaches the step through `env:` and docker reads it from stdin (`echo \"$REGISTRY_TOKEN\" | docker login --password-stdin`; echo is a shell builtin): it is never in a command line or in the generated script."
+    },
+    {
+      "id": "TRP-017",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/k8s/reminders/deployment.yaml",
+      "lines": [
+        37,
+        41
+      ],
+      "rationale": "`Chat__BotToken` is read from a secretKeyRef; the manifest holds a reference, not the token."
+    },
+    {
+      "id": "TRP-018",
+      "label": "must-not-fire",
+      "concept": "ci-workflow-injection",
+      "cwe": "CWE-78",
+      "file": ".github/workflows/pr-preview.yml",
+      "lines": [
+        24,
+        24
+      ],
+      "rationale": "`github.event.pull_request.number` is an integer assigned by GitHub, passed through `env:`; it cannot carry shell syntax."
+    },
+    {
+      "id": "TRP-019",
+      "label": "must-not-fire",
+      "concept": "ci-workflow-injection",
+      "cwe": "CWE-78",
+      "file": ".github/workflows/pr-preview.yml",
+      "lines": [
+        33,
+        33
+      ],
+      "rationale": "The pull request number again, through `env:` into the comment step."
+    },
+    {
+      "id": "TRP-020",
+      "label": "must-not-fire",
+      "concept": "ci-workflow-injection",
+      "cwe": "CWE-78",
+      "file": ".github/workflows/deploy.yml",
+      "lines": [
+        26,
+        26
+      ],
+      "rationale": "`inputs.version` of a workflow_dispatch (only maintainers can dispatch) is used as the checkout `ref:` - an action input, never expanded into a shell script."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".dockerignore",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".editorconfig",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".env.template",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".github/labeler.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".github/workflows/pr-labeler.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": ".gitignore",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "Depot.Slots.slnx",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "Directory.Build.props",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "Directory.Packages.props",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "README.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/api/deployment.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/api/external-secret.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/api/ghcr-pull.sealedsecret.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/api/service.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/api/serviceaccount.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/namespace.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/networkpolicy.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/node-agent/configmap.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "deploy/k8s/node-agent/serviceaccount.yaml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "docker-compose.yml",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "docs/adr/0001-kubernetes-deployment.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "docs/adr/0002-separate-reminder-worker.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "global.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/.editorconfig",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Depot.Slots.Api.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Dockerfile",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Endpoints/BookingContracts.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Endpoints/BookingEndpoints.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Hosting/ApiApplicationBuilderExtensions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Hosting/ApiServiceCollectionExtensions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Program.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Properties/launchSettings.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Security/AuthorizationPolicies.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Security/ConfigureJwtBearerOptions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Security/JwtAuthenticationOptions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Security/ScopeClaims.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/appsettings.Development.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/appsettings.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Api/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/Booking.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/BookingOutcome.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/BookingRequest.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/BookingService.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/DockOptions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/IBookingStore.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Bookings/InMemoryBookingStore.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Depot.Slots.Core.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Reminders/IReminderSender.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Reminders/ReminderDispatcher.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/Reminders/ReminderOptions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Core/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Infrastructure/Depot.Slots.Infrastructure.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Infrastructure/Postgres/PostgresBookingStore.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Infrastructure/Postgres/SchemaInitializer.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Infrastructure/StorageServiceCollectionExtensions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Infrastructure/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/Chat/ChatOptions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/Chat/ChatReminderSender.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/Depot.Slots.Reminders.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/Program.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/Properties/launchSettings.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/ReminderWorker.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/ReminderWorkerHealthCheck.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/RemindersServiceCollectionExtensions.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/appsettings.Development.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/appsettings.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "src/Depot.Slots.Reminders/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/BookingEndpointsTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/Depot.Slots.IntegrationTests.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/SecurityTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/SlotsApiFactory.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/TestTokens.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.IntegrationTests/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/Bookings/BookingServiceTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/Bookings/InMemoryBookingStoreTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/Chat/ChatReminderSenderTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/Depot.Slots.UnitTests.csproj",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/Reminders/ReminderDispatcherTests.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/TestClock.cs",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": [
+        "container-excessive-privilege",
+        "container-missing-resource-limits",
+        "mutable-image-reference",
+        "iac-misconfiguration",
+        "hardcoded-credential",
+        "cleartext-transmission",
+        "ci-workflow-injection",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "ci-token-excessive-permissions",
+        "unpinned-ci-action",
+        "download-without-integrity-check"
+      ],
+      "file": "tests/Depot.Slots.UnitTests/packages.lock.json",
+      "rationale": "Certified free of the IaC, container and CI-workflow defects this repository measures (whole file); any trap inside is listed separately."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "network-egress-policy",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A namespace-wide default-deny NetworkPolicy for ingress and egress, with explicit allowances for DNS, the database CIDR and the chat API. Not top of the band: the hostNetwork log forwarder (IAC-004) is outside NetworkPolicy enforcement."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "workload-syscall-confinement",
+      "band": [
+        10,
+        60
+      ],
+      "rationale": "Only the API pod sets seccompProfile RuntimeDefault; the reminder worker and the privileged log forwarder have no seccomp profile, and no workload has AppArmor or SELinux confinement. Partial at best."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "runtime-threat-detection-and-admission",
+      "band": [
+        0,
+        30
+      ],
+      "rationale": "No runtime detection (Falco/Tetragon) and no admission policy (Kyverno, Gatekeeper, ValidatingAdmissionPolicy, Pod Security admission labels) is committed. The posture is absent."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "deployment-rollback-safety",
+      "band": [
+        50,
+        100
+      ],
+      "rationale": "Deployment automation (deploy.yml applies the manifests and waits on `rollout status`), a RollingUpdate with maxUnavailable 0 and probes on the API, and a `production` environment that requires a reviewer. The reminder worker has no probes and there is no explicit rollback step, so not necessarily the top."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "disaster-recovery-evidence",
+      "band": [
+        0,
+        40
+      ],
+      "rationale": "The service's state is in a managed PostgreSQL instance outside the repository; nothing in the repository evidences backups, restore procedures, RTO/RPO or persistence guarantees."
+    },
+    {
+      "id": "BND-006",
+      "label": "score-band",
+      "concept": "environment-separation",
+      "band": [
+        30,
+        90
+      ],
+      "rationale": "Development and Production settings are separated (appsettings.{Environment}.json, in-memory store in Development, compose with a git-ignored .env, production values from the cluster), but the worker image bakes the TEST workspace's chat token and channel into the image that runs in production (IAC-003). LLM-judged: wide band."
+    },
+    {
+      "id": "BND-007",
+      "label": "score-band",
+      "concept": "build-provenance-and-signing",
+      "band": [
+        0,
+        40
+      ],
+      "rationale": "The release builds and pushes images with provenance explicitly disabled (`--provenance=false`), no SBOM and no signing; most actions are pinned by SHA but one is not (IAC-016)."
+    }
+  ]
+}

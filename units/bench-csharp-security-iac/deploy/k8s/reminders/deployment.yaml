@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: depot-slots-reminders
+  namespace: depot-slots
+  labels:
+    app.kubernetes.io/name: depot-slots-reminders
+    app.kubernetes.io/part-of: depot-slots
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: depot-slots-reminders
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: depot-slots-reminders
+        app.kubernetes.io/part-of: depot-slots
+    spec:
+      terminationGracePeriodSeconds: 30
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: reminders
+          image: ghcr.io/depot-slots/reminders@sha256:15151bd13717f726bfe9d66580daa5c060ac33472fa9859139bb9664cac21422
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ConnectionStrings__Slots
+              valueFrom:
+                secretKeyRef:
+                  name: depot-slots-db
+                  key: connection-string
+            - name: Chat__BotToken
+              valueFrom:
+                secretKeyRef:
+                  name: depot-slots-chat
+                  key: bot-token

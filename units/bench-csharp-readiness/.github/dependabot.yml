@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      microsoft:
+        patterns:
+          - "Microsoft.*"
+          - "Npgsql.*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      xunit:
+        patterns:
+          - "xunit*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: docker
+    directories:
+      - /src/ParcelTracking.Api
+      - /src/ParcelTracking.Worker
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

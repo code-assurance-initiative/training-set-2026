@@ -1,0 +1,239 @@
+From 0de28feb427c0b0406bf6a5bc226cacb3735f15d Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Thu, 15 Jan 2026 11:00:41 +0100
+Subject: feat(series): book a treatment series in one request
+
+---
+ .../Contracts/AppointmentResponse.cs          |  7 ++-
+ .../Contracts/BookSeriesRequest.cs            | 17 +++++++
+ .../Endpoints/SeriesEndpoints.cs              | 34 ++++++++++++++
+ .../ApiApplicationBuilderExtensions.cs        |  1 +
+ .../ApplicationServiceCollectionExtensions.cs |  4 ++
+ .../Series/BookTreatmentSeries.cs             | 45 +++++++++++++++++++
+ .../Appointments/Appointment.cs               | 12 +++--
+ 7 files changed, 115 insertions(+), 5 deletions(-)
+ create mode 100644 src/ClinicScheduling.Api/Contracts/BookSeriesRequest.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/SeriesEndpoints.cs
+ create mode 100644 src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index ebe1862..9987eab 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -1,3 +1,4 @@
++using System.Text.Json.Serialization;
+ using ClinicScheduling.Domain.Appointments;
+ 
+ namespace ClinicScheduling.Api.Contracts;
+@@ -8,7 +9,8 @@ public sealed record AppointmentResponse(
+     Guid PractitionerId,
+     Guid ClinicId,
+     DateTimeOffset Start,
+-    DateTimeOffset End)
++    DateTimeOffset End,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId)
+ {
+     public static AppointmentResponse From(Appointment appointment)
+     {
+@@ -19,6 +21,7 @@ public sealed record AppointmentResponse(
+             appointment.PractitionerId,
+             appointment.ClinicId,
+             appointment.Time.Start,
+-            appointment.Time.End);
++            appointment.Time.End,
++            appointment.SeriesId);
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Contracts/BookSeriesRequest.cs b/src/ClinicScheduling.Api/Contracts/BookSeriesRequest.cs
+new file mode 100644
+index 0000000..6d35523
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/BookSeriesRequest.cs
+@@ -0,0 +1,17 @@
++using ClinicScheduling.Domain.Recurrence;
++
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record BookSeriesRequest(
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateOnly FirstDay, TimeOnly StartTime, int DurationMinutes, string? Recurrence)
++{
++    public RecurrenceRule? ParsedRule => RecurrenceRule.TryParse(Recurrence, out var rule) ? rule : null;
++
++    public RequestErrors Validate() =>
++        new RequestErrors()
++            .Require(PatientId != Guid.Empty, nameof(PatientId), "A patient is required.")
++            .Require(PractitionerId != Guid.Empty, nameof(PractitionerId), "A practitioner is required.")
++            .Require(ClinicId != Guid.Empty, nameof(ClinicId), "A clinic is required.")
++            .Require(DurationMinutes is >= 10 and <= 180, nameof(DurationMinutes), "Sessions last 10 to 180 minutes.")
++            .Require(ParsedRule is not null, nameof(Recurrence), "Recurrence must look like WEEKLY;INTERVAL=1;COUNT=8;BYDAY=MO,TH.");
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/SeriesEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/SeriesEndpoints.cs
+new file mode 100644
+index 0000000..e894018
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/SeriesEndpoints.cs
+@@ -0,0 +1,34 @@
++using ClinicScheduling.Api.Contracts;
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application;
++using ClinicScheduling.Application.Series;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++public static class SeriesEndpoints
++{
++    public static IEndpointRouteBuilder MapSeriesEndpoints(this IEndpointRouteBuilder app)
++    {
++        app.MapPost("/api/series", BookAsync)
++            .WithTags("Series")
++            .RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
++        return app;
++    }
++
++    private static async Task<IResult> BookAsync(BookSeriesRequest request, BookTreatmentSeriesHandler handler, CancellationToken cancellationToken)
++    {
++        var errors = request.Validate();
++        if (errors.Any || request.ParsedRule is not { } rule)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var command = new BookTreatmentSeriesCommand(
++            request.PatientId, request.PractitionerId, request.ClinicId, request.FirstDay, request.StartTime,
++            TimeSpan.FromMinutes(request.DurationMinutes), rule);
++        var result = await handler.HandleAsync(command, cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } sessions }
++            ? Results.Ok(sessions.Select(AppointmentResponse.From).ToList())
++            : EndpointResults.Problem(result);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index 57300e4..2046e7a 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -23,6 +23,7 @@ public static class ApiApplicationBuilderExtensions
+         app.MapAppointmentEndpoints();
+         app.MapAvailabilityEndpoints();
+         app.MapScheduleEndpoints();
++        app.MapSeriesEndpoints();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index 3884381..5375e6b 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -1,6 +1,8 @@
+ using ClinicScheduling.Application.Availability;
+ using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Application.Series;
+ using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Recurrence;
+ using Microsoft.Extensions.DependencyInjection;
+ 
+ namespace ClinicScheduling.Application;
+@@ -11,8 +13,10 @@ public static class ApplicationServiceCollectionExtensions
+     {
+         services.AddSingleton(new SlotSearchOptions());
+         services.AddSingleton<SlotFinder>();
++        services.AddSingleton<RecurrenceExpander>();
+         services.AddScoped<BookAppointmentHandler>();
+         services.AddScoped<FindSlotsHandler>();
++        services.AddScoped<BookTreatmentSeriesHandler>();
+         return services;
+     }
+ }
+diff --git a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+new file mode 100644
+index 0000000..5f93a88
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+@@ -0,0 +1,45 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Recurrence;
++
++namespace ClinicScheduling.Application.Series;
++
++public sealed record BookTreatmentSeriesCommand(
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateOnly FirstDay, TimeOnly StartTime, TimeSpan Duration, RecurrenceRule Rule);
++
++/// <summary>Books every session of a treatment series, or none of them.</summary>
++public sealed class BookTreatmentSeriesHandler(
++    IScheduleRepository schedules,
++    IAppointmentRepository appointments,
++    RecurrenceExpander expander)
++{
++    public async Task<OperationResult<IReadOnlyList<Appointment>>> HandleAsync(BookTreatmentSeriesCommand command, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(command);
++        var schedule = await schedules.FindAsync(command.PractitionerId, cancellationToken).ConfigureAwait(false);
++        if (schedule is null)
++        {
++            return Operation.NotFound<IReadOnlyList<Appointment>>($"Practitioner {command.PractitionerId} has no schedule.");
++        }
++
++        var sessions = expander.Expand(command.Rule, command.FirstDay, command.StartTime, command.Duration, schedule.TimeZone, schedule.CountryCode);
++
++        var booked = await appointments.BookedForPractitionerAsync(
++            command.PractitionerId, sessions[0].Start.AddDays(-1), sessions[^1].End.AddDays(1), cancellationToken).ConfigureAwait(false);
++        if (booked.Any(b => sessions.Any(s => b.Time.Overlaps(s))))
++        {
++            return Operation.Conflict<IReadOnlyList<Appointment>>("The practitioner is already booked during the series.");
++        }
++
++        var seriesId = Guid.NewGuid();
++        var created = new List<Appointment>(sessions.Count);
++        foreach (var session in sessions)
++        {
++            var appointment = Appointment.Book(command.PatientId, command.PractitionerId, command.ClinicId, session, seriesId);
++            await appointments.AddAsync(appointment, cancellationToken).ConfigureAwait(false);
++            created.Add(appointment);
++        }
++
++        return Operation.Ok<IReadOnlyList<Appointment>>(created);
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 3d44d3e..0569e3a 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -10,13 +10,15 @@ public sealed class Appointment
+         Guid patientId,
+         Guid practitionerId,
+         Guid clinicId,
+-        TimeRange time)
++        TimeRange time,
++        Guid? seriesId)
+     {
+         Id = id;
+         PatientId = patientId;
+         PractitionerId = practitionerId;
+         ClinicId = clinicId;
+         Time = time;
++        SeriesId = seriesId;
+         Status = AppointmentStatus.Booked;
+     }
+ 
+@@ -30,6 +32,9 @@ public sealed class Appointment
+ 
+     public TimeRange Time { get; }
+ 
++    /// <summary>The treatment series this appointment belongs to, if it was booked as part of one.</summary>
++    public Guid? SeriesId { get; }
++
+     public AppointmentStatus Status { get; private set; }
+ 
+     public DateTimeOffset? CancelledAt { get; private set; }
+@@ -38,8 +43,9 @@ public sealed class Appointment
+         Guid patientId,
+         Guid practitionerId,
+         Guid clinicId,
+-        TimeRange time) =>
+-        new(Guid.NewGuid(), patientId, practitionerId, clinicId, time);
++        TimeRange time,
++        Guid? seriesId = null) =>
++        new(Guid.NewGuid(), patientId, practitionerId, clinicId, time, seriesId);
+ 
+     public void Cancel(DateTimeOffset at)
+     {

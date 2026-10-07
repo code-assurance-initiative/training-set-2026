@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <RootNamespace>FleetOps.Worker</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FleetOps.Application\FleetOps.Application.csproj" />
+    <ProjectReference Include="..\FleetOps.Contracts\FleetOps.Contracts.csproj" />
+    <ProjectReference Include="..\FleetOps.Infrastructure\FleetOps.Infrastructure.csproj" />
+    <ProjectReference Include="..\FleetOps.ServiceDefaults\FleetOps.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mediator.SourceGenerator">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,208 @@
+From ee6a3ed9d852766d07a0aacf5c05ef5866ae5fd6 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 7 Apr 2026 11:30:27 +0200
+Subject: feat(portal): appointment feed for the patient portal
+
+---
+ .../Contracts/AppointmentResponse.cs          | 23 +++++--
+ .../PatientPortal/PortalAppointmentFeed.cs    | 64 +++++++++++++++++++
+ .../BookingFlowTests.cs                       |  4 +-
+ .../Responses.cs                              |  2 +-
+ .../PortalAppointmentFeedTests.cs             | 38 +++++++++++
+ 5 files changed, 123 insertions(+), 8 deletions(-)
+ create mode 100644 src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 8031a8e..e2ae206 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -1,5 +1,7 @@
++using System.Globalization;
+ using System.Text.Json.Serialization;
+ using ClinicScheduling.Domain.Appointments;
++using Reason = ClinicScheduling.Domain.Appointments.CancellationReason;
+ 
+ namespace ClinicScheduling.Api.Contracts;
+ 
+@@ -8,8 +10,8 @@ public sealed record AppointmentResponse(
+     Guid PatientId,
+     Guid PractitionerId,
+     Guid ClinicId,
+-    DateTimeOffset Start,
+-    DateTimeOffset End,
++    string StartsAt,
++    string EndsAt,
+     string Status,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancellationReason,
+@@ -23,11 +25,22 @@ public sealed record AppointmentResponse(
+             appointment.PatientId,
+             appointment.PractitionerId,
+             appointment.ClinicId,
+-            appointment.Time.Start,
+-            appointment.Time.End,
++            Timestamp(appointment.Time.Start),
++            Timestamp(appointment.Time.End),
+             appointment.Status.ToString().ToLowerInvariant(),
+             appointment.SeriesId,
+-            appointment.CancellationReason?.ToString(),
++            appointment.CancellationReason is { } reason ? ReasonCode(reason) : null,
+             appointment.CancelledAt);
+     }
++
++    private static string Timestamp(DateTimeOffset instant) =>
++        instant.ToString("O", CultureInfo.InvariantCulture);
++
++    private static string ReasonCode(Reason reason) => reason switch
++    {
++        Reason.PatientRequest => "patient-request",
++        Reason.PractitionerUnavailable => "practitioner-unavailable",
++        Reason.ClinicClosed => "clinic-closed",
++        _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
++    };
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+new file mode 100644
+index 0000000..a193b35
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -0,0 +1,64 @@
++using System.Globalization;
++using System.Text;
++using System.Text.Json;
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Infrastructure.PatientPortal;
++
++/// <summary>
++/// Writes the appointment feed the patient portal polls: one JSON document per patient, newest appointment first.
++/// The portal renders it as it is, so it carries the fields the portal shows.
++/// </summary>
++public static class PortalAppointmentFeed
++{
++    public static string Serialize(Guid patientId, IEnumerable<Appointment> appointments)
++    {
++        ArgumentNullException.ThrowIfNull(appointments);
++
++        using var buffer = new MemoryStream();
++        using (var json = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = false }))
++        {
++            json.WriteStartObject();
++            json.WriteString("patientId", patientId);
++            json.WriteStartArray("appointments");
++            foreach (var a in appointments.OrderByDescending(a => a.Time.Start))
++            {
++                json.WriteStartObject();
++                json.WriteString("id", a.Id);
++                json.WriteString("practitionerId", a.PractitionerId);
++                json.WriteString("startsAt", Timestamp(a.Time.Start));
++                json.WriteString("endsAt", Timestamp(a.Time.End));
++                json.WriteString("status", Status(a.Status));
++                if (a.SeriesId is { } series)
++                {
++                    json.WriteString("seriesId", series);
++                }
++
++                if (a.CancellationReason is { } reason)
++                {
++                    json.WriteString("cancellationReason", Reason(reason));
++                }
++
++                json.WriteEndObject();
++            }
++
++            json.WriteEndArray();
++            json.WriteEndObject();
++        }
++
++        return Encoding.UTF8.GetString(buffer.ToArray());
++    }
++
++    private static string Timestamp(DateTimeOffset instant) =>
++        instant.ToString("O", CultureInfo.InvariantCulture);
++
++    private static string Status(AppointmentStatus status) => status.ToString().ToLowerInvariant();
++
++    private static string Reason(CancellationReason reason) => reason switch
++    {
++        CancellationReason.PatientRequest => "patient-request",
++        CancellationReason.PractitionerUnavailable => "practitioner-unavailable",
++        CancellationReason.ClinicClosed => "clinic-closed",
++        _ => throw new ArgumentOutOfRangeException(nameof(reason), reason, null),
++    };
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index 8b68396..1a2806c 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -21,11 +21,11 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+         var fetched = await (await client.GetAsync($"api/appointments/{appointment.Id}", ApiClient.Token)).ReadAsync<AppointmentDto>();
+ 
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+-        Assert.Equal(slots[0].Start, appointment.Start);
++        Assert.Equal("2026-03-05T08:00:00.0000000+01:00", appointment.StartsAt);
+         Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+         Assert.Equal(new CancellationDto(0m, false, "free"), await cancelled.ReadAsync<CancellationDto>());
+         Assert.Equal("cancelled", fetched.Status);
+-        Assert.Equal("PatientRequest", fetched.CancellationReason);
++        Assert.Equal("patient-request", fetched.CancellationReason);
+     }
+ 
+     [Fact]
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index b774a56..ff2257b 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -1,6 +1,6 @@
+ namespace ClinicScheduling.IntegrationTests;
+ 
+-public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start, string Status, string? CancellationReason);
++public sealed record AppointmentDto(Guid Id, Guid PatientId, string StartsAt, string Status, string? CancellationReason);
+ 
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+ 
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+new file mode 100644
+index 0000000..f6ced6c
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -0,0 +1,38 @@
++using System.Text.Json;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Infrastructure.PatientPortal;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.PatientPortal;
++
++public sealed class PortalAppointmentFeedTests
++{
++    private static readonly Guid PatientId = Guid.Parse("0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60");
++
++    [Fact]
++    public void WritesEveryAppointmentNewestFirst()
++    {
++        var early = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday, 9), At(Monday, 9, 45)), false);
++        var late = Appointment.Book(PatientId, PractitionerId, Guid.NewGuid(), new TimeRange(At(Monday.AddDays(7), 9), At(Monday.AddDays(7), 10)), true);
++        late.Cancel(CancellationReason.PatientRequest, At(Monday.AddDays(6), 18));
++
++        using var feed = JsonDocument.Parse(PortalAppointmentFeed.Serialize(PatientId, [early, late]));
++
++        var items = feed.RootElement.GetProperty("appointments").EnumerateArray().ToList();
++        Assert.Equal(PatientId, feed.RootElement.GetProperty("patientId").GetGuid());
++        Assert.Equal(late.Id, items[0].GetProperty("id").GetGuid());
++        Assert.Equal("2026-03-09T09:00:00.0000000+00:00", items[0].GetProperty("startsAt").GetString());
++        Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
++        Assert.Equal("patient-request", items[0].GetProperty("cancellationReason").GetString());
++        Assert.Equal("booked", items[1].GetProperty("status").GetString());
++    }
++
++    [Fact]
++    public void WritesAnEmptyFeed()
++    {
++        Assert.Equal(
++            $"{{\"patientId\":\"{PatientId}\",\"appointments\":[]}}",
++            PortalAppointmentFeed.Serialize(PatientId, []));
++    }
++}

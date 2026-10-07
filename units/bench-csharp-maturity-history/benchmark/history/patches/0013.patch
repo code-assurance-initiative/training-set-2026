@@ -1,0 +1,349 @@
+From 778b8ccafd49c5b91df434cb3d9187b64c87e913 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Wed, 14 Jan 2026 10:15:29 +0100
+Subject: feat(api): appointment, availability and schedule endpoints
+
+---
+ .../Contracts/AppointmentResponse.cs          | 24 +++++++++++
+ .../Contracts/BookAppointmentRequest.cs       | 13 ++++++
+ .../Contracts/RequestErrors.cs                | 28 +++++++++++++
+ .../Contracts/ScheduleRequest.cs              | 18 ++++++++
+ .../Contracts/SlotResponse.cs                 | 12 ++++++
+ .../Endpoints/AppointmentEndpoints.cs         | 40 ++++++++++++++++++
+ .../Endpoints/AvailabilityEndpoints.cs        | 41 +++++++++++++++++++
+ .../Endpoints/EndpointResults.cs              | 15 +++++++
+ .../Endpoints/ScheduleEndpoints.cs            | 35 ++++++++++++++++
+ .../ApiApplicationBuilderExtensions.cs        |  4 ++
+ .../Hosting/ApiServiceCollectionExtensions.cs |  6 +++
+ 11 files changed, 236 insertions(+)
+ create mode 100644 src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+ create mode 100644 src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
+ create mode 100644 src/ClinicScheduling.Api/Contracts/RequestErrors.cs
+ create mode 100644 src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+ create mode 100644 src/ClinicScheduling.Api/Contracts/SlotResponse.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/EndpointResults.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+new file mode 100644
+index 0000000..ebe1862
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -0,0 +1,24 @@
++using ClinicScheduling.Domain.Appointments;
++
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record AppointmentResponse(
++    Guid Id,
++    Guid PatientId,
++    Guid PractitionerId,
++    Guid ClinicId,
++    DateTimeOffset Start,
++    DateTimeOffset End)
++{
++    public static AppointmentResponse From(Appointment appointment)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        return new AppointmentResponse(
++            appointment.Id,
++            appointment.PatientId,
++            appointment.PractitionerId,
++            appointment.ClinicId,
++            appointment.Time.Start,
++            appointment.Time.End);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs b/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
+new file mode 100644
+index 0000000..a70e969
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/BookAppointmentRequest.cs
+@@ -0,0 +1,13 @@
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record BookAppointmentRequest(
++    Guid PatientId, Guid PractitionerId, Guid ClinicId, DateTimeOffset Start, int DurationMinutes)
++{
++    public RequestErrors Validate() =>
++        new RequestErrors()
++            .Require(PatientId != Guid.Empty, nameof(PatientId), "A patient is required.")
++            .Require(PractitionerId != Guid.Empty, nameof(PractitionerId), "A practitioner is required.")
++            .Require(ClinicId != Guid.Empty, nameof(ClinicId), "A clinic is required.")
++            .Require(Start != default, nameof(Start), "A start time is required.")
++            .Require(DurationMinutes is >= 10 and <= 180, nameof(DurationMinutes), "Appointments last 10 to 180 minutes.");
++}
+diff --git a/src/ClinicScheduling.Api/Contracts/RequestErrors.cs b/src/ClinicScheduling.Api/Contracts/RequestErrors.cs
+new file mode 100644
+index 0000000..3ded0b6
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/RequestErrors.cs
+@@ -0,0 +1,28 @@
++namespace ClinicScheduling.Api.Contracts;
++
++/// <summary>Collects field errors in the shape <c>Results.ValidationProblem</c> expects.</summary>
++public sealed class RequestErrors
++{
++    private readonly Dictionary<string, List<string>> _errors = new(StringComparer.Ordinal);
++
++    public bool Any => _errors.Count > 0;
++
++    public RequestErrors Require(bool condition, string field, string message)
++    {
++        if (!condition)
++        {
++            if (!_errors.TryGetValue(field, out var messages))
++            {
++                messages = [];
++                _errors[field] = messages;
++            }
++
++            messages.Add(message);
++        }
++
++        return this;
++    }
++
++    public Dictionary<string, string[]> ToDictionary() =>
++        _errors.ToDictionary(kv => kv.Key, kv => kv.Value.ToArray(), StringComparer.Ordinal);
++}
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+new file mode 100644
+index 0000000..d2ced9c
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -0,0 +1,18 @@
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record WeeklyHoursRequest(
++    DayOfWeek Day, TimeOnly Opens, TimeOnly Closes);
++
++public sealed record ScheduleRequest(
++    string? CountryCode,
++    string? TimeZone,
++    IReadOnlyList<WeeklyHoursRequest>? Hours)
++{
++    public TimeZoneInfo? Zone => TimeZone is not null && TimeZoneInfo.TryFindSystemTimeZoneById(TimeZone, out var zone) ? zone : null;
++
++    public RequestErrors Validate() =>
++        new RequestErrors()
++            .Require(CountryCode is { Length: 2 }, nameof(CountryCode), "A two-letter country code is required.")
++            .Require(Zone is not null, nameof(TimeZone), "An IANA time zone id is required.")
++            .Require(Hours is { Count: > 0 } && Hours.All(h => h.Opens < h.Closes), nameof(Hours), "Opening hours must open before they close.");
++}
+diff --git a/src/ClinicScheduling.Api/Contracts/SlotResponse.cs b/src/ClinicScheduling.Api/Contracts/SlotResponse.cs
+new file mode 100644
+index 0000000..8362634
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/SlotResponse.cs
+@@ -0,0 +1,12 @@
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record SlotResponse(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End)
++{
++    public static SlotResponse From(Slot slot)
++    {
++        ArgumentNullException.ThrowIfNull(slot);
++        return new SlotResponse(slot.PractitionerId, slot.Start, slot.End);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+new file mode 100644
+index 0000000..e543420
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -0,0 +1,40 @@
++using ClinicScheduling.Api.Contracts;
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Application.Booking;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++public static class AppointmentEndpoints
++{
++    public static IEndpointRouteBuilder MapAppointmentEndpoints(this IEndpointRouteBuilder app)
++    {
++        var group = app.MapGroup("/api/appointments").WithTags("Appointments");
++        group.MapPost("/", BookAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
++        group.MapGet("/{id:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsRead).WithName("GetAppointment");
++        return app;
++    }
++
++    private static async Task<IResult> BookAsync(BookAppointmentRequest request, BookAppointmentHandler handler, CancellationToken cancellationToken)
++    {
++        var errors = request.Validate();
++        if (errors.Any)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var command = new BookAppointmentCommand(
++            request.PatientId, request.PractitionerId, request.ClinicId, request.Start, TimeSpan.FromMinutes(request.DurationMinutes));
++        var result = await handler.HandleAsync(command, cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } appointment }
++            ? Results.CreatedAtRoute("GetAppointment", new { id = appointment.Id }, AppointmentResponse.From(appointment))
++            : EndpointResults.Problem(result);
++    }
++
++    private static async Task<IResult> GetAsync(Guid id, IAppointmentRepository appointments, CancellationToken cancellationToken)
++    {
++        var appointment = await appointments.FindAsync(id, cancellationToken).ConfigureAwait(false);
++        return appointment is null ? Results.NotFound() : Results.Ok(AppointmentResponse.From(appointment));
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+new file mode 100644
+index 0000000..0472b2e
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+@@ -0,0 +1,41 @@
++using ClinicScheduling.Api.Contracts;
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application;
++using ClinicScheduling.Application.Availability;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++public static class AvailabilityEndpoints
++{
++    public static IEndpointRouteBuilder MapAvailabilityEndpoints(this IEndpointRouteBuilder app)
++    {
++        app.MapGet("/api/practitioners/{practitionerId:guid}/slots", FindAsync)
++            .WithTags("Availability")
++            .RequireAuthorization(AuthorizationPolicies.AppointmentsRead);
++        return app;
++    }
++
++    private static async Task<IResult> FindAsync(
++        Guid practitionerId,
++        DateOnly from,
++        DateOnly to,
++        int durationMinutes,
++        FindSlotsHandler handler,
++        CancellationToken cancellationToken)
++    {
++        var errors = new RequestErrors()
++            .Require(to >= from && to.DayNumber - from.DayNumber <= 31, nameof(to), "Search at most 31 days at a time.")
++            .Require(durationMinutes is >= 10 and <= 180, nameof(durationMinutes), "Appointments last 10 to 180 minutes.");
++        if (errors.Any)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var query = new SlotQuery(from, to, TimeSpan.FromMinutes(durationMinutes));
++        var result = await handler.HandleAsync(practitionerId, query, cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } slots }
++            ? Results.Ok(slots.Select(SlotResponse.From).ToList())
++            : EndpointResults.Problem(result);
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/EndpointResults.cs b/src/ClinicScheduling.Api/Endpoints/EndpointResults.cs
+new file mode 100644
+index 0000000..1c8f3a7
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/EndpointResults.cs
+@@ -0,0 +1,15 @@
++using ClinicScheduling.Application;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++internal static class EndpointResults
++{
++    /// <summary>The problem response for a use case that did not succeed.</summary>
++    public static IResult Problem<T>(OperationResult<T> result) => result.Status switch
++    {
++        OperationStatus.NotFound => Results.Problem(result.Error, statusCode: StatusCodes.Status404NotFound),
++        OperationStatus.Conflict => Results.Problem(result.Error, statusCode: StatusCodes.Status409Conflict),
++        OperationStatus.Invalid => Results.Problem(result.Error, statusCode: StatusCodes.Status422UnprocessableEntity),
++        _ => throw new InvalidOperationException("A successful result has no problem."),
++    };
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+new file mode 100644
+index 0000000..170213c
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -0,0 +1,35 @@
++using ClinicScheduling.Api.Contracts;
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++public static class ScheduleEndpoints
++{
++    public static IEndpointRouteBuilder MapScheduleEndpoints(this IEndpointRouteBuilder app)
++    {
++        app.MapPut("/api/practitioners/{practitionerId:guid}/schedule", UpsertAsync)
++            .WithTags("Schedules")
++            .RequireAuthorization(AuthorizationPolicies.SchedulesWrite);
++        return app;
++    }
++
++    private static async Task<IResult> UpsertAsync(
++        Guid practitionerId, ScheduleRequest request, IScheduleRepository schedules, CancellationToken cancellationToken)
++    {
++        var errors = request.Validate();
++        if (errors.Any || request.Zone is not { } zone || request.CountryCode is not { } country || request.Hours is not { } hours)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var schedule = new PractitionerSchedule(
++            practitionerId,
++            country,
++            zone,
++            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes)));
++        await schedules.UpsertAsync(schedule, cancellationToken).ConfigureAwait(false);
++        return Results.NoContent();
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index e3f9d74..57300e4 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -1,3 +1,4 @@
++using ClinicScheduling.Api.Endpoints;
+ using ClinicScheduling.Api.Security;
+ 
+ namespace ClinicScheduling.Api.Hosting;
+@@ -19,6 +20,9 @@ public static class ApiApplicationBuilderExtensions
+         app.UseAuthorization();
+ 
+         app.MapHealthChecks("/health").AllowAnonymous();
++        app.MapAppointmentEndpoints();
++        app.MapAvailabilityEndpoints();
++        app.MapScheduleEndpoints();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+index 4d67732..9c38cd1 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -1,4 +1,7 @@
++using System.Text.Json.Serialization;
+ using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application;
++using ClinicScheduling.Infrastructure;
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
+ 
+ namespace ClinicScheduling.Api.Hosting;
+@@ -7,6 +10,9 @@ public static class ApiServiceCollectionExtensions
+ {
+     public static IServiceCollection AddSchedulingApi(this IServiceCollection services)
+     {
++        services.AddSchedulingApplication();
++        services.AddSchedulingInfrastructure();
++        services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+         services.AddProblemDetails();
+         services.AddHealthChecks();
+         services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));

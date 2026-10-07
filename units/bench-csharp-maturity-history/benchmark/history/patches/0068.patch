@@ -1,0 +1,58 @@
+From 656df1e8d551bac2bf697c48ce6eda4954b90de7 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Thu, 7 May 2026 10:20:31 +0200
+Subject: fix(waitlist): hold an offer for 30 minutes
+
+---
+ src/ClinicScheduling.Waitlist/WaitlistBackfill.cs            | 5 ++++-
+ src/ClinicScheduling.Waitlist/WaitlistEntry.cs               | 4 ++--
+ .../Waitlist/WaitlistBackfillTests.cs                        | 1 +
+ 3 files changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs b/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+index 4248511..5d9bf53 100644
+--- a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
++++ b/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+@@ -9,6 +9,9 @@ namespace ClinicScheduling.Waitlist;
+ /// </summary>
+ public sealed class WaitlistBackfill(WaitlistStore store, IClock clock)
+ {
++    /// <summary>How long an offer is held for one patient before the slot is offered to the next.</summary>
++    public static readonly TimeSpan OfferHold = TimeSpan.FromMinutes(30);
++
+     public WaitlistOffer? OfferFreedSlot(Appointment cancelled)
+     {
+         ArgumentNullException.ThrowIfNull(cancelled);
+@@ -19,7 +22,7 @@ public sealed class WaitlistBackfill(WaitlistStore store, IClock clock)
+             return null;
+         }
+ 
+-        var offer = new WaitlistOffer(next.Id, next.PatientId, cancelled.Time.Start, cancelled.Time.End);
++        var offer = new WaitlistOffer(next.Id, next.PatientId, cancelled.Time.Start, cancelled.Time.End, clock.UtcNow + OfferHold);
+         store.Offer(offer);
+         store.Remove(next.Id);
+         return offer;
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistEntry.cs b/src/ClinicScheduling.Waitlist/WaitlistEntry.cs
+index 8881ce2..8324309 100644
+--- a/src/ClinicScheduling.Waitlist/WaitlistEntry.cs
++++ b/src/ClinicScheduling.Waitlist/WaitlistEntry.cs
+@@ -6,5 +6,5 @@ public sealed record WaitlistEntry(Guid Id, Guid PatientId, Guid PractitionerId,
+     public bool Accepts(DateOnly day) => day >= Earliest && day <= Latest;
+ }
+ 
+-/// <summary>A freed slot offered to a waiting patient.</summary>
+-public sealed record WaitlistOffer(Guid EntryId, Guid PatientId, DateTimeOffset SlotStart, DateTimeOffset SlotEnd);
++/// <summary>A freed slot offered to a waiting patient, held for them until <see cref="ExpiresAt"/>.</summary>
++public sealed record WaitlistOffer(Guid EntryId, Guid PatientId, DateTimeOffset SlotStart, DateTimeOffset SlotEnd, DateTimeOffset ExpiresAt);
+diff --git a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+index 05cbfe1..7ce1ce0 100644
+--- a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+@@ -34,6 +34,7 @@ public sealed class WaitlistBackfillTests
+ 
+         Assert.NotNull(offer);
+         Assert.Equal(first.PatientId, offer.PatientId);
++        Assert.Equal(Now + WaitlistBackfill.OfferHold, offer.ExpiresAt);
+         Assert.DoesNotContain(_store.For(PractitionerId), e => e.Id == first.Id);
+     }
+ 

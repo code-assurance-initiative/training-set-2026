@@ -1,0 +1,244 @@
+From 42b50086f81c812201b67b02333d37311055bfee Mon Sep 17 00:00:00 2001
+From: Ines Halvard <ines.halvard@example.invalid>
+Date: Thu, 27 Aug 2026 16:22:13 +0200
+Subject: feat(dispatch): compact or comfortable cards, remembered in the
+ browser; filter stops by postal code
+
+---
+ src/features/dispatch/DispatchBoard.tsx | 55 ++++++++++++++++++++++++-
+ src/features/dispatch/RouteCard.tsx     | 16 ++++---
+ src/preferences/boardDensity.ts         | 20 +++++++++
+ src/styles/app.css                      | 17 ++++++++
+ tests/DispatchBoard.test.tsx            | 38 +++++++++++++++++
+ 5 files changed, 138 insertions(+), 8 deletions(-)
+ create mode 100644 src/preferences/boardDensity.ts
+
+diff --git a/src/features/dispatch/DispatchBoard.tsx b/src/features/dispatch/DispatchBoard.tsx
+index c4b31cf..213dd48 100644
+--- a/src/features/dispatch/DispatchBoard.tsx
++++ b/src/features/dispatch/DispatchBoard.tsx
+@@ -1,6 +1,11 @@
+ import { useState } from 'react';
+ import { getBoard, startRoute } from '../../api/dispatch';
+ import { ErrorMessage } from '../../components/ErrorMessage';
++import {
++  loadBoardDensity,
++  saveBoardDensity,
++  type BoardDensity,
++} from '../../preferences/boardDensity';
+ import { useLoad } from '../../useLoad';
+ import { RouteCard } from './RouteCard';
+ 
+@@ -10,6 +15,13 @@ export function DispatchBoard() {
+   const [date, setDate] = useState(today);
+   const [board, reload] = useLoad((signal) => getBoard(date, signal), date);
+   const [actionError, setActionError] = useState<unknown>();
++  const [density, setDensity] = useState<BoardDensity>(loadBoardDensity);
++  const [postalCode, setPostalCode] = useState('');
++
++  const changeDensity = (next: BoardDensity) => {
++    setDensity(next);
++    saveBoardDensity(next);
++  };
+ 
+   const start = (routeId: string) => {
+     startRoute(routeId).then(
+@@ -35,6 +47,40 @@ export function DispatchBoard() {
+           setDate(event.target.value);
+         }}
+       />
++      <fieldset className="density">
++        <legend>Cards</legend>
++        <label>
++          <input
++            type="radio"
++            name="density"
++            checked={density === 'comfortable'}
++            onChange={() => {
++              changeDensity('comfortable');
++            }}
++          />{' '}
++          Comfortable
++        </label>
++        <label>
++          <input
++            type="radio"
++            name="density"
++            checked={density === 'compact'}
++            onChange={() => {
++              changeDensity('compact');
++            }}
++          />{' '}
++          Compact
++        </label>
++      </fieldset>
++      <h2 className="stops-heading">Stops by postal code</h2>
++      <input
++        type="search"
++        aria-label="Show only stops with this postal code"
++        value={postalCode}
++        onChange={(event) => {
++          setPostalCode(event.target.value.trim());
++        }}
++      />
+       {actionError !== undefined && <ErrorMessage error={actionError} />}
+       {board.state === 'loading' && <p role="status">Loading routes…</p>}
+       {board.state === 'failed' && <ErrorMessage error={board.error} />}
+@@ -42,9 +88,14 @@ export function DispatchBoard() {
+         (board.value.length === 0 ? (
+           <p>No routes planned for this day.</p>
+         ) : (
+-          <ul className="board">
++          <ul className={`board board-${density}`}>
+             {board.value.map((route) => (
+-              <RouteCard key={route.routeId} route={route} onStart={start} />
++              <RouteCard
++                key={route.routeId}
++                route={route}
++                postalCode={postalCode}
++                onStart={start}
++              />
+             ))}
+           </ul>
+         ))}
+diff --git a/src/features/dispatch/RouteCard.tsx b/src/features/dispatch/RouteCard.tsx
+index 5ecdfa9..d2e1ded 100644
+--- a/src/features/dispatch/RouteCard.tsx
++++ b/src/features/dispatch/RouteCard.tsx
+@@ -5,9 +5,11 @@ const kilograms = (grams: number) => `${(grams / 1000).toFixed(0)} kg`;
+ 
+ export function RouteCard({
+   route,
++  postalCode,
+   onStart,
+ }: {
+   route: BoardRoute;
++  postalCode: string;
+   onStart: (routeId: string) => void;
+ }) {
+   const vehicleIcon = route.vehicleKind === 'Rigid' ? '/icons/rigid.svg' : '/icons/van.svg';
+@@ -26,12 +28,14 @@ export function RouteCard({
+         Load: {kilograms(route.loadGrams)} of {kilograms(route.capacityGrams)}
+       </p>
+       <ol className="stops">
+-        {route.stops.map((stop) => (
+-          <li key={stop.consignmentId}>
+-            {stop.postalCode}, {(stop.weightGrams / 1000).toFixed(1)} kg{' '}
+-            <StatusBadge status={stop.status} />
+-          </li>
+-        ))}
++        {route.stops
++          .filter((stop) => postalCode === '' || stop.postalCode.startsWith(postalCode))
++          .map((stop) => (
++            <li key={stop.consignmentId}>
++              {stop.postalCode}, {(stop.weightGrams / 1000).toFixed(1)} kg{' '}
++              <StatusBadge status={stop.status} />
++            </li>
++          ))}
+       </ol>
+       {route.status === 'Planned' && route.stops.length > 0 && (
+         <button
+diff --git a/src/preferences/boardDensity.ts b/src/preferences/boardDensity.ts
+new file mode 100644
+index 0000000..f4735c8
+--- /dev/null
++++ b/src/preferences/boardDensity.ts
+@@ -0,0 +1,20 @@
++export type BoardDensity = 'comfortable' | 'compact';
++
++const storageKey = 'quellbrook.board-density';
++
++/** The dispatcher's preferred card density for the board; a display preference kept in this browser only. */
++export function loadBoardDensity(): BoardDensity {
++  try {
++    return window.localStorage.getItem(storageKey) === 'compact' ? 'compact' : 'comfortable';
++  } catch {
++    return 'comfortable';
++  }
++}
++
++export function saveBoardDensity(density: BoardDensity): void {
++  try {
++    window.localStorage.setItem(storageKey, density);
++  } catch {
++    // Storage can be unavailable (private browsing, quota); the preference then lasts for this page only.
++  }
++}
+diff --git a/src/styles/app.css b/src/styles/app.css
+index e2d7656..e5754b9 100644
+--- a/src/styles/app.css
++++ b/src/styles/app.css
+@@ -191,3 +191,20 @@ dialog textarea {
+   gap: 0.5rem 1rem;
+   margin-bottom: 1rem;
+ }
++
++.density {
++  display: inline-flex;
++  gap: 1rem;
++  border: none;
++  margin: 1rem 0;
++}
++
++.stops-heading {
++  font-size: 1rem;
++  margin-bottom: 0.25rem;
++}
++
++.board-compact .route-card {
++  padding: 0.5rem;
++  font-size: 0.9rem;
++}
+diff --git a/tests/DispatchBoard.test.tsx b/tests/DispatchBoard.test.tsx
+index 47297bf..73ffa0c 100644
+--- a/tests/DispatchBoard.test.tsx
++++ b/tests/DispatchBoard.test.tsx
+@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
+ import userEvent from '@testing-library/user-event';
+ import { afterEach, describe, expect, it, vi } from 'vitest';
+ import { App } from '../src/App';
++import { loadBoardDensity, saveBoardDensity } from '../src/preferences/boardDensity';
+ import { fakeApi, json } from './support/fakeApi';
+ 
+ const route = (status: string) => ({
+@@ -83,3 +84,40 @@ describe('dispatch board', () => {
+     expect(await screen.findByRole('alert')).toHaveTextContent('Route has no stops.');
+   });
+ });
++
++describe('board preferences', () => {
++  afterEach(() => {
++    vi.unstubAllGlobals();
++  });
++
++  it('remembers the card density in this browser and filters stops by postal code', async () => {
++    fakeApi({ '/api/dispatch/board': () => json(200, [route('Started')]) });
++    window.history.replaceState(null, '', '/dispatch');
++    render(<App />);
++
++    await userEvent.click(await screen.findByRole('radio', { name: 'Compact' }));
++    expect(window.localStorage.getItem('quellbrook.board-density')).toBe('compact');
++    await userEvent.type(
++      screen.getByRole('searchbox', { name: 'Show only stops with this postal code' }),
++      '9000',
++    );
++
++    expect(screen.queryByText(/^8000,/)).not.toBeInTheDocument();
++  });
++
++  it('starts comfortable when nothing is remembered and when storage fails', () => {
++    expect(loadBoardDensity()).toBe('comfortable');
++    const failing = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
++      throw new Error('denied');
++    });
++    expect(loadBoardDensity()).toBe('comfortable');
++    failing.mockRestore();
++    const failingSave = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
++      throw new Error('quota');
++    });
++    expect(() => {
++      saveBoardDensity('compact');
++    }).not.toThrow();
++    failingSave.mockRestore();
++  });
++});

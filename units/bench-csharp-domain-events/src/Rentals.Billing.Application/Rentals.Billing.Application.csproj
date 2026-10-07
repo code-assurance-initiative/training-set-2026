@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Rentals.Billing.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rentals.Billing.Domain\Rentals.Billing.Domain.csproj" />
+    <ProjectReference Include="..\Rentals.Contracts\Rentals.Contracts.csproj" />
+    <ProjectReference Include="..\Rentals.Lending.Application\Rentals.Lending.Application.csproj" />
+    <ProjectReference Include="..\Rentals.Messaging\Rentals.Messaging.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
+  </ItemGroup>
+
+</Project>

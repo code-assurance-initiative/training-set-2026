@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rentals.Billing.Application/Rentals.Billing.Application.csproj" />
+    <Project Path="src/Rentals.Billing.Domain/Rentals.Billing.Domain.csproj" />
+    <Project Path="src/Rentals.Billing.Infrastructure/Rentals.Billing.Infrastructure.csproj" />
+    <Project Path="src/Rentals.Contracts/Rentals.Contracts.csproj" />
+    <Project Path="src/Rentals.Lending.Application/Rentals.Lending.Application.csproj" />
+    <Project Path="src/Rentals.Lending.Domain/Rentals.Lending.Domain.csproj" />
+    <Project Path="src/Rentals.Lending.Infrastructure/Rentals.Lending.Infrastructure.csproj" />
+    <Project Path="src/Rentals.Messaging/Rentals.Messaging.csproj" />
+    <Project Path="src/Rentals.SharedKernel/Rentals.SharedKernel.csproj" />
+    <Project Path="src/Rentals.Worker/Rentals.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rentals.Billing.Tests/Rentals.Billing.Tests.csproj" />
+    <Project Path="tests/Rentals.IntegrationTests/Rentals.IntegrationTests.csproj" />
+    <Project Path="tests/Rentals.Lending.Tests/Rentals.Lending.Tests.csproj" />
+  </Folder>
+</Solution>

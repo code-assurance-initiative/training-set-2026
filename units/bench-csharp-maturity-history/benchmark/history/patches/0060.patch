@@ -1,0 +1,24 @@
+From b44671c7160f58c2c15fa080a1ab57d45945c333 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 14 Apr 2026 09:45:33 +0200
+Subject: ci: weekly scheduled build, so new advisories fail it
+
+---
+ .github/workflows/ci.yml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index adcbcc8..3768dcb 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -5,6 +5,10 @@ on:
+     branches: [main]
+   pull_request:
+     branches: [main]
++  schedule:
++    # Weekly, so newly published advisories against the locked dependency set fail the build
++    # even when nobody has pushed.
++    - cron: "17 5 * * 1"
+ 
+ permissions:
+   contents: read

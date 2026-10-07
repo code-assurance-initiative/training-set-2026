@@ -1,0 +1,203 @@
+From 809305c05a81432402a2491b8458c152192e9eb1 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Mon, 16 Feb 2026 10:45:20 +0100
+Subject: feat: reschedule appointments
+
+---
+ .../Contracts/RescheduleAppointmentRequest.cs |  7 +++
+ .../Endpoints/AppointmentEndpoints.cs         | 15 ++++++
+ .../ApplicationServiceCollectionExtensions.cs |  1 +
+ .../Booking/RescheduleAppointment.cs          | 49 +++++++++++++++++++
+ .../Appointments/Appointment.cs               |  8 ++-
+ .../BookingFlowTests.cs                       |  4 +-
+ .../Appointments/AppointmentTests.cs          | 11 +++++
+ 7 files changed, 93 insertions(+), 2 deletions(-)
+ create mode 100644 src/ClinicScheduling.Api/Contracts/RescheduleAppointmentRequest.cs
+ create mode 100644 src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+
+diff --git a/src/ClinicScheduling.Api/Contracts/RescheduleAppointmentRequest.cs b/src/ClinicScheduling.Api/Contracts/RescheduleAppointmentRequest.cs
+new file mode 100644
+index 0000000..9935a54
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/RescheduleAppointmentRequest.cs
+@@ -0,0 +1,7 @@
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record RescheduleAppointmentRequest(DateTimeOffset NewStart)
++{
++    public RequestErrors Validate() =>
++        new RequestErrors().Require(NewStart != default, nameof(NewStart), "A new start time is required.");
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index 67f0dfb..5615650 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -14,6 +14,7 @@ public static class AppointmentEndpoints
+         group.MapPost("/", BookAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         group.MapGet("/{id:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsRead).WithName("GetAppointment");
+         group.MapPost("/{id:guid}/cancellation", CancelAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
++        group.MapPost("/{id:guid}/reschedule", RescheduleAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         return app;
+     }
+ 
+@@ -52,4 +53,18 @@ public static class AppointmentEndpoints
+             ? Results.Ok(CancellationResponse.From(decision))
+             : EndpointResults.Problem(result);
+     }
++
++    private static async Task<IResult> RescheduleAsync(Guid id, RescheduleAppointmentRequest request, RescheduleAppointmentHandler handler, CancellationToken cancellationToken)
++    {
++        var errors = request.Validate();
++        if (errors.Any)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var result = await handler.HandleAsync(new RescheduleAppointmentCommand(id, request.NewStart), cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } appointment }
++            ? Results.Ok(AppointmentResponse.From(appointment))
++            : EndpointResults.Problem(result);
++    }
+ }
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index ade5003..215e7fe 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -19,6 +19,7 @@ public static class ApplicationServiceCollectionExtensions
+         services.AddSingleton<RecurrenceExpander>();
+         services.AddScoped<BookAppointmentHandler>();
+         services.AddScoped<CancelAppointmentHandler>();
++        services.AddScoped<RescheduleAppointmentHandler>();
+         services.AddScoped<FindSlotsHandler>();
+         services.AddScoped<BookTreatmentSeriesHandler>();
+         return services;
+diff --git a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+new file mode 100644
+index 0000000..9787a55
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+@@ -0,0 +1,49 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++
++namespace ClinicScheduling.Application.Booking;
++
++public sealed record RescheduleAppointmentCommand(Guid AppointmentId, DateTimeOffset NewStart);
++
++public sealed class RescheduleAppointmentHandler(
++    IAppointmentRepository appointments,
++    IScheduleRepository schedules,
++    SlotFinder slotFinder,
++    SlotSearchOptions searchOptions)
++{
++    public async Task<OperationResult<Appointment>> HandleAsync(RescheduleAppointmentCommand command, CancellationToken cancellationToken)
++    {
++        ArgumentNullException.ThrowIfNull(command);
++        var appointment = await appointments.FindAsync(command.AppointmentId, cancellationToken).ConfigureAwait(false);
++        if (appointment is null)
++        {
++            return Operation.NotFound<Appointment>($"Appointment {command.AppointmentId} does not exist.");
++        }
++
++        if (appointment.Status != AppointmentStatus.Booked)
++        {
++            return Operation.Conflict<Appointment>("This appointment is no longer booked.");
++        }
++
++        var schedule = await schedules.FindAsync(appointment.PractitionerId, cancellationToken).ConfigureAwait(false);
++        if (schedule is null)
++        {
++            return Operation.NotFound<Appointment>($"Practitioner {appointment.PractitionerId} has no schedule.");
++        }
++
++        var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.NewStart, schedule.TimeZone).DateTime);
++        var from = command.NewStart.AddDays(-1);
++        var others = await appointments.BookedForPractitionerAsync(schedule.PractitionerId, from, from.AddDays(3), cancellationToken).ConfigureAwait(false);
++        var booked = others.Where(a => a.Id != appointment.Id).Select(a => a.Time).ToList();
++        var query = new SlotQuery(day, day, appointment.Time.Duration);
++        if (!slotFinder.FindOpenSlots(schedule, booked, query, searchOptions).Any(s => s.Start == command.NewStart))
++        {
++            return Operation.Conflict<Appointment>("The requested time is not an open slot.");
++        }
++
++        appointment.Reschedule(new TimeRange(command.NewStart, command.NewStart + appointment.Time.Duration));
++        await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        return Operation.Ok<Appointment>(appointment);
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 1627387..3a6b887 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -30,7 +30,7 @@ public sealed class Appointment
+ 
+     public Guid ClinicId { get; }
+ 
+-    public TimeRange Time { get; }
++    public TimeRange Time { get; private set; }
+ 
+     /// <summary>The treatment series this appointment belongs to, if it was booked as part of one.</summary>
+     public Guid? SeriesId { get; }
+@@ -57,6 +57,12 @@ public sealed class Appointment
+         CancelledAt = at;
+     }
+ 
++    public void Reschedule(TimeRange time)
++    {
++        EnsureBooked();
++        Time = time;
++    }
++
+     public void Complete()
+     {
+         EnsureBooked();
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index 2d0c5cc..8b68396 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -6,7 +6,7 @@ namespace ClinicScheduling.IntegrationTests;
+ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
+ {
+     [Fact]
+-    public async Task FindBookAndCancel()
++    public async Task FindBookRescheduleAndCancel()
+     {
+         using var client = factory.CreateClient(ApiClient.AllScopes);
+         await client.PutScheduleAsync();
+@@ -16,11 +16,13 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+             $"api/practitioners/{ApiClient.PractitionerId}/slots?from=2026-03-05&to=2026-03-05&durationMinutes=45", ApiClient.Token)).ReadAsync<List<SlotDto>>();
+         using var booked = await client.BookAsync(patient, slots[0].Start);
+         var appointment = await booked.ReadAsync<AppointmentDto>();
++        using var moved = await client.PostAsJsonAsync($"api/appointments/{appointment.Id}/reschedule", new { newStart = slots[4].Start }, ApiClient.Token);
+         using var cancelled = await client.PostAsJsonAsync($"api/appointments/{appointment.Id}/cancellation", new { reason = "patient-request" }, ApiClient.Token);
+         var fetched = await (await client.GetAsync($"api/appointments/{appointment.Id}", ApiClient.Token)).ReadAsync<AppointmentDto>();
+ 
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+         Assert.Equal(slots[0].Start, appointment.Start);
++        Assert.Equal(HttpStatusCode.OK, moved.StatusCode);
+         Assert.Equal(new CancellationDto(0m, false, "free"), await cancelled.ReadAsync<CancellationDto>());
+         Assert.Equal("cancelled", fetched.Status);
+         Assert.Equal("PatientRequest", fetched.CancellationReason);
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+index 619f2f2..f50c1e2 100644
+--- a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -22,6 +22,17 @@ public sealed class AppointmentTests
+         Assert.Throws<InvalidOperationException>(() => appointment.Cancel(CancellationReason.PatientRequest, Now));
+     }
+ 
++    [Fact]
++    public void ReschedulingMovesTheTime()
++    {
++        var appointment = Booked();
++        var later = new TimeRange(At(Monday, 11), At(Monday, 12));
++
++        appointment.Reschedule(later);
++
++        Assert.Equal(later, appointment.Time);
++    }
++
+     [Fact]
+     public void OnlyABookedAppointmentCanBeCompletedOrMissed()
+     {

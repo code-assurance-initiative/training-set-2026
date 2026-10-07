@@ -1,0 +1,31 @@
+asyncapi: 3.0.0
+info:
+  title: Quellbrook notifier — consumed events
+  version: 1.0.0
+  description: The notifier publishes no events; it consumes these from the platform's RabbitMQ topic exchange.
+servers:
+  production:
+    host: rabbitmq.messaging.svc.cluster.local:5671
+    protocol: amqps
+    pathname: /quellbrook
+channels:
+  notifierEvents:
+    address: notifier.events
+    description: >-
+      Durable queue bound to orders.order-placed.v1, dispatch.consignment-out-for-delivery.v1 and
+      dispatch.consignment-delivered.v1; dead-letters to quellbrook.dead-letter.
+    messages:
+      orderPlaced:
+        payload:
+          $ref: './consumed/orders/order-placed.v1.schema.json'
+      consignmentOutForDelivery:
+        payload:
+          $ref: './consumed/dispatch/consignment-out-for-delivery.v1.schema.json'
+      consignmentDelivered:
+        payload:
+          $ref: './consumed/dispatch/consignment-delivered.v1.schema.json'
+operations:
+  consumeEvents:
+    action: receive
+    channel:
+      $ref: '#/channels/notifierEvents'

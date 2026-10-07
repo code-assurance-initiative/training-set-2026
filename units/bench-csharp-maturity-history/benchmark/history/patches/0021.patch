@@ -1,0 +1,180 @@
+From f3ba0812f870ceb65c55e6f05aa0583769b1f696 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Mon, 26 Jan 2026 13:35:16 +0100
+Subject: feat(availability): match the practitioner's skills
+
+---
+ src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs |  3 ++-
+ .../Endpoints/AvailabilityEndpoints.cs                |  3 ++-
+ .../Endpoints/ScheduleEndpoints.cs                    |  3 ++-
+ .../Availability/PractitionerSchedule.cs              |  9 ++++++++-
+ .../Availability/SlotFinder.cs                        |  5 +++++
+ src/ClinicScheduling.Domain/Availability/SlotQuery.cs |  4 ++--
+ .../Availability/SlotFinderTests.cs                   | 11 +++++++++--
+ tests/ClinicScheduling.UnitTests/TestData.cs          |  6 ++++--
+ 8 files changed, 34 insertions(+), 10 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+index e8e333c..838fd2a 100644
+--- a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -6,7 +6,8 @@ public sealed record WeeklyHoursRequest(
+ public sealed record ScheduleRequest(
+     string? CountryCode,
+     string? TimeZone,
+-    IReadOnlyList<WeeklyHoursRequest>? Hours)
++    IReadOnlyList<WeeklyHoursRequest>? Hours,
++    IReadOnlyList<string>? Skills)
+ {
+     public TimeZoneInfo? Zone => TimeZone is not null && TimeZoneInfo.TryFindSystemTimeZoneById(TimeZone, out var zone) ? zone : null;
+ 
+diff --git a/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+index 0472b2e..e816ca3 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AvailabilityEndpoints.cs
+@@ -21,6 +21,7 @@ public static class AvailabilityEndpoints
+         DateOnly from,
+         DateOnly to,
+         int durationMinutes,
++        string? skill,
+         FindSlotsHandler handler,
+         CancellationToken cancellationToken)
+     {
+@@ -32,7 +33,7 @@ public static class AvailabilityEndpoints
+             return Results.ValidationProblem(errors.ToDictionary());
+         }
+ 
+-        var query = new SlotQuery(from, to, TimeSpan.FromMinutes(durationMinutes));
++        var query = new SlotQuery(from, to, TimeSpan.FromMinutes(durationMinutes), skill);
+         var result = await handler.HandleAsync(practitionerId, query, cancellationToken).ConfigureAwait(false);
+         return result is { Status: OperationStatus.Ok, Value: { } slots }
+             ? Results.Ok(slots.Select(SlotResponse.From).ToList())
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+index ad77c95..cfa5b5f 100644
+--- a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -28,7 +28,8 @@ public static class ScheduleEndpoints
+             practitionerId,
+             country,
+             zone,
+-            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)));
++            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)),
++            request.Skills ?? []);
+         await schedules.UpsertAsync(schedule, cancellationToken).ConfigureAwait(false);
+         return Results.NoContent();
+     }
+diff --git a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+index 941c729..ca7c517 100644
+--- a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
++++ b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+@@ -4,12 +4,14 @@ namespace ClinicScheduling.Domain.Availability;
+ public sealed class PractitionerSchedule
+ {
+     private readonly List<WeeklyHours> _hours;
++    private readonly HashSet<string> _skills;
+ 
+     public PractitionerSchedule(
+         Guid practitionerId,
+         string countryCode,
+         TimeZoneInfo timeZone,
+-        IEnumerable<WeeklyHours> hours)
++        IEnumerable<WeeklyHours> hours,
++        IEnumerable<string> skills)
+     {
+         ArgumentException.ThrowIfNullOrWhiteSpace(countryCode);
+         ArgumentNullException.ThrowIfNull(timeZone);
+@@ -18,6 +20,7 @@ public sealed class PractitionerSchedule
+         CountryCode = countryCode.ToUpperInvariant();
+         TimeZone = timeZone;
+         _hours = [.. hours];
++        _skills = new HashSet<string>(skills, StringComparer.OrdinalIgnoreCase);
+     }
+ 
+     public Guid PractitionerId { get; }
+@@ -26,7 +29,11 @@ public sealed class PractitionerSchedule
+ 
+     public TimeZoneInfo TimeZone { get; }
+ 
++    public IReadOnlyCollection<string> Skills => _skills;
++
+     public IReadOnlyList<WeeklyHours> Hours => _hours;
+ 
+     public IEnumerable<WeeklyHours> HoursOn(DayOfWeek day) => _hours.Where(h => h.Day == day);
++
++    public bool HasSkill(string skill) => _skills.Contains(skill);
+ }
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 7144a8d..84640d3 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -17,6 +17,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+         ArgumentNullException.ThrowIfNull(query);
+         ArgumentNullException.ThrowIfNull(options);
+ 
++        if (query.RequiredSkill is not null && !schedule.HasSkill(query.RequiredSkill))
++        {
++            return [];
++        }
++
+         var now = clock.UtcNow;
+         var today = DateOnly.FromDateTime(now.UtcDateTime);
+         var slots = new List<Slot>();
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotQuery.cs b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+index 5603309..3fae54d 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotQuery.cs
+@@ -1,4 +1,4 @@
+ namespace ClinicScheduling.Domain.Availability;
+ 
+-/// <summary>What a patient is looking for: a duration within a date range.</summary>
+-public sealed record SlotQuery(DateOnly From, DateOnly To, TimeSpan Duration);
++/// <summary>What a patient is looking for: a duration within a date range, optionally a skill.</summary>
++public sealed record SlotQuery(DateOnly From, DateOnly To, TimeSpan Duration, string? RequiredSkill = null);
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 45cf3fe..5627cee 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -10,8 +10,8 @@ public sealed class SlotFinderTests
+ 
+     private SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays), _clock);
+ 
+-    private static SlotQuery Tuesday(TimeSpan? duration = null) =>
+-        new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour);
++    private static SlotQuery Tuesday(TimeSpan? duration = null, string? skill = null) =>
++        new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour, skill);
+ 
+     [Fact]
+     public void OffersSlotsOnTheGranularity()
+@@ -63,4 +63,11 @@ public sealed class SlotFinderTests
+ 
+         Assert.All(morning, s => Assert.True(s.Start >= Now + TimeSpan.FromHours(2)));
+     }
++
++    [Fact]
++    public void MatchesSkills()
++    {
++        Assert.Empty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "pelvic-floor"), new SlotSearchOptions()));
++        Assert.NotEmpty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "SPORTS"), new SlotSearchOptions()));
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index d3db36c..39d09d7 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -26,12 +26,14 @@ public static class TestData
+     public static readonly Guid PractitionerId = Guid.Parse("6f1d2c7e-5a43-4b8e-9c11-0d2f3a4b5c6d");
+ 
+     public static PractitionerSchedule Schedule(
+-        IEnumerable<WeeklyHours>? hours = null) =>
++        IEnumerable<WeeklyHours>? hours = null,
++        IEnumerable<string>? skills = null) =>
+         new(
+             PractitionerId,
+             "DK",
+             TimeZoneInfo.Utc,
+-            hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)));
++            hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)),
++            skills ?? ["sports"]);
+ 
+     public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes, TimeOnly? breakStarts = null, TimeOnly? breakEnds = null) =>
+         new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday }

@@ -1,0 +1,10 @@
+{
+  "Partner": {
+    "BaseUrl": "https://api.partner-fulfilment.test/",
+    "DefaultRequestHeaders": {
+      "Authorization": "Bearer WqFRGtvONOh2RIkk60jd4tWdk3I81xrbt9302XVnS4s",
+      "Accept": "application/json"
+    },
+    "Timeout": "00:00:15"
+  }
+}

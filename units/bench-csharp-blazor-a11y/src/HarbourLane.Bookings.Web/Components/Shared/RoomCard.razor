@@ -1,0 +1,22 @@
+@if (Room is { } room)
+{
+    <article class="room-card">
+        <h3><a href="rooms/@room.Slug">@room.Name</a></h3>
+        @if (room.Photos.Count > 0)
+        {
+            <img class="room-card-photo" src="@room.Photos[0].Url" alt="@room.Photos[0].Caption" width="320" height="200" />
+        }
+        <p>@room.Floor · up to @room.Capacity people · @Money.PerHour(room.HourlyRate)</p>
+        <ul class="room-card-amenities" aria-label="Amenities">
+            @foreach (var amenity in room.Amenities.Order())
+            {
+                <li>@AmenityNames.Display(amenity)</li>
+            }
+        </ul>
+    </article>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public Room? Room { get; set; }
+}

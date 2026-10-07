@@ -1,0 +1,83 @@
+From 4cc1ca78a76acb1011af5480d6839685eb9bf924 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 7 Sep 2026 10:40:11 +0200
+Subject: fix(availability): in-clinic-only hours are never offered for video
+
+---
+ src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs        | 2 +-
+ src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs      | 2 +-
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs       | 5 +++++
+ src/ClinicScheduling.Domain/Availability/WeeklyHours.cs      | 3 ++-
+ .../Availability/SlotFinderTests.cs                          | 2 ++
+ 5 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+index cf3e9bd..00cb0b4 100644
+--- a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -1,7 +1,7 @@
+ namespace ClinicScheduling.Api.Contracts;
+ 
+ public sealed record WeeklyHoursRequest(
+-    DayOfWeek Day, TimeOnly Opens, TimeOnly Closes, TimeOnly? BreakStarts, TimeOnly? BreakEnds);
++    DayOfWeek Day, TimeOnly Opens, TimeOnly Closes, TimeOnly? BreakStarts, TimeOnly? BreakEnds, bool InClinicOnly);
+ 
+ public sealed record ScheduleRequest(
+     string? CountryCode,
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+index 07b7528..a37b0bd 100644
+--- a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -28,7 +28,7 @@ public static class ScheduleEndpoints
+             practitionerId,
+             country,
+             zone,
+-            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)),
++            hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds, h.InClinicOnly)),
+             request.Skills ?? [],
+             request.OffersTelehealth,
+             request.MaxAppointmentsPerDay);
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 5cba44e..2d9d7e3 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -60,6 +60,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+ 
+             foreach (var hours in schedule.HoursOn(day.DayOfWeek))
+             {
++                if (query.Telehealth && hours.InClinicOnly)
++                {
++                    continue;
++                }
++
+                 var opens = At(day, hours.Opens, schedule.TimeZone);
+                 var closes = At(day, hours.Closes, schedule.TimeZone);
+                 var lastEnd = query.Telehealth ? closes : closes - options.RoomTurnaround;
+diff --git a/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+index b15e48a..cbe2cc1 100644
+--- a/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
++++ b/src/ClinicScheduling.Domain/Availability/WeeklyHours.cs
+@@ -9,4 +9,5 @@ public sealed record WeeklyHours(
+     TimeOnly Opens,
+     TimeOnly Closes,
+     TimeOnly? BreakStarts = null,
+-    TimeOnly? BreakEnds = null);
++    TimeOnly? BreakEnds = null,
++    bool InClinicOnly = false);
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index aa5d3da..567bba8 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -83,10 +83,12 @@ public sealed class SlotFinderTests
+     public void MatchesSkillsAndTelehealth()
+     {
+         var noVideo = Schedule(telehealth: false);
++        var inClinicOnly = Schedule(Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)).Select(h => h with { InClinicOnly = true }));
+ 
+         Assert.Empty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "pelvic-floor"), new SlotSearchOptions()));
+         Assert.NotEmpty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "SPORTS"), new SlotSearchOptions()));
+         Assert.Empty(Finder().FindOpenSlots(noVideo, [], Tuesday(telehealth: true), new SlotSearchOptions()));
++        Assert.Empty(Finder().FindOpenSlots(inClinicOnly, [], Tuesday(telehealth: true), new SlotSearchOptions()));
+     }
+ 
+     [Fact]

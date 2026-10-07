@@ -1,0 +1,19 @@
+@using HarbourLane.Bookings.Content
+@using HarbourLane.Bookings.Web.Content
+@inject ISiteNoticeStore Notices
+@inject NoticeSanitizer Sanitizer
+
+@if (!string.IsNullOrEmpty(_safeHtml))
+{
+    <aside class="notice" aria-label="Notice">@((MarkupString)_safeHtml)</aside>
+}
+
+@code {
+    private string? _safeHtml;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var notice = await Notices.GetAsync(CancellationToken.None);
+        _safeHtml = notice.IsEmpty ? null : Sanitizer.Sanitize(notice.Html);
+    }
+}

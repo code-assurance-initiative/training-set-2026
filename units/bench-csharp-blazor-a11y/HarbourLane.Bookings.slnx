@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HarbourLane.Bookings.Core/HarbourLane.Bookings.Core.csproj" />
+    <Project Path="src/HarbourLane.Bookings.Web/HarbourLane.Bookings.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HarbourLane.Bookings.UnitTests/HarbourLane.Bookings.UnitTests.csproj" />
+    <Project Path="tests/HarbourLane.Bookings.IntegrationTests/HarbourLane.Bookings.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,203 @@
+From 80300b6ac8ed81daeed0b4afc55380b1fa947b45 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Thu, 6 Aug 2026 13:05:42 +0200
+Subject: docs: README, architecture with C4 diagrams and catalog entry
+
+---
+ README.md            | 68 ++++++++++++++++++++++++++++++++++++++++++++
+ SECURITY.md          | 21 ++++++++++++++
+ catalog-info.yaml    | 19 +++++++++++++
+ docs/architecture.md | 55 +++++++++++++++++++++++++++++++++++
+ 4 files changed, 163 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 SECURITY.md
+ create mode 100644 catalog-info.yaml
+ create mode 100644 docs/architecture.md
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..de5a1a8
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,68 @@
++# Quellbrook Notifier
++
++The notifier of Quellbrook Freight's operations platform tells consignees about their deliveries. It is a background
++worker: it consumes the platform's events from RabbitMQ, keeps the consignee's name and contact details that the
++order service announces with each order, and sends plain-text e-mail through a transactional e-mail provider.
++
++**Owner:** the Customer Comms team (`#team-comms`). **System:** Quellbrook operations platform (see
++`catalog-info.yaml`).
++
++## What it sends
++
++| Event consumed | Notification | Channel |
++|---|---|---|
++| `orders.order-placed.v1` | "Your delivery … is booked" | e-mail (when the order has an address) |
++
++Every message is processed once per message id (inbox), and every notification is sent at most once per order, kind
++and channel (the notification log is checked before sending) — see ADR 0002.
++
++## Build and run
++
++Requires the .NET 10 SDK (`global.json`), a PostgreSQL 16 database, a RabbitMQ broker and an e-mail provider key.
++
++```sh
++dotnet tool restore
++dotnet build Quellbrook.Notifier.slnx
++export ConnectionStrings__Notifier="Host=localhost;Database=notifier;Username=notifier"
++dotnet ef database update --project src/Quellbrook.Notifier
++dotnet user-secrets set EmailProvider:ApiKey "<your sandbox key>" --project src/Quellbrook.Notifier
++dotnet run --project src/Quellbrook.Notifier
++```
++
++## Configuration
++
++| Setting | Meaning |
++|---|---|
++| `ConnectionStrings__Notifier` | PostgreSQL connection string (a Kubernetes Secret in production) |
++| `RabbitMq__Uri`, `RabbitMq__UserName`, `RabbitMq__Password`, `RabbitMq__Exchange` | the broker; credentials from a Secret |
++| `EmailProvider__ApiKey`, `EmailProvider__FromAddress`, `EmailProvider__BaseAddress` | the e-mail provider; the key from a Secret or user secrets |
++| `Heartbeat__Path`, `Heartbeat__Interval` | the file the Kubernetes probes read |
++| `OTEL_EXPORTER_OTLP_ENDPOINT` | where traces, metrics and logs are exported, when set |
++
++## Testing
++
++```sh
++dotnet test Quellbrook.Notifier.slnx
++```
++
++`tests/Quellbrook.Notifier.UnitTests` covers the inbox and the notification log over in-memory SQLite, the consumer's
++acknowledgement and queue setup, the e-mail sender against a stub HTTP handler, the templates and masking, and the
++heartbeat. No test touches the network or a real provider.
++
++## Architecture
++
++See [docs/architecture.md](docs/architecture.md) and the decision records in [docs/adr](docs/adr).
++
++## Deployment
++
++A published GitHub release builds the image and the migrations bundle; the manual `deploy.yml` workflow migrates the
++database and rolls the worker out to the `quellbrook-notifier` namespace (`deploy/k8s/`).
++
++## Contributing
++
++Open a pull request against `main`. CI must be green and CodeQL must report no new alerts. Never put a credential in a
++file of this repository. Record user-visible changes in `CHANGELOG.md`.
++
++## Licence
++
++MIT; see [LICENSE](LICENSE).
+diff --git a/SECURITY.md b/SECURITY.md
+new file mode 100644
+index 0000000..ab49fba
+--- /dev/null
++++ b/SECURITY.md
+@@ -0,0 +1,21 @@
++# Security policy
++
++## Reporting a vulnerability
++
++Please report suspected vulnerabilities privately through GitHub's
++[private vulnerability reporting](https://github.com/code-assurance-initiative/estate-quellbrook-notifier/security/advisories/new)
++for this repository. Do not open a public issue.
++
++Include what you found, how to reproduce it, and the impact you expect. We acknowledge reports within three working
++days and aim to publish a fix or a mitigation within 30 days of confirming the issue. We credit reporters in the
++advisory unless they ask us not to.
++
++## Supported versions
++
++Only the latest release is supported.
++
++## Scope
++
++In scope: the notifier and the build, release and deployment configuration in this repository. Out of scope:
++the e-mail and SMS providers, the message broker and the platform's shared infrastructure (report those to the platform
++team through the same channel).
+diff --git a/catalog-info.yaml b/catalog-info.yaml
+new file mode 100644
+index 0000000..5f353a4
+--- /dev/null
++++ b/catalog-info.yaml
+@@ -0,0 +1,19 @@
++apiVersion: backstage.io/v1alpha1
++kind: Component
++metadata:
++  name: quellbrook-notifier
++  description: Notifier — tells consignees about their deliveries by e-mail and SMS.
++  annotations:
++    github.com/project-slug: code-assurance-initiative/estate-quellbrook-notifier
++  tags: [dotnet, worker, postgres, rabbitmq]
++spec:
++  type: service
++  lifecycle: production
++  owner: group:customer-comms
++  system: quellbrook-operations
++  consumesApis:
++    - quellbrook-orders-events
++  dependsOn:
++    - resource:quellbrook-notifier-db
++    - resource:quellbrook-event-broker
++    - resource:email-provider
+diff --git a/docs/architecture.md b/docs/architecture.md
+new file mode 100644
+index 0000000..53a60c0
+--- /dev/null
++++ b/docs/architecture.md
+@@ -0,0 +1,55 @@
++# Architecture — notifier
++
++## Context
++
++The notifier is one of five parts of the Quellbrook operations platform and the only one that talks to consignees.
++
++```mermaid
++C4Context
++  title System context — notifier
++  Person_Ext(consignee, "Consignee", "Receives the parcels and the notifications")
++  System_Boundary(platform, "Quellbrook operations platform") {
++    System(orders, "Order service", "estate-quellbrook-orders")
++    System(dispatch, "Dispatch service", "estate-quellbrook-dispatch")
++    System(notifier, "Notifier", "this repository")
++  }
++  System_Ext(email, "E-mail provider", "Transactional e-mail API")
++  Rel(orders, notifier, "orders.order-placed.v1", "RabbitMQ")
++  Rel(notifier, email, "Sends e-mail", "HTTPS")
++  Rel(email, consignee, "Delivers e-mail")
++```
++
++## Containers
++
++```mermaid
++C4Container
++  title Containers — notifier
++  ContainerQueue(broker, "Event broker", "RabbitMQ", "queue notifier.events")
++  Container_Boundary(service, "Notifier") {
++    Container(worker, "Notifier worker", ".NET 10 worker", "Consumes events, keeps recipients, sends notifications")
++    ContainerDb(db, "Notifier database", "PostgreSQL 16", "recipients, processed_messages, notification_log")
++  }
++  System_Ext(email, "E-mail provider", "SendGrid v3 API")
++  Rel(broker, worker, "Delivers order events", "AMQPS")
++  Rel(worker, db, "Reads and writes", "EF Core / Npgsql")
++  Rel(worker, email, "POST v3/mail/send", "HTTPS, API key")
++```
++
++## Inside the worker
++
++| Folder | Responsibility |
++|---|---|
++| `Messaging/` | the RabbitMQ consumer, the inbox, the notifier's copies of the consumed message types |
++| `Notifications/` | the handlers per event, the notification service and log, templates, contact masking |
++| `Channels/` | the provider clients behind `IEmailSender` (resilience: timeouts, retries, circuit breaker) |
++| `Persistence/` | EF Core context and migrations |
++| `Hosting/` | service registration, OpenTelemetry, the heartbeat the probes read |
++
++The worker serves no HTTP. Kubernetes reads its health from a heartbeat file (`/tmp/heartbeat`) that is rewritten
++after each health-check round.
++
++## Message contracts
++
++| Routing key | Fields the notifier reads | Producer |
++|---|---|---|
++| `orders.order-placed.v1` | order id, consignee name, contact e-mail and phone | order service |

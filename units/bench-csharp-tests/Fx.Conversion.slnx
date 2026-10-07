@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Fx.Conversion.Api/Fx.Conversion.Api.csproj" />
+    <Project Path="src/Fx.Conversion.Core/Fx.Conversion.Core.csproj" />
+    <Project Path="src/Fx.Conversion.Rates/Fx.Conversion.Rates.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fx.Conversion.IntegrationTests/Fx.Conversion.IntegrationTests.csproj" />
+    <Project Path="tests/Fx.Conversion.Specs/Fx.Conversion.Specs.csproj" />
+    <Project Path="tests/Fx.Conversion.TestSupport/Fx.Conversion.TestSupport.csproj" />
+    <Project Path="tests/Fx.Conversion.UnitTests/Fx.Conversion.UnitTests.csproj" />
+  </Folder>
+</Solution>

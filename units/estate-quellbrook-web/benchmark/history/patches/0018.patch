@@ -1,0 +1,65 @@
+From 0006829fade9f55b84c01093d390d143185d5741 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Fri, 4 Sep 2026 14:20:09 +0200
+Subject: release 0.3.0
+
+---
+ CHANGELOG.md      | 12 ++++++++++++
+ package-lock.json |  4 ++--
+ package.json      |  2 +-
+ 3 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e678dfc..cc6f804 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -3,6 +3,18 @@
+ All notable changes to this project are documented here. The format follows
+ [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
+ 
++## [0.3.0] - 2026-09-04
++
++### Added
++
++- Searching the orders page by consignee or city, filtering by status.
++- Dispatch board: compact or comfortable cards (remembered in the browser), stops filtered by postal code.
++- Release images carry a signed build-provenance attestation, verified before deploying.
++
++### Fixed
++
++- nginx no longer drops the server's security headers in the page and asset locations.
++
+ ## [0.2.0] - 2026-08-21
+ 
+ ### Added
+diff --git a/package-lock.json b/package-lock.json
+index 3c4ed7a..d0bf35e 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,12 +1,12 @@
+ {
+   "name": "quellbrook-web",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "quellbrook-web",
+-      "version": "0.2.0",
++      "version": "0.3.0",
+       "license": "MIT",
+       "dependencies": {
+         "react": "^19.3.0",
+diff --git a/package.json b/package.json
+index 2efa075..3f33079 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "quellbrook-web",
+-  "version": "0.2.0",
++  "version": "0.3.0",
+   "description": "Operator console of the Quellbrook operations platform: orders, shipment status and the dispatch board.",
+   "private": true,
+   "license": "MIT",

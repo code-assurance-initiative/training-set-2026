@@ -1,0 +1,21 @@
+From da33548113ca5002b6b46eed06565fd7f86f2f5f Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 9 Feb 2026 10:10:55 +0100
+Subject: build: roll forward to the latest SDK feature band
+
+---
+ global.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/global.json b/global.json
+index b24aad6..512142d 100644
+--- a/global.json
++++ b/global.json
+@@ -1,6 +1,6 @@
+ {
+   "sdk": {
+     "version": "10.0.100",
+-    "rollForward": "latestPatch"
++    "rollForward": "latestFeature"
+   }
+ }

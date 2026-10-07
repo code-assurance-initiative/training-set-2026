@@ -1,0 +1,33 @@
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.nav-list {
+    display: flex;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.nav-list ::deep a {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+}
+
+.nav-list ::deep a.active {
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 0.3em;
+}
+
+.nav-list ::deep a:focus {
+    outline: none;
+}
+
+.sign-out {
+    margin: 0;
+}

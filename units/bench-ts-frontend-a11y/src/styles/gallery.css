@@ -1,0 +1,43 @@
+.gallery__ornament {
+  display: block;
+  width: 100%;
+  max-width: 24rem;
+  height: auto;
+  margin: 1rem 0;
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gallery__thumb {
+  overflow: hidden;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.gallery__thumb img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.gallery__viewer {
+  margin: 2rem 0 0;
+}
+
+.gallery__viewer img {
+  max-width: 100%;
+  height: auto;
+}
+
+.gallery__controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

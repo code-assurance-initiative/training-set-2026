@@ -1,0 +1,26 @@
+From 81ac828449384760c57d07ccb19a17c97102c762 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Mon, 15 Jun 2026 10:40:39 +0200
+Subject: feat(series): report which session dates clash
+
+---
+ .../Series/BookTreatmentSeries.cs                            | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+index 8a463d1..28e4803 100644
+--- a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
++++ b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+@@ -29,9 +29,10 @@ public sealed class BookTreatmentSeriesHandler(
+ 
+         var booked = await appointments.BookedForPractitionerAsync(
+             command.PractitionerId, sessions[0].Start.AddDays(-1), sessions[^1].End.AddDays(1), cancellationToken).ConfigureAwait(false);
+-        if (booked.Any(b => sessions.Any(s => b.Time.Overlaps(s))))
++        var clashes = sessions.Where(s => booked.Any(b => b.Time.Overlaps(s))).Select(s => s.Start.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)).ToList();
++        if (clashes.Count > 0)
+         {
+-            return Operation.Conflict<IReadOnlyList<Appointment>>("The practitioner is already booked during the series.");
++            return Operation.Conflict<IReadOnlyList<Appointment>>($"The practitioner is already booked at {string.Join(", ", clashes)}.");
+         }
+ 
+         var seriesId = Guid.NewGuid();

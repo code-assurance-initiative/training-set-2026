@@ -1,0 +1,1440 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-ts-baseline-clean",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "typescript"
+  ],
+  "theme": "Certified-clean control: a small, well-engineered Node.js + TypeScript stock & reservation API",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".editorconfig",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".gitattributes",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/dependabot.yml",
+      "rationale": "Dependency-update configuration for npm and GitHub Actions with a release cooldown."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/workflows/ci.yml",
+      "rationale": "CI workflow: every action pinned by full commit SHA, least-privilege token permissions, no secrets, no untrusted event data interpolated into run steps, dependencies installed with `npm ci` from the committed lock file."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "CI workflow: every action pinned by full commit SHA, least-privilege token permissions, no secrets, no untrusted event data interpolated into run steps, dependencies installed with `npm ci` from the committed lock file."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".gitignore",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".nvmrc",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".prettierignore",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".prettierrc.json",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": "*",
+      "file": "CHANGELOG.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": "*",
+      "file": "LICENSE",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": "*",
+      "file": "README.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": "*",
+      "file": "SECURITY.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/README.md",
+      "rationale": "Benchmark metadata (labels, explanation and authoring log); not part of the service."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/answer-key.json",
+      "rationale": "Benchmark metadata (labels, explanation and authoring log); not part of the service."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/journal.md",
+      "rationale": "Benchmark metadata (labels, explanation and authoring log); not part of the service."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0001-layered-architecture.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0002-in-memory-store.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0003-jwt-bearer-authorization.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/architecture.md",
+      "rationale": "Documentation; accurate for the code at this revision, no secrets."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": "*",
+      "file": "eslint.config.js",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": "*",
+      "file": "package-lock.json",
+      "rationale": "Dependency manifest and lock file: current, maintained, non-deprecated packages with no known vulnerability (direct or transitive), permissive licences, runtime and development dependencies correctly separated, every declared package used and every imported package declared; Node.js engine pinned to the supported 22 LTS line."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": "*",
+      "file": "package.json",
+      "rationale": "Dependency manifest and lock file: current, maintained, non-deprecated packages with no known vulnerability (direct or transitive), permissive licences, runtime and development dependencies correctly separated, every declared package used and every imported package declared; Node.js engine pinned to the supported 22 LTS line."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/app.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/catalog/catalog-service.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/catalog/catalog-store.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/catalog/catalog.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/clock.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/inventory/inventory-store.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/inventory/inventory.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/inventory/stock-service.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/paging.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/reservations/reservation-service.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/reservations/reservation.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/application/result.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/composition.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/config.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/authentication.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/errors.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/handlers.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/problem.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/routes/catalog-routes.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/routes/health-routes.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/routes/reservation-routes.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/routes/stock-routes.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/schemas.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/scopes.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/http/transport-security.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/infrastructure/in-memory-catalog-store.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/infrastructure/in-memory-inventory-store.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/infrastructure/reservation-expiry-job.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/lifecycle.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/logger.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/main.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/server.ts",
+      "rationale": "Production source, written to be defect-free: small single-purpose functions, strict types with no `any` and no non-null assertions, validated input, structured logging, no suppressed lint rules, no debt markers, no injection, file, process, deserialisation or outbound-network sinks."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/authorization.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/catalog-api.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/health.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/lifecycle.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/request-logging.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/server.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/stock-and-reservations-api.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/integration/transport-and-errors.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/support/fake-clock.ts",
+      "rationale": "Test support: an in-process application under test and an ES256 key pair generated in memory per run (nothing is written down), so no key material is committed."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/support/silent-logger.ts",
+      "rationale": "Test support: an in-process application under test and an ES256 key pair generated in memory per run (nothing is written down), so no key material is committed."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/support/test-app.ts",
+      "rationale": "Test support: an in-process application under test and an ES256 key pair generated in memory per run (nothing is written down), so no key material is committed."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/support/test-tokens.ts",
+      "rationale": "Test support: an in-process application under test and an ES256 key pair generated in memory per run (nothing is written down), so no key material is committed."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/access-token-verifier.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/catalog-service.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/config.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/error-handler.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/in-memory-catalog-store.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/in-memory-inventory-store.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/logger.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/reservation-expiry-job.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/reservation-service.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/unit/stock-service.test.ts",
+      "rationale": "Test source with real assertions (vitest), no skipped or focused tests, no sleeps or wall-clock waits (time is a fake clock), no mocking framework, no committed key material."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tsconfig.build.json",
+      "rationale": "TypeScript configuration: `strict` (including strict null checks) and stricter index and override checks."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tsconfig.json",
+      "rationale": "TypeScript configuration: `strict` (including strict null checks) and stricter index and override checks."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": "*",
+      "file": "vitest.config.ts",
+      "rationale": "Tooling configuration: no suppressed diagnostics, no secrets, no executable defects."
+    },
+    {
+      "id": "CLN-REPO",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "secret-in-version-history",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "nullable-analysis-disabled",
+        "unpinned-ci-action",
+        "mutable-image-reference",
+        "dependency-release-cooldown-missing",
+        "ci-token-excessive-permissions",
+        "ci-secret-exposure",
+        "secret-in-process-arguments",
+        "download-without-integrity-check",
+        "module-dependency-cycle",
+        "layer-dependency-violation",
+        "architecture-rules-unenforced",
+        "missing-cancellation-propagation",
+        "missing-authorization",
+        "async-void-method",
+        "pointless-catch-rethrow",
+        "argument-guard-tests-wrong-condition",
+        "collection-modified-during-enumeration",
+        "contradictory-support-guard",
+        "index-access-outside-bounds-guard",
+        "side-effect-in-conditional-guard",
+        "production-depends-on-test-code",
+        "unsynchronized-shared-state",
+        "server-side-request-forgery",
+        "unreachable-code",
+        "silent-error-fallback",
+        "duplicated-code",
+        "not-implemented-placeholder",
+        "empty-catch-block",
+        "blocking-on-async-code"
+      ],
+      "rationale": "Repository-level properties certified clean. Dependencies: every direct package is the current release of its line, maintained, non-deprecated, stable, permissively licensed, used where it is declared and declared where it is used (development tools only in devDependencies); `npm audit` reports no vulnerability, direct or transitive. Where a newer MAJOR exists that the toolchain cannot take (typescript 7 is outside typescript-eslint's supported range; @types/node follows the Node.js 22 runtime, not the newest Node.js), the current release of the compatible major is used, as a careful team would. Platform: Node.js 22 LTS (supported), pinned in `engines` and `.nvmrc`. History: no secret was ever committed. Types: `strict` TypeScript, no non-null assertions. CI: actions pinned by SHA, read-only token, no secrets used, Dependabot with a cooldown, no container images. Structure: no import cycles; the layering (http -> application <- infrastructure) is enforced by a lint rule; every non-public route is authorised. Concepts the coverage matrix lists under C#-only dimensions but which can occur in TypeScript (catch-and-rethrow, guard and index-bounds logic, enumeration mutation, production importing test code, shared mutable state, unreachable code, duplication, silent fallbacks, floating async callbacks) are certified clean here, not not-applicable."
+    },
+    {
+      "id": "NA-001",
+      "label": "not-applicable",
+      "concept": "accessibility-checks-in-ci",
+      "rationale": "No user interface exists, so there is nothing for accessibility checks to run on."
+    },
+    {
+      "id": "NA-002",
+      "label": "not-applicable",
+      "concept": "alt-text-quality",
+      "rationale": "A JSON-only web API: no markup, so no alternative texts."
+    },
+    {
+      "id": "NA-003",
+      "label": "not-applicable",
+      "concept": "missing-text-alternative",
+      "rationale": "A JSON-only web API: no HTML, JSX or other markup."
+    },
+    {
+      "id": "NA-004",
+      "label": "not-applicable",
+      "concept": "form-control-without-label",
+      "rationale": "A JSON-only web API: no HTML, JSX or other markup."
+    },
+    {
+      "id": "NA-005",
+      "label": "not-applicable",
+      "concept": "page-structure-violation",
+      "rationale": "A JSON-only web API: no HTML, JSX or other markup."
+    },
+    {
+      "id": "NA-006",
+      "label": "not-applicable",
+      "concept": "non-keyboard-accessible-interaction",
+      "rationale": "A JSON-only web API: no HTML, JSX or other markup."
+    },
+    {
+      "id": "NA-007",
+      "label": "not-applicable",
+      "concept": "invalid-aria-usage",
+      "rationale": "A JSON-only web API: no HTML, JSX or other markup."
+    },
+    {
+      "id": "NA-008",
+      "label": "not-applicable",
+      "concept": "visual-and-motion-safety",
+      "rationale": "A JSON-only web API: no HTML, CSS or other markup."
+    },
+    {
+      "id": "NA-009",
+      "label": "not-applicable",
+      "concept": "link-and-button-text-quality",
+      "rationale": "No markup, so no links or buttons."
+    },
+    {
+      "id": "NA-010",
+      "label": "not-applicable",
+      "concept": "heading-and-label-text-quality",
+      "rationale": "No markup, so no headings or form labels."
+    },
+    {
+      "id": "NA-011",
+      "label": "not-applicable",
+      "concept": "data-encryption-controls",
+      "rationale": "The service stores no personal or sensitive data: SKUs, bin codes and quantities only, held in process memory."
+    },
+    {
+      "id": "NA-012",
+      "label": "not-applicable",
+      "concept": "audit-trail",
+      "rationale": "No personal data and no regulated records are processed, so no compliance audit trail is required."
+    },
+    {
+      "id": "NA-013",
+      "label": "not-applicable",
+      "concept": "data-retention-policy",
+      "rationale": "No personal data is stored, and nothing is persisted beyond the process lifetime."
+    },
+    {
+      "id": "NA-014",
+      "label": "not-applicable",
+      "concept": "data-subject-rights",
+      "rationale": "No personal data about any data subject is processed."
+    },
+    {
+      "id": "NA-015",
+      "label": "not-applicable",
+      "concept": "personal-data-inventory",
+      "rationale": "No personal data is processed (no names, e-mail addresses, phone numbers or addresses of people)."
+    },
+    {
+      "id": "NA-016",
+      "label": "not-applicable",
+      "concept": "personal-data-in-event-store",
+      "rationale": "No event store and no personal data."
+    },
+    {
+      "id": "NA-017",
+      "label": "not-applicable",
+      "concept": "cross-aggregate-object-reference",
+      "rationale": "No domain-driven design model: plain application types and services, no aggregates."
+    },
+    {
+      "id": "NA-018",
+      "label": "not-applicable",
+      "concept": "primitive-entity-identifier",
+      "rationale": "No domain-driven design model: no entities in the DDD sense."
+    },
+    {
+      "id": "NA-019",
+      "label": "not-applicable",
+      "concept": "anemic-domain-model",
+      "rationale": "No domain-driven design model: a deliberate transaction-script application layer over plain readonly types."
+    },
+    {
+      "id": "NA-020",
+      "label": "not-applicable",
+      "concept": "publicly-mutable-entity-state",
+      "rationale": "No domain-driven design model: no entities in the DDD sense; application types are readonly."
+    },
+    {
+      "id": "NA-021",
+      "label": "not-applicable",
+      "concept": "domain-depends-on-infrastructure",
+      "rationale": "No domain layer; the application layer imports no infrastructure (enforced by a lint rule)."
+    },
+    {
+      "id": "NA-022",
+      "label": "not-applicable",
+      "concept": "repository-for-non-aggregate",
+      "rationale": "No aggregates, so the aggregate/repository rule has nothing to apply to."
+    },
+    {
+      "id": "NA-023",
+      "label": "not-applicable",
+      "concept": "primitive-obsession",
+      "rationale": "Gated on a domain model, which this repository deliberately does not have."
+    },
+    {
+      "id": "NA-024",
+      "label": "not-applicable",
+      "concept": "scattered-domain-rule",
+      "rationale": "No domain-driven design model."
+    },
+    {
+      "id": "NA-025",
+      "label": "not-applicable",
+      "concept": "multi-aggregate-transaction",
+      "rationale": "No aggregates."
+    },
+    {
+      "id": "NA-026",
+      "label": "not-applicable",
+      "concept": "constructible-invalid-entity",
+      "rationale": "No domain-driven design model: no entities."
+    },
+    {
+      "id": "NA-027",
+      "label": "not-applicable",
+      "concept": "ambient-nondeterminism-in-domain",
+      "rationale": "No domain layer (and time is injected through a Clock throughout)."
+    },
+    {
+      "id": "NA-028",
+      "label": "not-applicable",
+      "concept": "integration-event-leaks-domain-type",
+      "rationale": "No integration events and no messaging."
+    },
+    {
+      "id": "NA-029",
+      "label": "not-applicable",
+      "concept": "synchronous-remote-call-in-event-handler",
+      "rationale": "No event handlers and no remote calls."
+    },
+    {
+      "id": "NA-030",
+      "label": "not-applicable",
+      "concept": "command-with-multiple-handlers",
+      "rationale": "No command or message bus."
+    },
+    {
+      "id": "NA-031",
+      "label": "not-applicable",
+      "concept": "event-not-named-in-past-tense",
+      "rationale": "No events."
+    },
+    {
+      "id": "NA-032",
+      "label": "not-applicable",
+      "concept": "dual-write-without-outbox",
+      "rationale": "No messaging and no database: nothing is written to two stores."
+    },
+    {
+      "id": "NA-033",
+      "label": "not-applicable",
+      "concept": "non-idempotent-message-handler",
+      "rationale": "No messaging: there are no message handlers."
+    },
+    {
+      "id": "NA-034",
+      "label": "not-applicable",
+      "concept": "nondeterministic-event-fold",
+      "rationale": "Not event-sourced."
+    },
+    {
+      "id": "NA-035",
+      "label": "not-applicable",
+      "concept": "mutable-persisted-event",
+      "rationale": "Not event-sourced."
+    },
+    {
+      "id": "NA-036",
+      "label": "not-applicable",
+      "concept": "query-with-side-effects",
+      "rationale": "No CQRS query handlers; reads and writes are separate service functions."
+    },
+    {
+      "id": "NA-037",
+      "label": "not-applicable",
+      "concept": "network-egress-policy",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-038",
+      "label": "not-applicable",
+      "concept": "workload-syscall-confinement",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-039",
+      "label": "not-applicable",
+      "concept": "runtime-threat-detection-and-admission",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-040",
+      "label": "not-applicable",
+      "concept": "versioned-schema-migrations",
+      "rationale": "No database (ADR 0002): the store is in process memory."
+    },
+    {
+      "id": "NA-041",
+      "label": "not-applicable",
+      "concept": "library-api-versioning",
+      "rationale": "A service, not a published library; the package is private and nothing is published."
+    },
+    {
+      "id": "NA-042",
+      "label": "not-applicable",
+      "concept": "executable-specifications",
+      "rationale": "No BDD tooling; behaviour is specified by vitest tests."
+    },
+    {
+      "id": "NA-043",
+      "label": "not-applicable",
+      "concept": "cross-slice-coupling",
+      "rationale": "Organised as horizontal layers (http / application / infrastructure), not vertical slices."
+    },
+    {
+      "id": "NA-044",
+      "label": "not-applicable",
+      "concept": "captive-dependency",
+      "rationale": "No dependency-injection container and no service lifetimes: dependencies are passed to factory functions once at start-up."
+    },
+    {
+      "id": "NA-045",
+      "label": "not-applicable",
+      "concept": "compiled-code-size",
+      "rationale": "A .NET IL measure; TypeScript compiles to JavaScript, not IL."
+    },
+    {
+      "id": "NA-046",
+      "label": "not-applicable",
+      "concept": "solution-structure",
+      "rationale": "A .NET solution/project measure; there is no solution file in a Node.js package."
+    },
+    {
+      "id": "NA-047",
+      "label": "not-applicable",
+      "concept": "domain-vs-controller-coverage",
+      "rationale": "No domain layer to compare controller coverage against (and the matrix gates the measure to C#)."
+    },
+    {
+      "id": "NA-048",
+      "label": "not-applicable",
+      "concept": "type-lookup-by-simple-name",
+      "rationale": "A .NET reflection pattern (type lookup across loaded assemblies); no such mechanism exists in this code."
+    },
+    {
+      "id": "NA-049",
+      "label": "not-applicable",
+      "concept": "rethrow-resets-stack-trace",
+      "rationale": "JavaScript fixes an Error's stack when the error is created, so rethrowing a caught error never resets it."
+    },
+    {
+      "id": "NA-050",
+      "label": "not-applicable",
+      "concept": "unsynchronized-callback-handoff",
+      "rationale": "Single-threaded event loop: no worker threads, so no collection is shared between threads."
+    },
+    {
+      "id": "NA-051",
+      "label": "not-applicable",
+      "concept": "lock-release-state-mismatch",
+      "rationale": "No synchronisation primitives: store operations are synchronous and atomic on the event loop."
+    },
+    {
+      "id": "NA-052",
+      "label": "not-applicable",
+      "concept": "js-interop-contract-mismatch",
+      "rationale": "A Blazor/.NET-to-JavaScript interop concept; no such interop exists."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "high-cyclomatic-complexity",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "Functions are small with few branches by construction; a clean baseline should score near the top."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "high-cognitive-complexity",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "No nesting beyond two levels, no compound flag logic."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "duplicated-code",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "No copy-paste: shared schemas, mapping and problem responses live in one place each."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "unstable-dependency",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Three acyclic layers (http -> application <- infrastructure); instability metrics are noisy on a small module graph, so the band is wide."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "module-off-main-sequence",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A concrete application layer depended on by the http and infrastructure layers is the intended shape of a small layered service; main-sequence distance is a heuristic, so the band is wide."
+    },
+    {
+      "id": "BND-006",
+      "label": "score-band",
+      "concept": "low-class-cohesion",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Few classes; each store and service keeps one responsibility and uses its state in every method."
+    },
+    {
+      "id": "BND-007",
+      "label": "score-band",
+      "concept": "test-coverage",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Unit tests cover every service and store; HTTP-level tests drive every route. Expected line coverage is above 85 %, gated in CI by vitest thresholds."
+    },
+    {
+      "id": "BND-008",
+      "label": "score-band",
+      "concept": "test-pyramid-distribution",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "More unit than HTTP-level tests, no end-to-end layer: a healthy pyramid for a small API."
+    },
+    {
+      "id": "BND-009",
+      "label": "score-band",
+      "concept": "churn-complexity-hotspot",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Short history and low complexity: no file is both churning and complex."
+    },
+    {
+      "id": "BND-010",
+      "label": "score-band",
+      "concept": "knowledge-concentration",
+      "band": [
+        0,
+        100
+      ],
+      "rationale": "No claim. The repository has a single author by construction, which a scanner may legitimately report as concentration; history-based measurement belongs to the maturity-history repository. Recorded only so the dimension is reported."
+    },
+    {
+      "id": "BND-011",
+      "label": "score-band",
+      "concept": "knowledge-freshness",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Every file was written recently by an author who is still active."
+    },
+    {
+      "id": "BND-012",
+      "label": "score-band",
+      "concept": "change-coupling",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A short history of feature commits; any coupling is between a feature and its tests, which is expected."
+    },
+    {
+      "id": "BND-013",
+      "label": "score-band",
+      "concept": "oversized-module",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Every module and file is small."
+    },
+    {
+      "id": "BND-014",
+      "label": "score-band",
+      "concept": "call-indirection",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Route -> service -> store: two hops, no wrapper chains. Wide band because indirection metrics vary between scanners."
+    },
+    {
+      "id": "BND-015",
+      "label": "score-band",
+      "concept": "business-logic-share",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Most rules live in the application layer, but a web API necessarily carries routing and hosting glue; a wide band from intent."
+    },
+    {
+      "id": "BND-016",
+      "label": "score-band",
+      "concept": "architecture-style-fit",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A plain layered architecture applied consistently; judged by heuristics, so the band is wide."
+    },
+    {
+      "id": "BND-017",
+      "label": "score-band",
+      "concept": "authorization-enforcement",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "JWT bearer authentication on every /api route, a scope check on each route; only /health is anonymous."
+    },
+    {
+      "id": "BND-018",
+      "label": "score-band",
+      "concept": "security-response-headers",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "helmet sets Content-Security-Policy, Strict-Transport-Security, X-Content-Type-Options, frame and referrer policies; X-Powered-By is removed."
+    },
+    {
+      "id": "BND-019",
+      "label": "score-band",
+      "concept": "https-enforcement",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "HSTS on every response, and plain-HTTP requests are refused outside development (TLS terminates at the proxy in front of the service, whose forwarded protocol is trusted only from configured proxy addresses)."
+    },
+    {
+      "id": "BND-020",
+      "label": "score-band",
+      "concept": "inbound-input-validation",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Every body, path parameter and query string is parsed with a zod schema before it reaches a service; environment configuration is validated with zod at start-up; JSON bodies are size-limited."
+    },
+    {
+      "id": "BND-021",
+      "label": "score-band",
+      "concept": "dependencies-not-locked",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "package-lock.json committed; CI installs with `npm ci`."
+    },
+    {
+      "id": "BND-022",
+      "label": "score-band",
+      "concept": "build-provenance-and-signing",
+      "band": [
+        30,
+        100
+      ],
+      "rationale": "Actions are pinned by commit SHA, but the repository publishes no release artifact, so there is nothing to sign or attest and no SBOM; partial posture by design, wide band."
+    },
+    {
+      "id": "BND-023",
+      "label": "score-band",
+      "concept": "security-tooling-in-ci",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "CodeQL (javascript-typescript) on pull_request and push, Dependabot for npm and Actions, `npm audit` in CI and on a weekly schedule."
+    },
+    {
+      "id": "BND-024",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "SECURITY.md with a private reporting channel and response times."
+    },
+    {
+      "id": "BND-025",
+      "label": "score-band",
+      "concept": "readme-quality",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "README over 120 words with Build and run, Testing, Architecture and Contributing sections."
+    },
+    {
+      "id": "BND-026",
+      "label": "score-band",
+      "concept": "architecture-documentation",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "docs/architecture.md with a Mermaid diagram and three ADRs (the repository's real decisions)."
+    },
+    {
+      "id": "BND-027",
+      "label": "score-band",
+      "concept": "folder-structure",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "src/ and tests/ separation, layers as folders under src/, unit and HTTP tests separated under tests/."
+    },
+    {
+      "id": "BND-028",
+      "label": "score-band",
+      "concept": "ci-build-and-test-pipeline",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "GitHub Actions installs, lints, type-checks, builds and tests on push and pull_request."
+    },
+    {
+      "id": "BND-029",
+      "label": "score-band",
+      "concept": "observability",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "pino structured logging (with pino-http request logs and request ids) in every runnable module, a health endpoint, graceful shutdown on SIGTERM."
+    },
+    {
+      "id": "BND-030",
+      "label": "score-band",
+      "concept": "deployment-rollback-safety",
+      "band": [
+        50,
+        100
+      ],
+      "rationale": "Nothing is deployed, so there is no rollout to make safe; a scanner should not deduct for a deployment that does not exist. Wide band."
+    },
+    {
+      "id": "BND-031",
+      "label": "score-band",
+      "concept": "disaster-recovery-evidence",
+      "band": [
+        50,
+        100
+      ],
+      "rationale": "No persistent state (ADR 0002 documents that the in-memory store is lost on restart by design), so there is nothing to back up. Wide band."
+    },
+    {
+      "id": "BND-032",
+      "label": "score-band",
+      "concept": "release-hygiene",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "CHANGELOG.md in Keep a Changelog form and a semantic `version` in package.json."
+    },
+    {
+      "id": "BND-033",
+      "label": "score-band",
+      "concept": "outbound-http-resilience",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "The service makes no outbound HTTP calls at all (the token verification key is configured, not fetched); nothing lacks resilience."
+    },
+    {
+      "id": "BND-034",
+      "label": "score-band",
+      "concept": "ci-test-gate-integrity",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Tests run in CI and fail the build; coverage is collected only with thresholds that fail the run; no continue-on-error."
+    },
+    {
+      "id": "BND-035",
+      "label": "score-band",
+      "concept": "benchmark-discipline",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Reward-leaning: a small CRUD-style API has no performance-critical path, so no benchmarks is the neutral posture, never a defect. Wide band."
+    },
+    {
+      "id": "BND-036",
+      "label": "score-band",
+      "concept": "allocation-awareness",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Reward-leaning: allocation-conscious code is not called for in this service; neutral expected. Wide band."
+    },
+    {
+      "id": "BND-037",
+      "label": "score-band",
+      "concept": "untyped-javascript-share",
+      "band": [
+        90,
+        100
+      ],
+      "rationale": "Every source and test file is TypeScript under `strict`; the only JavaScript file is the ESLint flat config."
+    },
+    {
+      "id": "BND-038",
+      "label": "score-band",
+      "concept": "outdated-dependency",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Every direct dependency is the current release of its line; two development packages stay one major behind the newest for documented compatibility reasons (typescript for typescript-eslint, @types/node for the Node.js 22 runtime)."
+    },
+    {
+      "id": "BND-039",
+      "label": "score-band",
+      "concept": "frontend-tooling-scripts",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "package.json carries build, start, lint, format, typecheck, test and coverage scripts, with ESLint, Prettier and vitest configured."
+    },
+    {
+      "id": "BND-040",
+      "label": "score-band",
+      "concept": "documentation-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: README, architecture overview and ADRs are accurate and proportionate. Wide band for judge variance."
+    },
+    {
+      "id": "BND-041",
+      "label": "score-band",
+      "concept": "adr-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: three ADRs with context, decision and consequences. Wide band."
+    },
+    {
+      "id": "BND-042",
+      "label": "score-band",
+      "concept": "inconsistent-naming",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: one naming scheme throughout (kebab-case files, camelCase functions, PascalCase types). Wide band."
+    },
+    {
+      "id": "BND-043",
+      "label": "score-band",
+      "concept": "internal-api-inconsistency",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: every service function returns a Result and every route maps it the same way. Wide band."
+    },
+    {
+      "id": "BND-044",
+      "label": "score-band",
+      "concept": "low-value-comments",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: comments are few and explain why, not what. Wide band."
+    },
+    {
+      "id": "BND-045",
+      "label": "score-band",
+      "concept": "adr-conformance",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: the code follows its three ADRs. Wide band."
+    },
+    {
+      "id": "BND-046",
+      "label": "score-band",
+      "concept": "documentation-accuracy",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: the documentation describes the code as it is. Wide band."
+    },
+    {
+      "id": "BND-047",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: SECURITY.md names a channel, scope and response times. Wide band."
+    },
+    {
+      "id": "BND-048",
+      "label": "score-band",
+      "concept": "environment-separation",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Model-judged: all configuration comes from environment variables validated at start-up; no environment's values are committed; development-only behaviour is switched by NODE_ENV. Wide band."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "duplicated-code",
+      "file": "src/application/catalog/catalog-service.ts",
+      "lines": [
+        13,
+        28
+      ],
+      "rationale": "registerSku / getSku / listSkus: the SKU half of a pair of parallel accessors (the bin half is TRP-002). Each method is one to three statements over a different store method, message and log fields; a shared helper would need three lambdas to say less. Parallel declarations for two entity kinds are not copy-paste a reviewer would extract. Promoted from a scanner duplication result in scan iteration 1."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "duplicated-code",
+      "file": "src/application/catalog/catalog-service.ts",
+      "lines": [
+        30,
+        45
+      ],
+      "rationale": "registerBin / getBin / listBins: the bin half of the parallel accessors of TRP-001; same reason. Promoted with TRP-001."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "authorization-enforcement",
+      "rationale": "Authorization is complete and its rules are named: src/http/scopes.ts defines the three scopes, every /api route declares the one it needs with requireScope(Scopes.x) at registration (the equivalent of a named policy attribute), and the README lists them per endpoint. A repository-level claim that rules are unnamed, inline or missing is untrue here. Promoted from a scanner false positive in scan iteration 1."
+    }
+  ]
+}

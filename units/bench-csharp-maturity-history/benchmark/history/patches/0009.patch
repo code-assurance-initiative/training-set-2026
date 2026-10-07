@@ -1,0 +1,304 @@
+From 9b3f5d8baab2acc4ad395f65ff38230566ad0182 Mon Sep 17 00:00:00 2001
+From: Tomas Wrenfield <tomas.wrenfield@example.invalid>
+Date: Mon, 12 Jan 2026 10:40:18 +0100
+Subject: feat(recurrence): weekly recurrence rules and their expansion around
+ holidays
+
+---
+ .../Recurrence/RecurrenceExpander.cs          |  76 ++++++++++++
+ .../Recurrence/RecurrenceRule.cs              | 112 ++++++++++++++++++
+ .../Recurrence/RecurrenceExpanderTests.cs     |  42 +++++++
+ .../Recurrence/RecurrenceRuleTests.cs         |  33 ++++++
+ 4 files changed, 263 insertions(+)
+ create mode 100644 src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs
+ create mode 100644 src/ClinicScheduling.Domain/Recurrence/RecurrenceRule.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceExpanderTests.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceRuleTests.cs
+
+diff --git a/src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs b/src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs
+new file mode 100644
+index 0000000..cc35da4
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Recurrence/RecurrenceExpander.cs
+@@ -0,0 +1,76 @@
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Holidays;
++
++namespace ClinicScheduling.Domain.Recurrence;
++
++/// <summary>
++/// Expands a <see cref="RecurrenceRule"/> into the dated sessions of a treatment series. A session that would fall on
++/// a public holiday moves to the next working day of the same week if there is one that is not already a session
++/// day; otherwise it is dropped and the series is extended by one occurrence so that the patient still gets
++/// <see cref="RecurrenceRule.Count"/> sessions.
++/// </summary>
++public sealed class RecurrenceExpander(IHolidayCalendar holidays)
++{
++    /// <summary>Upper bound on how far a series may run, so a rule that can never be satisfied terminates.</summary>
++    public const int MaxWeeks = 104;
++
++    public IReadOnlyList<TimeRange> Expand(
++        RecurrenceRule rule,
++        DateOnly firstDay,
++        TimeOnly startTime,
++        TimeSpan duration,
++        TimeZoneInfo zone,
++        string countryCode)
++    {
++        ArgumentNullException.ThrowIfNull(rule);
++        ArgumentNullException.ThrowIfNull(zone);
++        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(duration, TimeSpan.Zero);
++
++        var sessions = new List<TimeRange>(rule.Count);
++        var weekStart = firstDay.AddDays(-(((int)firstDay.DayOfWeek + 6) % 7));
++        for (var week = 0; sessions.Count < rule.Count && week < MaxWeeks; week += rule.IntervalWeeks)
++        {
++            var monday = weekStart.AddDays(7 * week);
++            var taken = new HashSet<DateOnly>();
++            foreach (var day in rule.Days)
++            {
++                var date = monday.AddDays(((int)day + 6) % 7);
++                if (date < firstDay || sessions.Count == rule.Count)
++                {
++                    continue;
++                }
++
++                var actual = holidays.IsHoliday(countryCode, date) ? NextFreeDay(date, monday, rule, taken, countryCode) : date;
++                if (actual is { } d)
++                {
++                    taken.Add(d);
++                    sessions.Add(Session(d, startTime, duration, zone));
++                }
++            }
++        }
++
++        return sessions;
++    }
++
++    private DateOnly? NextFreeDay(DateOnly date, DateOnly monday, RecurrenceRule rule, HashSet<DateOnly> taken, string countryCode)
++    {
++        var friday = monday.AddDays(4);
++        for (var candidate = date.AddDays(1); candidate <= friday; candidate = candidate.AddDays(1))
++        {
++            var isSessionDay = rule.Days.Contains(candidate.DayOfWeek);
++            if (!isSessionDay && !taken.Contains(candidate) && !holidays.IsHoliday(countryCode, candidate))
++            {
++                return candidate;
++            }
++        }
++
++        return null;
++    }
++
++    private static TimeRange Session(DateOnly day, TimeOnly startTime, TimeSpan duration, TimeZoneInfo zone)
++    {
++        var local = day.ToDateTime(startTime, DateTimeKind.Unspecified);
++        var start = new DateTimeOffset(local, zone.GetUtcOffset(local));
++        return new TimeRange(start, start + duration);
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Recurrence/RecurrenceRule.cs b/src/ClinicScheduling.Domain/Recurrence/RecurrenceRule.cs
+new file mode 100644
+index 0000000..b7667d1
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Recurrence/RecurrenceRule.cs
+@@ -0,0 +1,112 @@
++using System.Globalization;
++
++namespace ClinicScheduling.Domain.Recurrence;
++
++/// <summary>
++/// How a treatment series repeats: every <see cref="IntervalWeeks"/> weeks on the given weekdays, for a number of
++/// sessions. Written in a compact text form for the API, e.g. <c>WEEKLY;INTERVAL=1;COUNT=8;BYDAY=MO,TH</c>, a subset
++/// of the iCalendar RRULE grammar.
++/// </summary>
++public sealed record RecurrenceRule
++{
++    public const int MaxSessions = 52;
++
++    private static readonly Dictionary<string, DayOfWeek> DayCodes = new(StringComparer.OrdinalIgnoreCase)
++    {
++        ["MO"] = DayOfWeek.Monday,
++        ["TU"] = DayOfWeek.Tuesday,
++        ["WE"] = DayOfWeek.Wednesday,
++        ["TH"] = DayOfWeek.Thursday,
++        ["FR"] = DayOfWeek.Friday,
++        ["SA"] = DayOfWeek.Saturday,
++        ["SU"] = DayOfWeek.Sunday,
++    };
++
++    public RecurrenceRule(int intervalWeeks, int count, IReadOnlyCollection<DayOfWeek> days)
++    {
++        ArgumentOutOfRangeException.ThrowIfLessThan(intervalWeeks, 1);
++        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
++        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, MaxSessions);
++        ArgumentNullException.ThrowIfNull(days);
++        if (days.Count == 0)
++        {
++            throw new ArgumentException("A recurrence needs at least one weekday.", nameof(days));
++        }
++
++        IntervalWeeks = intervalWeeks;
++        Count = count;
++        Days = [.. days.Distinct().OrderBy(d => ((int)d + 6) % 7)];
++    }
++
++    public int IntervalWeeks { get; }
++
++    public int Count { get; }
++
++    /// <summary>The weekdays, Monday first.</summary>
++    public IReadOnlyList<DayOfWeek> Days { get; }
++
++    public static bool TryParse(string? text, out RecurrenceRule? rule)
++    {
++        rule = null;
++        if (string.IsNullOrWhiteSpace(text))
++        {
++            return false;
++        }
++
++        var parts = text.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
++        if (parts.Length == 0 || !parts[0].Equals("WEEKLY", StringComparison.OrdinalIgnoreCase))
++        {
++            return false;
++        }
++
++        var interval = 1;
++        var count = 0;
++        var days = new List<DayOfWeek>();
++        foreach (var part in parts.Skip(1))
++        {
++            var pair = part.Split('=', 2);
++            var ok = pair.Length == 2 && pair[0].ToUpperInvariant() switch
++            {
++                "INTERVAL" => int.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out interval),
++                "COUNT" => int.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out count),
++                "BYDAY" => TryParseDays(pair[1], days),
++                _ => false,
++            };
++            if (!ok)
++            {
++                return false;
++            }
++        }
++
++        if (!IsValid(interval, count, days))
++        {
++            return false;
++        }
++
++        rule = new RecurrenceRule(interval, count, days);
++        return true;
++    }
++
++    private static bool IsValid(int interval, int count, List<DayOfWeek> days) =>
++        interval >= 1 && count is >= 1 and <= MaxSessions && days.Count > 0;
++
++    public override string ToString() =>
++        string.Create(CultureInfo.InvariantCulture, $"WEEKLY;INTERVAL={IntervalWeeks};COUNT={Count};BYDAY={string.Join(',', Days.Select(Code))}");
++
++    private static bool TryParseDays(string text, List<DayOfWeek> days)
++    {
++        foreach (var code in text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
++        {
++            if (!DayCodes.TryGetValue(code, out var day))
++            {
++                return false;
++            }
++
++            days.Add(day);
++        }
++
++        return days.Count > 0;
++    }
++
++    private static string Code(DayOfWeek day) => DayCodes.First(kv => kv.Value == day).Key;
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceExpanderTests.cs b/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceExpanderTests.cs
+new file mode 100644
+index 0000000..ddf7014
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceExpanderTests.cs
+@@ -0,0 +1,42 @@
++using ClinicScheduling.Domain.Recurrence;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Recurrence;
++
++public sealed class RecurrenceExpanderTests
++{
++    private static readonly TimeOnly Nine = new(9, 0);
++
++    [Fact]
++    public void ExpandsWeeklySessionsFromTheFirstDay()
++    {
++        var rule = new RecurrenceRule(1, 4, [DayOfWeek.Monday, DayOfWeek.Thursday]);
++
++        var sessions = new RecurrenceExpander(new FixedHolidays()).Expand(rule, Monday.AddDays(1), Nine, TimeSpan.FromMinutes(45), TimeZoneInfo.Utc, "DK");
++
++        Assert.Equal(
++            [At(Monday.AddDays(3), 9), At(Monday.AddDays(7), 9), At(Monday.AddDays(10), 9), At(Monday.AddDays(14), 9)],
++            sessions.Select(s => s.Start));
++        Assert.All(sessions, s => Assert.Equal(TimeSpan.FromMinutes(45), s.Duration));
++    }
++
++    [Fact]
++    public void MovesAHolidaySessionToTheNextFreeWeekday()
++    {
++        var rule = new RecurrenceRule(1, 2, [DayOfWeek.Monday]);
++
++        var sessions = new RecurrenceExpander(new FixedHolidays(Monday)).Expand(rule, Monday, Nine, TimeSpan.FromHours(1), TimeZoneInfo.Utc, "DK");
++
++        Assert.Equal([At(Monday.AddDays(1), 9), At(Monday.AddDays(7), 9)], sessions.Select(s => s.Start));
++    }
++
++    [Fact]
++    public void ExtendsTheSeriesWhenAWeekHasNoFreeDay()
++    {
++        var rule = new RecurrenceRule(2, 2, [DayOfWeek.Friday]);
++
++        var sessions = new RecurrenceExpander(new FixedHolidays(Monday.AddDays(4))).Expand(rule, Monday, Nine, TimeSpan.FromHours(1), TimeZoneInfo.Utc, "DK");
++
++        Assert.Equal([At(Monday.AddDays(18), 9), At(Monday.AddDays(32), 9)], sessions.Select(s => s.Start));
++    }
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceRuleTests.cs b/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceRuleTests.cs
+new file mode 100644
+index 0000000..c606bed
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Recurrence/RecurrenceRuleTests.cs
+@@ -0,0 +1,33 @@
++using ClinicScheduling.Domain.Recurrence;
++
++namespace ClinicScheduling.UnitTests.Recurrence;
++
++public sealed class RecurrenceRuleTests
++{
++    [Fact]
++    public void ParsesTheCompactForm()
++    {
++        Assert.True(RecurrenceRule.TryParse("weekly;interval=2;count=6;byday=th,mo", out var rule));
++
++        Assert.NotNull(rule);
++        Assert.Equal(2, rule.IntervalWeeks);
++        Assert.Equal(6, rule.Count);
++        Assert.Equal([DayOfWeek.Monday, DayOfWeek.Thursday], rule.Days);
++        Assert.Equal("WEEKLY;INTERVAL=2;COUNT=6;BYDAY=MO,TH", rule.ToString());
++    }
++
++    [Theory]
++    [InlineData(null)]
++    [InlineData("")]
++    [InlineData("DAILY;COUNT=3;BYDAY=MO")]
++    [InlineData("WEEKLY;COUNT=0;BYDAY=MO")]
++    [InlineData("WEEKLY;COUNT=53;BYDAY=MO")]
++    [InlineData("WEEKLY;COUNT=4")]
++    [InlineData("WEEKLY;COUNT=4;BYDAY=XX")]
++    [InlineData("WEEKLY;COUNT=4;BYDAY=MO;UNTIL=20261231")]
++    public void RejectsWhatItCannotHonour(string? text)
++    {
++        Assert.False(RecurrenceRule.TryParse(text, out var rule));
++        Assert.Null(rule);
++    }
++}

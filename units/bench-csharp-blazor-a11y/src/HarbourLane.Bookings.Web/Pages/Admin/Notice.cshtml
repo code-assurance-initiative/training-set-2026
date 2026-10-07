@@ -1,0 +1,18 @@
+@page
+@model NoticeModel
+@{
+    ViewData["Title"] = "Site notice";
+}
+
+<h1>Site notice</h1>
+
+<form method="post" class="admin-form">
+    <div class="form-row">
+        <label asp-for="Html">Notice shown at the top of every public page</label>
+        <p id="notice-hint" class="hint">Paragraphs, bold, italics, lists and links are kept; anything else is removed when the notice is shown. Leave it empty to hide the notice.</p>
+        <textarea asp-for="Html" rows="6" aria-describedby="notice-hint"></textarea>
+    </div>
+
+    <button type="submit" class="button">Save the notice</button>
+    <a asp-page="/Admin/Index">Back to the rooms</a>
+</form>

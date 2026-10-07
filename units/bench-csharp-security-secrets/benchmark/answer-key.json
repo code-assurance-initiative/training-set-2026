@@ -1,0 +1,1048 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.1",
+  "repo": "code-assurance-initiative/bench-csharp-security-secrets",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Hardcoded secrets and their look-alikes in a small ASP.NET Core document-export service",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "SEC-001",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Storage/ObjectStoreOptions.cs",
+      "lines": [
+        24,
+        27
+      ],
+      "rationale": "A live-format cloud access key pair (access key id + 40-char secret access key) compiled in as the default value of the object-store options; every environment that does not override it authenticates to the staging bucket with it. One credential, one entry: the key id alone is an identifier, the pair is the secret."
+    },
+    {
+      "id": "SEC-002",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "deploy/publish.ps1",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "A GitHub personal access token (ghp_ format with a valid checksum) written into the release script and passed to `dotnet nuget push`; anyone who can read the repository can publish packages as the token's owner."
+    },
+    {
+      "id": "SEC-003",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/DocumentExport.Api/appsettings.json",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "The HMAC key that signs download tokens, committed in the base configuration that every environment loads: whoever reads it can mint a valid download token for any export."
+    },
+    {
+      "id": "SEC-004",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/appsettings.json",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The exports database connection string carries the application role's password (24 random alphanumerics) in the committed base configuration. Alphanumeric on purpose: the value has no punctuation that would make it 'look' like a secret."
+    },
+    {
+      "id": "SEC-005",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/Persistence/AuditStoreSettings.cs",
+      "lines": [
+        13,
+        13
+      ],
+      "rationale": "A punctuated database password inside the default connection string of a settings class for the audit database; the default is used whenever configuration does not supply one."
+    },
+    {
+      "id": "SEC-006",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/appsettings.Production.json",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The production database password in the production configuration file - the most valuable credential in the repository."
+    },
+    {
+      "id": "SEC-007",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/appsettings.Development.json",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The Development configuration points at the team's SHARED development database on the internal network (not a container on localhost) with a strong generated password. 'Development' describes who uses it, not that it protects nothing: the database is reachable by everyone on the network and holds a copy of real inventory data."
+    },
+    {
+      "id": "SEC-008",
+      "label": "must-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Keys/export-signing.pem",
+      "lines": [
+        1,
+        28
+      ],
+      "rationale": "A PEM-encoded RSA private key (with its body) used by ManifestSigner to sign export manifests; anyone holding it can forge a manifest that consumers will accept."
+    },
+    {
+      "id": "SEC-009",
+      "label": "must-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Contracts/DocumentExport.Contracts.snk",
+      "rationale": "A strong-name key PAIR (CryptoAPI PRIVATEKEYBLOB, `sn -k` shape) committed beside the project that signs with it; the private half lets anyone produce assemblies with the same strong-name identity. Binary file: the whole file is the site."
+    },
+    {
+      "id": "SEC-010",
+      "label": "must-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/certs/export-api.pfx",
+      "rationale": "A PKCS#12 bundle holding the TLS server certificate AND its private key, with an empty import password, copied to the output and served by Kestrel in Production. Binary file: the whole file is the site."
+    },
+    {
+      "id": "SEC-011",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/DocumentExport.Api/Encryption/ExportEncryptor.cs",
+      "lines": [
+        14,
+        14
+      ],
+      "rationale": "The AES-256 key that encrypts every export at rest is a string literal turned into bytes with Encoding.UTF8.GetBytes; anyone with the source can decrypt every stored export."
+    },
+    {
+      "id": "SEC-012",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/partner-api.json",
+      "lines": [
+        5,
+        5
+      ],
+      "rationale": "A bearer token for the fulfilment partner's API committed in a JSON client configuration that the service loads at start-up and sends on every partner request."
+    },
+    {
+      "id": "SEC-013",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Notifications/DeliveryNotifier.cs",
+      "lines": [
+        19,
+        19
+      ],
+      "rationale": "A bearer token for the notification relay passed as a string literal to `new AuthenticationHeaderValue(\"Bearer\", \"…\")` and attached to every relay request. Same leak as SEC-012 in its code-shaped form."
+    },
+    {
+      "id": "SEC-014",
+      "label": "must-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "deploy/migrate.sh",
+      "lines": [
+        7,
+        7
+      ],
+      "rationale": "A `postgres://user:password@host` URI with the migration role's password, in the script that applies schema migrations to production."
+    },
+    {
+      "id": "SEC-015",
+      "label": "must-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": ".env.production",
+      "lines": [
+        4,
+        4
+      ],
+      "rationale": "The production download-token signing key in a committed dotenv file that the production host passes to the container (`--env-file .env.production`)."
+    },
+    {
+      "id": "SEC-016",
+      "label": "must-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Storage/ExportUploader.cs",
+      "lines": [
+        23,
+        23
+      ],
+      "rationale": "A cloud access key pair pasted into a `//` comment (a debugging note). A comment is still committed text: the pair is as readable as code."
+    },
+    {
+      "id": "SEC-017",
+      "label": "must-fire",
+      "concept": "secret-in-version-history",
+      "cwe": "CWE-540",
+      "file": "src/DocumentExport.Api/appsettings.Staging.json",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "The staging database password was committed in a connection string and removed in the next commit (the password moved to the EXPORTS_DB_PASSWORD environment variable). The working tree is clean; the password is still readable in history and was never rotated. Lines refer to the file as it was in the commit that added it. Added in commit 74a670004fee0859335058935ecd0f9bb1a1843e, removed in commit 33485551bb936064d045d68e40d285327c7fc575.",
+      "commit": "74a6700"
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/appsettings.Production.json",
+      "lines": [
+        8,
+        9
+      ],
+      "rationale": "A release-pipeline substitution token (`__NAME__`) the deployment replaces with the secret from the vault; no secret is committed."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/appsettings.json",
+      "lines": [
+        13,
+        14
+      ],
+      "rationale": "Identity-provider tenant id and application (client) id GUIDs. They are public identifiers that appear in every token the provider issues; they grant nothing without a credential."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/appsettings.json",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "A GUID under a property whose name contains 'Secret': it is the id of the scheduler job that rotates the object-store secret, logged when an upload is denied. An identifier of a job, not a secret."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "docker-compose.yml",
+      "lines": [
+        13,
+        15
+      ],
+      "rationale": "`Bearer ${PARTNER_API_TOKEN}` and `${OBJECTSTORE_…}`: Compose interpolates the values from the developer's untracked .env at run time; the committed text holds only variable names."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "docker-compose.yml",
+      "lines": [
+        26,
+        26
+      ],
+      "rationale": "The password of a throwaway local Postgres container, published on 127.0.0.1 only, holding only the seed data of db/migrations. It guards nothing that exists outside the developer's machine; a careful reviewer accepts it (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "docker-compose.yml",
+      "lines": [
+        11,
+        12
+      ],
+      "rationale": "The API container's connection strings to that same local container (`Password=postgres`, the image's conventional default). Same truth as TRP-005."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/Persistence/ExportsDataSourceFactory.cs",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "`const string PasswordVariable = \"EXPORTS_DB_PASSWORD\"`: a password-named constant whose value is the NAME of an environment variable, not a password."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/DocumentExport.Api/Tokens/DownloadTokenService.cs",
+      "lines": [
+        24,
+        24
+      ],
+      "rationale": "`new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey))`: the key comes from bound configuration, not a literal. (The configuration it comes from is a separate plant, SEC-003/SEC-015.)"
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "tests/DocumentExport.UnitTests/Storage/FakeCredentials.cs",
+      "lines": [
+        6,
+        7
+      ],
+      "rationale": "A format-valid but random access key pair used only to construct an object-store client in unit tests that never leave the process; it belongs to no account."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "tests/fixtures/objectstore.json",
+      "lines": [
+        5,
+        6
+      ],
+      "rationale": "Integration-test fixture configuration with a random access key pair; the test host replaces the object store with an in-memory fake, so the pair is never sent anywhere."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "Dockerfile",
+      "lines": [
+        1,
+        7
+      ],
+      "rationale": "Base images pinned by their published sha256 manifest digests (64 hex chars) - good supply-chain practice, public values."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/packages.lock.json",
+      "rationale": "NuGet lock file: every `contentHash` is a base64 SHA-512 of a public package. High-entropy, not a secret. Whole file."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Storage/ObjectStoreClientFactory.cs",
+      "lines": [
+        9,
+        9
+      ],
+      "rationale": "The documented AWS example access key id quoted in an XML doc comment to describe the expected shape; it is published in vendor documentation and belongs to no account."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/Keys/export-signing.pub.pem",
+      "lines": [
+        1,
+        9
+      ],
+      "rationale": "The PUBLIC half of the manifest signing key, published so consumers can verify manifests. Public key material is meant to be shared."
+    },
+    {
+      "id": "TRP-015",
+      "label": "must-not-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "deploy/tls/export-api.crt",
+      "rationale": "The PEM X.509 certificate of the API's TLS endpoint (no private key), committed so clients can pin it. Public material. Whole file."
+    },
+    {
+      "id": "TRP-016",
+      "label": "must-not-fire",
+      "concept": "committed-private-key",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Contracts/DocumentExport.Contracts.PublicKey.snk",
+      "rationale": "A public-only strong-name blob (CryptoAPI PUBLICKEYBLOB, `sn -p` shape) extracted for delay-signing and for consumers' InternalsVisibleTo; it carries no private key. Whole file."
+    },
+    {
+      "id": "TRP-017",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "docs/operations.md",
+      "lines": [
+        28,
+        28
+      ],
+      "rationale": "Operations prose explaining what an access key id looks like, quoting a random identifier of that shape (an access key id alone authenticates nothing, and this one belongs to no account)."
+    },
+    {
+      "id": "TRP-018",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": ".env.example",
+      "lines": [
+        6,
+        7
+      ],
+      "rationale": "The dotenv template developers copy to .env: a format-realistic random key pair showing the expected shape. A template, not configuration any process reads (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-019",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": ".env.example",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "An explicit placeholder in the dotenv template."
+    },
+    {
+      "id": "TRP-020",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/appsettings.example.json",
+      "lines": [
+        12,
+        13
+      ],
+      "rationale": "The settings template for a developer's appsettings.Local.json: a format-realistic random key pair. Excluded from build output; nothing reads it (contested - see benchmark/README.md)."
+    },
+    {
+      "id": "TRP-021",
+      "label": "must-not-fire",
+      "concept": "hardcoded-cryptographic-key",
+      "cwe": "CWE-321",
+      "file": "src/DocumentExport.Api/appsettings.example.json",
+      "lines": [
+        17,
+        17
+      ],
+      "rationale": "An angle-bracket placeholder in the settings template."
+    },
+    {
+      "id": "TRP-022",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/appsettings.example.json",
+      "lines": [
+        3,
+        3
+      ],
+      "rationale": "An angle-bracket placeholder password in the settings template's connection string."
+    },
+    {
+      "id": "TRP-023",
+      "label": "must-not-fire",
+      "concept": "hardcoded-credential",
+      "cwe": "CWE-798",
+      "file": "src/DocumentExport.Api/appsettings.example.json",
+      "lines": [
+        7,
+        7
+      ],
+      "rationale": "`\"Authorization\": \"Bearer <partner-sandbox-token>\"` - an angle-bracket placeholder in the Authorization-header shape that SEC-012 leaks for real."
+    },
+    {
+      "id": "TRP-024",
+      "label": "must-not-fire",
+      "concept": "hardcoded-password",
+      "cwe": "CWE-259",
+      "file": "src/DocumentExport.Api/Persistence/ExportsDataSourceFactory.cs",
+      "lines": [
+        22,
+        22
+      ],
+      "rationale": "`Environment.GetEnvironmentVariable(PasswordVariable)`: the password is read from the environment at run time and assigned to `builder.Password`."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Program.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/ExportEndpoints.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/ExportService.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/InventoryCsvWriter.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/ExportJob.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Persistence/ExportStore.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Persistence/AuditLog.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Signing/ManifestSigner.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Partner/PartnerApiClient.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Partner/PartnerOptions.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Tokens/DownloadTokenOptions.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Http/SecurityHeadersMiddleware.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Storage/IObjectStore.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/DocumentExport.Api.csproj",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/InventoryRow.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Exports/ExportPolicies.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Persistence/IExportStore.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Persistence/IAuditLog.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Partner/IPartnerApi.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Notifications/IDeliveryNotifier.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Notifications/NotificationOptions.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Api/Tokens/DownloadTokenAuthenticationHandler.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Contracts/ExportStatus.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Contracts/ExportRequest.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Contracts/ExportResponse.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Contracts/DownloadTokenResponse.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "src/DocumentExport.Contracts/DocumentExport.Contracts.csproj",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "db/migrations/0001_exports.sql",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "db/migrations/0002_audit.sql",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "Directory.Build.props",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "Directory.Packages.props",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/Encryption/ExportEncryptorTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/Tokens/DownloadTokenServiceTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/Signing/ManifestSignerTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/Exports/InventoryCsvWriterTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/Storage/ObjectStoreClientFactoryTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.UnitTests/DocumentExport.UnitTests.csproj",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.IntegrationTests/ExportApiFactory.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.IntegrationTests/ExportEndpointsTests.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.IntegrationTests/TestDoubles.cs",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "tests/DocumentExport.IntegrationTests/DocumentExport.IntegrationTests.csproj",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "DocumentExport.slnx",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": "global.json",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "hardcoded-credential",
+        "hardcoded-password",
+        "hardcoded-cryptographic-key",
+        "committed-private-key"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "Certified free of committed credentials, passwords, cryptographic keys and private keys (whole file)."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy",
+      "band": [
+        0,
+        10
+      ],
+      "rationale": "Deliberate presence/absence variant: unlike bench-csharp-baseline-clean this repository has no SECURITY.md and no security.txt, so a disclosure-policy posture score must be at the bottom (a scanner that reports the property as not applicable/absent rather than scoring it supplies no score)."
+    }
+  ]
+}

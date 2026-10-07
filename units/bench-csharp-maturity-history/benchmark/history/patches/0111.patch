@@ -1,0 +1,61 @@
+From 8e6fdf1971f504b9a8b5055606e5176540151173 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Mon, 31 Aug 2026 13:25:44 +0200
+Subject: feat: cancellation time in the portal feed
+
+---
+ src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs    | 4 ++--
+ .../PatientPortal/PortalAppointmentFeed.cs                   | 5 +++++
+ .../PatientPortal/PortalAppointmentFeedTests.cs              | 1 +
+ 3 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 3bc2128..037c8ea 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -17,7 +17,7 @@ public sealed record AppointmentResponse(
+     bool IsTelehealth,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId,
+     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancellationReason,
+-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateTimeOffset? CancelledAt,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancelledAt,
+     int RescheduleCount)
+ {
+     public static AppointmentResponse From(Appointment appointment)
+@@ -35,7 +35,7 @@ public sealed record AppointmentResponse(
+             appointment.IsTelehealth,
+             appointment.SeriesId,
+             appointment.CancellationReason is { } reason ? ReasonCode(reason) : null,
+-            appointment.CancelledAt,
++            appointment.CancelledAt is { } at ? Timestamp(at) : null,
+             appointment.RescheduleCount);
+     }
+ 
+diff --git a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+index 2165fc7..a417917 100644
+--- a/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
++++ b/src/ClinicScheduling.Infrastructure/PatientPortal/PortalAppointmentFeed.cs
+@@ -43,6 +43,11 @@ public static class PortalAppointmentFeed
+                     json.WriteString("cancellationReason", Reason(reason));
+                 }
+ 
++                if (a.CancelledAt is { } at)
++                {
++                    json.WriteString("cancelledAt", Local(at, zone));
++                }
++
+                 json.WriteNumber("rescheduleCount", a.RescheduleCount);
+                 json.WriteEndObject();
+             }
+diff --git a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+index 50a8d1e..478e48e 100644
+--- a/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
++++ b/tests/ClinicScheduling.UnitTests/PatientPortal/PortalAppointmentFeedTests.cs
+@@ -28,6 +28,7 @@ public sealed class PortalAppointmentFeedTests
+         Assert.Equal("cancelled", items[0].GetProperty("status").GetString());
+         Assert.Equal("patient-illness", items[0].GetProperty("cancellationReason").GetString());
+         Assert.True(items[0].GetProperty("isTelehealth").GetBoolean());
++        Assert.Equal("2026-03-08T19:00:00+01:00", items[0].GetProperty("cancelledAt").GetString());
+         Assert.Equal("booked", items[1].GetProperty("status").GetString());
+         Assert.Equal(0, items[1].GetProperty("rescheduleCount").GetInt32());
+     }

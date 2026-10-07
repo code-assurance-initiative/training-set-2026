@@ -1,0 +1,1415 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-csharp-tests",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Test-suite quality defects and their look-alikes in a currency conversion & rounding library with an API host",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "TQ-001",
+      "label": "must-fire",
+      "concept": "test-without-assertion",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/CurrencyConverterTests.cs",
+      "lines": [
+        41,
+        42
+      ],
+      "rationale": "ConvertsLargeAmountsWithoutOverflow runs the converter on a large amount and stores the result, but never checks it: no assertion of any kind. It passes as long as nothing throws, so a wrong conversion of large amounts goes unnoticed."
+    },
+    {
+      "id": "TQ-002",
+      "label": "must-fire",
+      "concept": "test-without-assertion",
+      "file": "tests/Fx.Conversion.UnitTests/Allocation/AllocatorTests.cs",
+      "lines": [
+        42,
+        43
+      ],
+      "rationale": "AllocatesAcrossManyParts ends with Assert.True(true): an assertion call that is true by construction and says nothing about the allocation. The test verifies nothing the code under test produced; it is an assertion-free test wearing an assertion."
+    },
+    {
+      "id": "TQ-003",
+      "label": "must-fire",
+      "concept": "skipped-test-without-reason",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/CurrencyConverterTests.cs",
+      "lines": [
+        49,
+        50
+      ],
+      "rationale": "[Fact(Skip = \"wip\")] switches off the cross-rate conversion test with no reason, no category and no issue: nobody can tell whether it is broken, unfinished or obsolete, and the most important conversion path is silently untested by it."
+    },
+    {
+      "id": "TQ-004",
+      "label": "must-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/RateRefreshServiceTests.cs",
+      "lines": [
+        24,
+        25
+      ],
+      "rationale": "RefreshPopulatesTheCache starts the refresh loop with Task.Run and then waits a fixed Thread.Sleep before asserting the cache was filled. The sleep is a guess about machine speed, not a signal that the refresh completed: green on an idle laptop, red on a loaded CI runner."
+    },
+    {
+      "id": "TQ-005",
+      "label": "must-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/EcbRateSourceTests.cs",
+      "lines": [
+        63,
+        64
+      ],
+      "rationale": "LiveFeedParses fetches the real European Central Bank daily feed over the network from the unit suite. Its outcome depends on a third-party host being up, reachable and serving the expected document; it skips itself when the host is unreachable, so it is green offline and can fail online for reasons this repository does not control."
+    },
+    {
+      "id": "TQ-006",
+      "label": "must-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/RateTableTests.cs",
+      "lines": [
+        59,
+        60
+      ],
+      "rationale": "TablePublishedTodayIsCurrent builds its expectation from DateTime.Today (the machine's LOCAL date) and expects RateTable.AgeInDays to be 0, while AgeInDays counts against the UTC date of TimeProvider.System. Whenever the local date and the UTC date differ (00:00-02:00 in Copenhagen in summer, every evening in the Americas) the test fails; on a UTC build agent it never does. Real, time-of-day-dependent flakiness that passes most of the time."
+    },
+    {
+      "id": "TQ-007",
+      "label": "must-fire",
+      "concept": "excessive-mocking",
+      "file": "tests/Fx.Conversion.UnitTests/Quotes/QuoteServiceTests.cs",
+      "lines": [
+        18,
+        19
+      ],
+      "rationale": "CreatingAQuoteCallsEveryCollaborator substitutes all six collaborators of QuoteService (rates, catalog, fees, store, audit, metrics) and asserts only that each was called (Received). It pins the wiring, not the behaviour: it would pass with a wrong quote amount and fail on any harmless refactor."
+    },
+    {
+      "id": "TQ-008",
+      "label": "must-fire",
+      "concept": "test-failure-swallowed",
+      "file": "tests/Fx.Conversion.UnitTests/Monetary/MoneyFormatterTests.cs",
+      "lines": [
+        42,
+        43
+      ],
+      "rationale": "FormatsEveryCatalogCurrency runs its act and Assert inside try { } catch (Exception ex) and only writes the message to the test output. A failed assertion throws, is caught and discarded: the test cannot fail."
+    },
+    {
+      "id": "COV-001",
+      "label": "must-fire",
+      "concept": "test-coverage",
+      "file": "src/Fx.Conversion.Core/Rounding/CashRounding.cs",
+      "rationale": "Cash rounding (0.05 CHF steps, Nordic 0.50/1.00 steps, the per-currency increment table) is core money logic that no test touches: 0 % line coverage while the rest of the library is well covered. A whole-file plant: the gap is the module."
+    },
+    {
+      "id": "AX8-001",
+      "label": "must-fire",
+      "concept": "production-depends-on-test-code",
+      "file": "src/Fx.Conversion.Api/Fx.Conversion.Api.csproj",
+      "lines": [
+        10,
+        10
+      ],
+      "subject": "Fx.Conversion.TestSupport",
+      "rationale": "The production API project references the test-support project tests/Fx.Conversion.TestSupport (fake rate source, builders, xUnit assertion helpers) to seed rates in Development. The shipped API now carries a test project and the xUnit assertion library: production depends on test code."
+    },
+    {
+      "id": "GATE-001",
+      "label": "must-fire",
+      "concept": "ci-test-gate-integrity",
+      "rationale": "CI (.github/workflows/ci.yml, the Test step) collects coverage with --collect:\"XPlat Code Coverage\" and uploads the report, but no step enforces a minimum: coverage could halve and CI stays green. Repository-level because the gate is a property of the pipeline, not of one line."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "test-without-assertion",
+      "file": "tests/Fx.Conversion.UnitTests/Monetary/MoneyTests.cs",
+      "lines": [
+        9,
+        10
+      ],
+      "rationale": "AddsAmountsOfTheSameCurrency verifies through Shouldly (sum.ShouldBe(...)): a real assertion in a fluent library, not an assertion-free test."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "test-without-assertion",
+      "file": "tests/Fx.Conversion.UnitTests/Monetary/MoneyTests.cs",
+      "lines": [
+        26,
+        27
+      ],
+      "rationale": "AddingDifferentCurrenciesThrows has Assert.Throws<InvalidOperationException>(...) as its only statement: the exception assertion IS the verification."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "skipped-test-without-reason",
+      "file": "tests/Fx.Conversion.UnitTests/Allocation/AllocatorTests.cs",
+      "lines": [
+        63,
+        64
+      ],
+      "rationale": "AllocatesWeightsWhoseSumExceedsAnInt is skipped with a categorised reason that names a real, reproducible bug (weights summing past int.MaxValue overflow) and links the tracking issue (#1): a documented, tracked deferral, not skip debt."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/RateCacheTests.cs",
+      "lines": [
+        15,
+        16
+      ],
+      "rationale": "EntryExpiresAfterItsTimeToLive ages the cache with FakeTimeProvider.Advance: time is virtual and deterministic, no wall clock, no sleep."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.IntegrationTests/RatesEndpointTests.cs",
+      "lines": [
+        10,
+        11
+      ],
+      "rationale": "An integration test through WebApplicationFactory's in-memory test server (base address on the reserved .test domain): the request never leaves the process, and the origin behind the rate cache is a fixed table."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/EcbRateSourceTests.cs",
+      "lines": [
+        14,
+        15
+      ],
+      "rationale": "ParsesTheDailyFeed hands the real ECB feed URL to an HttpClient whose handler is the test's own stub returning a checked-in fixture: the URL is only a value, nothing leaves the process."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "excessive-mocking",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/CurrencyConverterTests.cs",
+      "lines": [
+        20,
+        21
+      ],
+      "rationale": "One substitute, for the external rate source (the boundary), and assertions on the converted amount: behaviour is verified, the mock only replaces I/O."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/EcbRateSourceTests.cs",
+      "lines": [
+        26,
+        27
+      ],
+      "rationale": "RetriesTransientFailures exercises the Polly retry pipeline on a FakeTimeProvider and advances virtual time; the only real duration is a WaitAsync hang guard the call races, never a sleep the test stands on."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "test-without-assertion",
+      "file": "tests/Fx.Conversion.UnitTests/Allocation/AllocatorTests.cs",
+      "lines": [
+        50,
+        51
+      ],
+      "rationale": "A CsCheck property test: Gen...Sample(predicate) generates inputs and throws with the shrunk counter-example when the predicate is false. The property-assert API is the assertion; there is no classic Assert by design."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Rates/RateRefreshServiceTests.cs",
+      "lines": [
+        35,
+        36
+      ],
+      "rationale": "StartedServiceFillsTheCache starts the hosted service and waits for the cache by polling the condition with a short interval up to a deadline: the wait ends on the signal, the deadline only bounds a hang."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "production-depends-on-test-code",
+      "file": "src/Fx.Conversion.Core/Fx.Conversion.Core.csproj",
+      "lines": [
+        8,
+        8
+      ],
+      "subject": "Fx.Conversion.UnitTests",
+      "rationale": "InternalsVisibleTo naming the unit-test assembly grants the tests access to internals; it is not a reference, and production does not depend on the test project."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "flaky-test",
+      "file": "tests/Fx.Conversion.UnitTests/Monetary/MoneyFormatterTests.cs",
+      "lines": [
+        10,
+        11
+      ],
+      "rationale": "FormatsWithTheRequestedCulture asserts culture-specific output but passes the culture explicitly (CultureInfo.GetCultureInfo(\"de-DE\")) to the formatter: the result does not depend on the machine's current culture."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "test-failure-swallowed",
+      "file": "tests/Fx.Conversion.UnitTests/Currencies/CurrencyCatalogTests.cs",
+      "lines": [
+        31,
+        32
+      ],
+      "rationale": "EveryCatalogCurrencyRoundTrips wraps each case in try/catch (Exception) only to name the failing currency: the catch calls Assert.Fail with that name, so the failure still reaches the runner."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "test-coverage",
+      "band": [
+        60,
+        95
+      ],
+      "rationale": "Well-tested library and API (most files 80-100 %) with one untested core module (COV-001): high but visibly short of complete."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "test-pyramid-distribution",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "A unit-test base (~60 tests), an in-memory integration layer (~12) and a handful of BDD scenarios, no end-to-end suite: a healthy pyramid."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "domain-vs-controller-coverage",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Coverage concentrates on the domain library (money, rounding, allocation, rates), except the cash-rounding module; controllers are thin and covered by the integration suite."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "executable-specifications",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Gherkin feature files bound to step definitions and run by the xUnit runner on every build: executable specifications that actually execute."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "ci-test-gate-integrity",
+      "band": [
+        30,
+        75
+      ],
+      "rationale": "CI runs the whole suite on pull requests with no filter, but collects coverage without gating it (GATE-001) and carries one skip without a reason (TQ-003): a gate that is honest about what it runs and silent about coverage."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/AllocationRequest.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/AllocationResponse.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/ConversionRequest.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/ConversionResponse.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/CurrencyCode.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/CurrencyPairRequest.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/MoneyDto.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/QuoteRequest.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/QuoteResponse.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Contracts/RatesResponse.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Controllers/AllocationsController.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Controllers/ConversionsController.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Controllers/QuotesController.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Controllers/RatesController.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Errors/ConversionExceptionHandler.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Hosting/ApiApplicationBuilderExtensions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Hosting/ApiServiceCollectionExtensions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Program.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Security/AuthorizationPolicies.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Security/ConfigureJwtBearerOptions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Security/JwtAuthenticationOptions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Security/ScopeClaims.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Api/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Allocation/Allocator.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Currencies/Currency.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Currencies/CurrencyCatalog.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Currencies/ICurrencyCatalog.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Currencies/Iso4217Table.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Currencies/UnknownCurrencyException.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "src/Fx.Conversion.Core/Fx.Conversion.Core.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Monetary/Money.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Monetary/MoneyFormatter.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/ConversionMetrics.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/IConversionMetrics.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/IFeePolicy.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/IQuoteAudit.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/IQuoteStore.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/InMemoryQuoteStore.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/LoggingQuoteAudit.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/Quote.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/QuoteService.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Quotes/TieredFeePolicy.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rates/CurrencyConverter.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rates/IRateSource.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rates/RateCache.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rates/RateTable.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rounding/MoneyRounding.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Core/Rounding/RoundingMode.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/EcbOptions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/EcbRateSource.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/EcbResilience.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/EcbServiceCollectionExtensions.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/EcbXmlParser.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "src/Fx.Conversion.Rates/Fx.Conversion.Rates.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed",
+        "test-coverage"
+      ],
+      "file": "src/Fx.Conversion.Rates/RateRefreshService.cs",
+      "rationale": "No planted test-quality defect in this file. Production code exercised by the unit or integration suite."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/AllocationsEndpointTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/ConversionApiFactory.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/ConversionsEndpointTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/Fx.Conversion.IntegrationTests.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/HealthAndHeadersTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/QuotesEndpointTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/RatesEndpointTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.IntegrationTests/TestTokens.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.Specs/Features/Conversion.feature",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "tests/Fx.Conversion.Specs/Fx.Conversion.Specs.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.Specs/Steps/ConversionSteps.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.TestSupport/FixedRateSource.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "tests/Fx.Conversion.TestSupport/Fx.Conversion.TestSupport.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.TestSupport/KnownCurrencies.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.TestSupport/MoneyAssert.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.TestSupport/RateTables.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Currencies/CurrencyCatalogTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Currencies/CurrencyTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Fixtures/Feeds.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "production-depends-on-test-code"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Fx.Conversion.UnitTests.csproj",
+      "rationale": "Project references point from tests to production, or between production projects only."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Http/SingleClientFactory.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Http/StubHttpMessageHandler.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Monetary/MoneyTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Quotes/TieredFeePolicyTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Rates/EcbXmlParserTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Rates/RateCacheTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "test-without-assertion",
+        "skipped-test-without-reason",
+        "excessive-mocking",
+        "flaky-test",
+        "test-failure-swallowed"
+      ],
+      "file": "tests/Fx.Conversion.UnitTests/Rounding/MoneyRoundingTests.cs",
+      "rationale": "No planted test-quality defect in this file."
+    }
+  ]
+}

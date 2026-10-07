@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ReportDesk.Api/ReportDesk.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ReportDesk.IntegrationTests/ReportDesk.IntegrationTests.csproj" />
+    <Project Path="tests/ReportDesk.UnitTests/ReportDesk.UnitTests.csproj" />
+  </Folder>
+</Solution>

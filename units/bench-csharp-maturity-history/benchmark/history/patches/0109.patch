@@ -1,0 +1,48 @@
+From eaf42c0e6b4ae40d45ee77efbd2a8c102a5d0937 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Thu, 27 Aug 2026 10:20:58 +0200
+Subject: feat(reminders): batch size from configuration
+
+---
+ src/ClinicScheduling.Api/appsettings.json                       | 1 +
+ .../Notifications/ReminderDispatchOptions.cs                    | 2 ++
+ .../Notifications/ReminderDispatchWorker.cs                     | 2 +-
+ 3 files changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Api/appsettings.json b/src/ClinicScheduling.Api/appsettings.json
+index 5e720ce..a3cf505 100644
+--- a/src/ClinicScheduling.Api/appsettings.json
++++ b/src/ClinicScheduling.Api/appsettings.json
+@@ -17,6 +17,7 @@
+   },
+   "ReminderDispatch": {
+     "PollInterval": "00:00:30",
++    "BatchSize": 50,
+     "ClinicPhone": "+45 70 00 00 00"
+   }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
+index e20df46..81ecd24 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchOptions.cs
+@@ -6,5 +6,7 @@ public sealed class ReminderDispatchOptions
+ 
+     public TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(30);
+ 
++    public int BatchSize { get; set; } = 50;
++
+     public string ClinicPhone { get; set; } = "+45 70 00 00 00";
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+index 3692d66..fe4b0c2 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+@@ -40,7 +40,7 @@ public sealed partial class ReminderDispatchWorker(
+         var sender = services.GetRequiredService<ISmsSender>();
+ 
+         var sent = 0;
+-        foreach (var reminder in await outbox.DueAsync(time.GetUtcNow(), 50, cancellationToken).ConfigureAwait(false))
++        foreach (var reminder in await outbox.DueAsync(time.GetUtcNow(), options.Value.BatchSize, cancellationToken).ConfigureAwait(false))
+         {
+             var appointment = await appointments.FindAsync(reminder.AppointmentId, cancellationToken).ConfigureAwait(false);
+             var schedule = appointment is null ? null : await schedules.FindAsync(appointment.PractitionerId, cancellationToken).ConfigureAwait(false);

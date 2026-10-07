@@ -1,0 +1,25 @@
+From ac84b7fa2de996501f9ec13f5844f1ba719d22ca Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 20 Aug 2026 16:15:09 +0200
+Subject: fix(series): refuse a series that cannot be fitted around public
+ holidays
+
+---
+ .../Series/BookTreatmentSeries.cs                             | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+index 28e4803..5d6f1d1 100644
+--- a/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
++++ b/src/ClinicScheduling.Application/Series/BookTreatmentSeries.cs
+@@ -26,6 +26,10 @@ public sealed class BookTreatmentSeriesHandler(
+         }
+ 
+         var sessions = expander.Expand(command.Rule, command.FirstDay, command.StartTime, command.Duration, schedule.TimeZone, schedule.CountryCode);
++        if (sessions.Count < command.Rule.Count)
++        {
++            return Operation.Invalid<IReadOnlyList<Appointment>>("The series cannot be fitted around public holidays.");
++        }
+ 
+         var booked = await appointments.BookedForPractitionerAsync(
+             command.PractitionerId, sessions[0].Start.AddDays(-1), sessions[^1].End.AddDays(1), cancellationToken).ConfigureAwait(false);

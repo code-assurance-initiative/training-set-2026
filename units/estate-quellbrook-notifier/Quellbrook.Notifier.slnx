@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Quellbrook.Notifier/Quellbrook.Notifier.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Quellbrook.Notifier.UnitTests/Quellbrook.Notifier.UnitTests.csproj" />
+  </Folder>
+</Solution>

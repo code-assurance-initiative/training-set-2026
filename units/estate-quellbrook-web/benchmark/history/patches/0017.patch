@@ -1,0 +1,50 @@
+From 68c359b51531cb5d00013a1a8fbb8cd9204a0e21 Mon Sep 17 00:00:00 2001
+From: Ines Halvard <ines.halvard@example.invalid>
+Date: Thu, 3 Sep 2026 11:14:26 +0200
+Subject: fix(nginx): set the security headers once; locations no longer drop
+ them
+
+An add_header in a location replaces every header of the server block: the HTML page was served without the
+Permissions-Policy header and the assets without frame and referrer policies. Caching now uses expires.
+---
+ nginx/default.conf | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/nginx/default.conf b/nginx/default.conf
+index 4ecc391..27076c9 100644
+--- a/nginx/default.conf
++++ b/nginx/default.conf
+@@ -1,4 +1,7 @@
+ # Serves the built console. /api is routed to the gateway by the ingress, not by this server.
++#
++# The security headers are set once, at server level, and no location sets add_header: in nginx a location that sets
++# any add_header replaces every header inherited from the server block. Caching is set with `expires`, which does not.
+ server {
+     listen 8080;
+     server_name _;
+@@ -12,9 +15,8 @@ server {
+     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+ 
+     location /assets/ {
+-        add_header Cache-Control "public, max-age=31536000, immutable" always;
+-        add_header Content-Security-Policy "default-src 'none'" always;
+-        add_header X-Content-Type-Options "nosniff" always;
++        # File names carry a content hash, so they never change.
++        expires max;
+         try_files $uri =404;
+     }
+ 
+@@ -25,11 +27,8 @@ server {
+     }
+ 
+     location / {
+-        add_header Cache-Control "no-cache" always;
+-        add_header Content-Security-Policy "default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" always;
+-        add_header X-Content-Type-Options "nosniff" always;
+-        add_header X-Frame-Options "DENY" always;
+-        add_header Referrer-Policy "same-origin" always;
++        # index.html must be revalidated so a new release is picked up at once.
++        expires -1;
+         try_files $uri /index.html;
+     }
+ }

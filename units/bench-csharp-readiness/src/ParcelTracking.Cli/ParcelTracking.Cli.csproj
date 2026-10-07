@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ParcelTracking.Cli</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>parcel-admin</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ParcelTracking.Core\ParcelTracking.Core.csproj" />
+  </ItemGroup>
+
+</Project>

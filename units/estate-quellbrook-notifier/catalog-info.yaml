@@ -1,0 +1,21 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: quellbrook-notifier
+  description: Notifier — tells consignees about their deliveries by e-mail and SMS.
+  annotations:
+    github.com/project-slug: code-assurance-initiative/estate-quellbrook-notifier
+  tags: [dotnet, worker, postgres, rabbitmq]
+spec:
+  type: service
+  lifecycle: production
+  owner: group:customer-comms
+  system: quellbrook-operations
+  consumesApis:
+    - quellbrook-orders-events
+    - quellbrook-dispatch-events
+  dependsOn:
+    - resource:quellbrook-notifier-db
+    - resource:quellbrook-event-broker
+    - resource:email-provider
+    - resource:sms-gateway

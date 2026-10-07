@@ -1,0 +1,577 @@
+From c44741b9aad84cc2c87bb6927fa9f7947f0e300e Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 12 May 2026 15:10:40 +0200
+Subject: refactor: TimeProvider instead of IClock (ADR 0006)
+
+---
+ docs/architecture.md                             |  4 ++--
+ .../Endpoints/PatientEndpoints.cs                |  5 ++---
+ .../Endpoints/WaitlistEndpoints.cs               |  5 ++---
+ .../ApplicationServiceCollectionExtensions.cs    |  2 ++
+ .../Booking/BookAppointment.cs                   |  5 ++---
+ .../Booking/CancelAppointment.cs                 |  5 ++---
+ .../Booking/RecordNoShow.cs                      |  5 ++---
+ .../Reminders/ReminderPlanner.cs                 |  5 ++---
+ .../Availability/SlotFinder.cs                   |  5 ++---
+ src/ClinicScheduling.Domain/Time/IClock.cs       |  7 -------
+ .../InfrastructureServiceCollectionExtensions.cs |  3 ---
+ .../Notifications/ReminderDispatchWorker.cs      | 11 +++++------
+ .../Time/SystemClock.cs                          |  8 --------
+ .../WaitlistBackfill.cs                          |  7 +++----
+ .../SchedulingApiFactory.cs                      | 16 ++++------------
+ .../Availability/SlotFinderTests.cs              |  7 ++++---
+ .../Booking/BookingHandlersTests.cs              |  9 +++++----
+ .../Reminders/ReminderPlannerTests.cs            |  3 ++-
+ tests/ClinicScheduling.UnitTests/TestData.cs     |  7 -------
+ .../Waitlist/WaitlistBackfillTests.cs            |  5 +++--
+ 20 files changed, 44 insertions(+), 80 deletions(-)
+ delete mode 100644 src/ClinicScheduling.Domain/Time/IClock.cs
+ delete mode 100644 src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
+
+diff --git a/docs/architecture.md b/docs/architecture.md
+index d4479f5..b01f2f1 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -39,5 +39,5 @@ flowchart LR
+ 
+ ## Decisions
+ 
+-See [`adr/`](adr/): record keeping (0001), layering (0002), the clock (0003), Minimal API
+-endpoints (0004), reminders through an outbox (0005).
++See [`adr/`](adr/): record keeping (0001), layering (0002), the clock (0003, superseded by 0006), Minimal API
++endpoints (0004), reminders through an outbox (0005), TimeProvider (0006).
+diff --git a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+index 0b14ce4..eb83c5f 100644
+--- a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+@@ -1,7 +1,6 @@
+ using ClinicScheduling.Api.Security;
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Appointments;
+-using ClinicScheduling.Domain.Time;
+ using ClinicScheduling.Infrastructure.Calendar;
+ using ClinicScheduling.Infrastructure.PatientPortal;
+ 
+@@ -28,10 +27,10 @@ public static class PatientEndpoints
+     }
+ 
+     private static async Task<IResult> CalendarAsync(
+-        Guid patientId, IAppointmentRepository appointments, IClock clock, CancellationToken cancellationToken)
++        Guid patientId, IAppointmentRepository appointments, TimeProvider time, CancellationToken cancellationToken)
+     {
+         var mine = await appointments.ForPatientAsync(patientId, cancellationToken).ConfigureAwait(false);
+-        var stamp = clock.UtcNow;
++        var stamp = time.GetUtcNow();
+         var events = mine
+             .Where(a => a.Status == AppointmentStatus.Booked)
+             .Select(a => new CalendarEvent(
+diff --git a/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+index 56ea100..aacfe22 100644
+--- a/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+@@ -1,6 +1,5 @@
+ using ClinicScheduling.Api.Contracts;
+ using ClinicScheduling.Api.Security;
+-using ClinicScheduling.Domain.Time;
+ using ClinicScheduling.Waitlist;
+ 
+ namespace ClinicScheduling.Api.Endpoints;
+@@ -15,7 +14,7 @@ public static class WaitlistEndpoints
+         return app;
+     }
+ 
+-    private static IResult Join(JoinWaitlistRequest request, WaitlistStore store, IClock clock)
++    private static IResult Join(JoinWaitlistRequest request, WaitlistStore store, TimeProvider time)
+     {
+         var errors = request.Validate();
+         if (errors.Any)
+@@ -23,7 +22,7 @@ public static class WaitlistEndpoints
+             return Results.ValidationProblem(errors.ToDictionary());
+         }
+ 
+-        var entry = new WaitlistEntry(Guid.NewGuid(), request.PatientId, request.PractitionerId, request.Earliest, request.Latest, clock.UtcNow);
++        var entry = new WaitlistEntry(Guid.NewGuid(), request.PatientId, request.PractitionerId, request.Earliest, request.Latest, time.GetUtcNow());
+         store.Join(entry);
+         return Results.Ok(entry);
+     }
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index d62f505..dcd6c17 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -6,6 +6,7 @@ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Policies;
+ using ClinicScheduling.Domain.Recurrence;
+ using Microsoft.Extensions.DependencyInjection;
++using Microsoft.Extensions.DependencyInjection.Extensions;
+ 
+ namespace ClinicScheduling.Application;
+ 
+@@ -13,6 +14,7 @@ public static class ApplicationServiceCollectionExtensions
+ {
+     public static IServiceCollection AddSchedulingApplication(this IServiceCollection services)
+     {
++        services.TryAddSingleton(TimeProvider.System);
+         services.AddOptions<ReminderOptions>().BindConfiguration(ReminderOptions.SectionName);
+         services.AddSingleton(new SlotSearchOptions());
+         services.AddSingleton(new CancellationPolicyOptions());
+diff --git a/src/ClinicScheduling.Application/Booking/BookAppointment.cs b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+index 315b7c3..981450a 100644
+--- a/src/ClinicScheduling.Application/Booking/BookAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+@@ -3,7 +3,6 @@ using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Policies;
+-using ClinicScheduling.Domain.Time;
+ using Microsoft.Extensions.Logging;
+ 
+ namespace ClinicScheduling.Application.Booking;
+@@ -20,7 +19,7 @@ public sealed partial class BookAppointmentHandler(
+     SlotSearchOptions searchOptions,
+     CancellationPolicy policy,
+     ReminderPlanner planner,
+-    IClock clock,
++    TimeProvider time,
+     ILogger<BookAppointmentHandler> logger)
+ {
+     public async Task<OperationResult<Appointment>> HandleAsync(BookAppointmentCommand command, CancellationToken cancellationToken)
+@@ -33,7 +32,7 @@ public sealed partial class BookAppointmentHandler(
+         }
+ 
+         var history = await strikes.StrikesAsync(command.PatientId, cancellationToken).ConfigureAwait(false);
+-        if (policy.RequiresDeposit(history, clock.UtcNow))
++        if (policy.RequiresDeposit(history, time.GetUtcNow()))
+         {
+             return Operation.Invalid<Appointment>("A deposit is required before this patient can book again.");
+         }
+diff --git a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+index 91ba32f..d966c8f 100644
+--- a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+@@ -1,7 +1,6 @@
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Policies;
+-using ClinicScheduling.Domain.Time;
+ using Microsoft.Extensions.Logging;
+ 
+ namespace ClinicScheduling.Application.Booking;
+@@ -13,7 +12,7 @@ public sealed partial class CancelAppointmentHandler(
+     IPatientStrikeLedger strikes,
+     IReminderOutbox reminders,
+     CancellationPolicy policy,
+-    IClock clock,
++    TimeProvider time,
+     ILogger<CancelAppointmentHandler> logger)
+ {
+     public async Task<OperationResult<CancellationDecision>> HandleAsync(CancelAppointmentCommand command, CancellationToken cancellationToken)
+@@ -30,7 +29,7 @@ public sealed partial class CancelAppointmentHandler(
+             return Operation.Conflict<CancellationDecision>($"Appointment {appointment.Id} is already {appointment.Status}.");
+         }
+ 
+-        var now = clock.UtcNow;
++        var now = time.GetUtcNow();
+         var decision = policy.EvaluateCancellation(appointment, command.Reason, now);
+         appointment.Cancel(command.Reason, now);
+         await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
+diff --git a/src/ClinicScheduling.Application/Booking/RecordNoShow.cs b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+index 1f6981e..135fc6b 100644
+--- a/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
++++ b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+@@ -1,7 +1,6 @@
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Policies;
+-using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.Application.Booking;
+ 
+@@ -9,7 +8,7 @@ public sealed class RecordNoShowHandler(
+     IAppointmentRepository appointments,
+     IPatientStrikeLedger strikes,
+     CancellationPolicy policy,
+-    IClock clock)
++    TimeProvider time)
+ {
+     public async Task<OperationResult<CancellationDecision>> HandleAsync(Guid appointmentId, CancellationToken cancellationToken)
+     {
+@@ -19,7 +18,7 @@ public sealed class RecordNoShowHandler(
+             return Operation.NotFound<CancellationDecision>($"Appointment {appointmentId} does not exist.");
+         }
+ 
+-        var now = clock.UtcNow;
++        var now = time.GetUtcNow();
+         if (appointment.Status != AppointmentStatus.Booked || appointment.Time.Start > now)
+         {
+             return Operation.Conflict<CancellationDecision>("Only a booked appointment that has started can be a no-show.");
+diff --git a/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+index d2772e4..a3f0fd9 100644
+--- a/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
++++ b/src/ClinicScheduling.Application/Reminders/ReminderPlanner.cs
+@@ -1,11 +1,10 @@
+ using ClinicScheduling.Domain.Appointments;
+-using ClinicScheduling.Domain.Time;
+ using Microsoft.Extensions.Options;
+ 
+ namespace ClinicScheduling.Application.Reminders;
+ 
+ /// <summary>Decides when an appointment's reminders go out.</summary>
+-public sealed class ReminderPlanner(IOptions<ReminderOptions> options, IClock clock)
++public sealed class ReminderPlanner(IOptions<ReminderOptions> options, TimeProvider time)
+ {
+     public IReadOnlyList<PlannedReminder> Plan(Appointment appointment, TimeZoneInfo zone)
+     {
+@@ -13,7 +12,7 @@ public sealed class ReminderPlanner(IOptions<ReminderOptions> options, IClock cl
+         ArgumentNullException.ThrowIfNull(zone);
+ 
+         var settings = options.Value;
+-        var now = clock.UtcNow;
++        var now = time.GetUtcNow();
+         var plan = new List<PlannedReminder>(2);
+         foreach (var (kind, lead) in new[] { (ReminderKind.DayBefore, settings.DayBeforeLead), (ReminderKind.SameDay, settings.SameDayLead) })
+         {
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 39af480..2ce0d61 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -1,5 +1,4 @@
+ using ClinicScheduling.Domain.Holidays;
+-using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.Domain.Availability;
+ 
+@@ -7,7 +6,7 @@ namespace ClinicScheduling.Domain.Availability;
+ /// Finds the bookable slots of one practitioner: opening hours minus breaks, holidays, existing appointments (with
+ /// their buffers), notice periods and the practitioner's daily cap.
+ /// </summary>
+-public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
++public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+ {
+     public IReadOnlyList<Slot> FindOpenSlots(
+         PractitionerSchedule schedule,
+@@ -35,7 +34,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+             return [];
+         }
+ 
+-        var now = clock.UtcNow;
++        var now = time.GetUtcNow();
+         var today = DateOnly.FromDateTime(now.UtcDateTime);
+         var slots = new List<Slot>();
+ 
+diff --git a/src/ClinicScheduling.Domain/Time/IClock.cs b/src/ClinicScheduling.Domain/Time/IClock.cs
+deleted file mode 100644
+index 1d89030..0000000
+--- a/src/ClinicScheduling.Domain/Time/IClock.cs
++++ /dev/null
+@@ -1,7 +0,0 @@
+-namespace ClinicScheduling.Domain.Time;
+-
+-/// <summary>The current time, injected so that time-dependent rules can be tested (ADR 0003).</summary>
+-public interface IClock
+-{
+-    DateTimeOffset UtcNow { get; }
+-}
+diff --git a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+index f6d4acc..5a06a2c 100644
+--- a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+@@ -1,10 +1,8 @@
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Holidays;
+-using ClinicScheduling.Domain.Time;
+ using ClinicScheduling.Infrastructure.Holidays;
+ using ClinicScheduling.Infrastructure.Notifications;
+ using ClinicScheduling.Infrastructure.Persistence;
+-using ClinicScheduling.Infrastructure.Time;
+ using Microsoft.Extensions.DependencyInjection;
+ 
+ namespace ClinicScheduling.Infrastructure;
+@@ -14,7 +12,6 @@ public static class InfrastructureServiceCollectionExtensions
+     public static IServiceCollection AddSchedulingInfrastructure(this IServiceCollection services)
+     {
+         services.AddSingleton<IHolidayCalendar, TableHolidayCalendar>();
+-        services.AddSingleton<IClock, SystemClock>();
+         services.AddSingleton<IAppointmentRepository, InMemoryAppointmentRepository>();
+         services.AddSingleton<IScheduleRepository, InMemoryScheduleRepository>();
+         services.AddSingleton<IPatientStrikeLedger, InMemoryStrikeLedger>();
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+index 1d13217..3692d66 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderDispatchWorker.cs
+@@ -1,5 +1,4 @@
+ using ClinicScheduling.Application.Abstractions;
+-using ClinicScheduling.Domain.Time;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.Hosting;
+ using Microsoft.Extensions.Logging;
+@@ -11,12 +10,13 @@ namespace ClinicScheduling.Infrastructure.Notifications;
+ public sealed partial class ReminderDispatchWorker(
+     IServiceScopeFactory scopes,
+     IOptions<ReminderDispatchOptions> options,
+-    IClock clock,
++    TimeProvider time,
+     ILogger<ReminderDispatchWorker> logger) : BackgroundService
+ {
+     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+     {
+-        while (!stoppingToken.IsCancellationRequested)
++        using var timer = new PeriodicTimer(options.Value.PollInterval, time);
++        do
+         {
+             try
+             {
+@@ -26,9 +26,8 @@ public sealed partial class ReminderDispatchWorker(
+             {
+                 LogDispatchFailed(ex);
+             }
+-
+-            await Task.Delay(options.Value.PollInterval, stoppingToken).ConfigureAwait(false);
+         }
++        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
+     }
+ 
+     internal async Task<int> DispatchDueAsync(CancellationToken cancellationToken)
+@@ -41,7 +40,7 @@ public sealed partial class ReminderDispatchWorker(
+         var sender = services.GetRequiredService<ISmsSender>();
+ 
+         var sent = 0;
+-        foreach (var reminder in await outbox.DueAsync(clock.UtcNow, 50, cancellationToken).ConfigureAwait(false))
++        foreach (var reminder in await outbox.DueAsync(time.GetUtcNow(), 50, cancellationToken).ConfigureAwait(false))
+         {
+             var appointment = await appointments.FindAsync(reminder.AppointmentId, cancellationToken).ConfigureAwait(false);
+             var schedule = appointment is null ? null : await schedules.FindAsync(appointment.PractitionerId, cancellationToken).ConfigureAwait(false);
+diff --git a/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs b/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
+deleted file mode 100644
+index df00c38..0000000
+--- a/src/ClinicScheduling.Infrastructure/Time/SystemClock.cs
++++ /dev/null
+@@ -1,8 +0,0 @@
+-using ClinicScheduling.Domain.Time;
+-
+-namespace ClinicScheduling.Infrastructure.Time;
+-
+-public sealed class SystemClock : IClock
+-{
+-    public DateTimeOffset UtcNow => DateTimeOffset.UtcNow;
+-}
+diff --git a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs b/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+index 5d9bf53..876c47e 100644
+--- a/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
++++ b/src/ClinicScheduling.Waitlist/WaitlistBackfill.cs
+@@ -1,5 +1,4 @@
+ using ClinicScheduling.Domain.Appointments;
+-using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.Waitlist;
+ 
+@@ -7,7 +6,7 @@ namespace ClinicScheduling.Waitlist;
+ /// Offers the slot of a cancelled appointment to the first patient on the practitioner's waitlist whose window
+ /// contains the day.
+ /// </summary>
+-public sealed class WaitlistBackfill(WaitlistStore store, IClock clock)
++public sealed class WaitlistBackfill(WaitlistStore store, TimeProvider time)
+ {
+     /// <summary>How long an offer is held for one patient before the slot is offered to the next.</summary>
+     public static readonly TimeSpan OfferHold = TimeSpan.FromMinutes(30);
+@@ -17,12 +16,12 @@ public sealed class WaitlistBackfill(WaitlistStore store, IClock clock)
+         ArgumentNullException.ThrowIfNull(cancelled);
+         var day = DateOnly.FromDateTime(cancelled.Time.Start.UtcDateTime);
+         var next = store.For(cancelled.PractitionerId).FirstOrDefault(e => e.Accepts(day) && e.PatientId != cancelled.PatientId);
+-        if (next is null || cancelled.Time.Start <= clock.UtcNow)
++        if (next is null || cancelled.Time.Start <= time.GetUtcNow())
+         {
+             return null;
+         }
+ 
+-        var offer = new WaitlistOffer(next.Id, next.PatientId, cancelled.Time.Start, cancelled.Time.End, clock.UtcNow + OfferHold);
++        var offer = new WaitlistOffer(next.Id, next.PatientId, cancelled.Time.Start, cancelled.Time.End, time.GetUtcNow() + OfferHold);
+         store.Offer(offer);
+         store.Remove(next.Id);
+         return offer;
+diff --git a/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs b/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
+index 68db0ff..35f5e2d 100644
+--- a/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
++++ b/tests/ClinicScheduling.IntegrationTests/SchedulingApiFactory.cs
+@@ -1,10 +1,10 @@
+-using ClinicScheduling.Domain.Time;
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
+ using Microsoft.AspNetCore.Hosting;
+ using Microsoft.AspNetCore.Mvc.Testing;
+ using Microsoft.AspNetCore.TestHost;
+ using Microsoft.Extensions.DependencyInjection;
+ using Microsoft.Extensions.DependencyInjection.Extensions;
++using Microsoft.Extensions.Time.Testing;
+ using Microsoft.IdentityModel.Protocols;
+ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+ 
+@@ -16,7 +16,7 @@ namespace ClinicScheduling.IntegrationTests;
+ /// </summary>
+ public sealed class SchedulingApiFactory : WebApplicationFactory<Program>
+ {
+-    public TestClock Clock { get; } = new(new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero));
++    public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 3, 2, 8, 0, 0, TimeSpan.Zero));
+ 
+     public TestTokens Tokens { get; } = new();
+ 
+@@ -40,8 +40,8 @@ public sealed class SchedulingApiFactory : WebApplicationFactory<Program>
+         builder.UseSetting("https_port", "443");
+         builder.ConfigureTestServices(services =>
+         {
+-            services.RemoveAll<IClock>();
+-            services.AddSingleton<IClock>(Clock);
++            services.RemoveAll<TimeProvider>();
++            services.AddSingleton<TimeProvider>(Clock);
+             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+             {
+                 var metadata = Tokens.Metadata();
+@@ -61,11 +61,3 @@ public sealed class SchedulingApiFactory : WebApplicationFactory<Program>
+         base.Dispose(disposing);
+     }
+ }
+-
+-/// <summary>The test host's clock: it stands still until a test moves it.</summary>
+-public sealed class TestClock(DateTimeOffset now) : IClock
+-{
+-    public DateTimeOffset UtcNow { get; private set; } = now;
+-
+-    public void SetUtcNow(DateTimeOffset value) => UtcNow = value;
+-}
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index a142127..296fdcd 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -1,4 +1,5 @@
+ using ClinicScheduling.Domain.Availability;
++using Microsoft.Extensions.Time.Testing;
+ using static ClinicScheduling.UnitTests.TestData;
+ 
+ namespace ClinicScheduling.UnitTests.Availability;
+@@ -6,9 +7,9 @@ namespace ClinicScheduling.UnitTests.Availability;
+ public sealed class SlotFinderTests
+ {
+     private static readonly TimeSpan HalfHour = TimeSpan.FromMinutes(30);
+-    private readonly FixedClock _clock = new(Now);
++    private readonly FakeTimeProvider _time = new(Now);
+ 
+-    private SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays), _clock);
++    private SlotFinder Finder(params DateOnly[] holidays) => new(new FixedHolidays(holidays), _time);
+ 
+     private static SlotQuery Tuesday(TimeSpan? duration = null, string? skill = null, bool telehealth = false) =>
+         new(Monday.AddDays(1), Monday.AddDays(1), duration ?? HalfHour, skill, telehealth);
+@@ -60,7 +61,7 @@ public sealed class SlotFinderTests
+         var today = new SlotQuery(Monday, Monday, HalfHour);
+ 
+         var morning = Finder().FindOpenSlots(Schedule(), [], today, new SlotSearchOptions());
+-        _clock.UtcNow = At(Monday, 14, 5);
++        _time.SetUtcNow(At(Monday, 14, 5));
+         var afternoon = Finder().FindOpenSlots(Schedule(), [], today, new SlotSearchOptions());
+ 
+         Assert.All(morning, s => Assert.True(s.Start >= Now + TimeSpan.FromHours(2)));
+diff --git a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+index da8f062..b2176aa 100644
+--- a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+@@ -7,13 +7,14 @@ using ClinicScheduling.Domain.Policies;
+ using ClinicScheduling.Infrastructure.Persistence;
+ using Microsoft.Extensions.Logging.Abstractions;
+ using Microsoft.Extensions.Options;
++using Microsoft.Extensions.Time.Testing;
+ using static ClinicScheduling.UnitTests.TestData;
+ 
+ namespace ClinicScheduling.UnitTests.Booking;
+ 
+ public sealed class BookingHandlersTests
+ {
+-    private readonly FixedClock _clock = new(Now);
++    private readonly FakeTimeProvider _time = new(Now);
+     private readonly InMemoryScheduleRepository _schedules = new();
+     private readonly InMemoryAppointmentRepository _appointments = new();
+     private readonly InMemoryStrikeLedger _strikes = new();
+@@ -23,11 +24,11 @@ public sealed class BookingHandlersTests
+     private static CancellationToken Token => TestContext.Current.CancellationToken;
+ 
+     private BookAppointmentHandler Booker() => new(
+-        _schedules, _appointments, _strikes, _outbox, new SlotFinder(new FixedHolidays(), _clock), new SlotSearchOptions(), _policy,
+-        new ReminderPlanner(Options.Create(new ReminderOptions()), _clock), _clock, NullLogger<BookAppointmentHandler>.Instance);
++        _schedules, _appointments, _strikes, _outbox, new SlotFinder(new FixedHolidays(), _time), new SlotSearchOptions(), _policy,
++        new ReminderPlanner(Options.Create(new ReminderOptions()), _time), _time, NullLogger<BookAppointmentHandler>.Instance);
+ 
+     private CancelAppointmentHandler Canceller() =>
+-        new(_appointments, _strikes, _outbox, _policy, _clock, NullLogger<CancelAppointmentHandler>.Instance);
++        new(_appointments, _strikes, _outbox, _policy, _time, NullLogger<CancelAppointmentHandler>.Instance);
+ 
+     private static BookAppointmentCommand Command(Guid patientId, DateTimeOffset start) =>
+         new(patientId, PractitionerId, Guid.NewGuid(), start, TimeSpan.FromMinutes(30), false);
+diff --git a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+index 314e547..d4629e2 100644
+--- a/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Reminders/ReminderPlannerTests.cs
+@@ -2,13 +2,14 @@ using ClinicScheduling.Application.Reminders;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ using Microsoft.Extensions.Options;
++using Microsoft.Extensions.Time.Testing;
+ using static ClinicScheduling.UnitTests.TestData;
+ 
+ namespace ClinicScheduling.UnitTests.Reminders;
+ 
+ public sealed class ReminderPlannerTests
+ {
+-    private readonly ReminderPlanner _planner = new(Options.Create(new ReminderOptions()), new FixedClock(Now));
++    private readonly ReminderPlanner _planner = new(Options.Create(new ReminderOptions()), new FakeTimeProvider(Now));
+ 
+     private static Appointment At(DateTimeOffset start) =>
+         Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(start, start.AddHours(1)), false);
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index d82b94a..1306539 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -1,6 +1,5 @@
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Domain.Holidays;
+-using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.UnitTests;
+ 
+@@ -10,12 +9,6 @@ public sealed class FixedHolidays(params DateOnly[] days) : IHolidayCalendar
+     public bool IsHoliday(string countryCode, DateOnly day) => days.Contains(day);
+ }
+ 
+-/// <summary>A clock that stands still until a test moves it.</summary>
+-public sealed class FixedClock(DateTimeOffset now) : IClock
+-{
+-    public DateTimeOffset UtcNow { get; set; } = now;
+-}
+-
+ public static class TestData
+ {
+     /// <summary>Monday 2 March 2026, 07:00 UTC.</summary>
+diff --git a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+index 7ce1ce0..f8c0da7 100644
+--- a/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Waitlist/WaitlistBackfillTests.cs
+@@ -1,6 +1,7 @@
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
+ using ClinicScheduling.Waitlist;
++using Microsoft.Extensions.Time.Testing;
+ using static ClinicScheduling.UnitTests.TestData;
+ 
+ namespace ClinicScheduling.UnitTests.Waitlist;
+@@ -30,7 +31,7 @@ public sealed class WaitlistBackfillTests
+         var first = Join(1, 4, minutesAgo: 20);
+         Join(1, 4, minutesAgo: 10);
+ 
+-        var offer = new WaitlistBackfill(_store, new FixedClock(Now)).OfferFreedSlot(Cancelled(2));
++        var offer = new WaitlistBackfill(_store, new FakeTimeProvider(Now)).OfferFreedSlot(Cancelled(2));
+ 
+         Assert.NotNull(offer);
+         Assert.Equal(first.PatientId, offer.PatientId);
+@@ -43,6 +44,6 @@ public sealed class WaitlistBackfillTests
+     {
+         Join(5, 9, minutesAgo: 30);
+ 
+-        Assert.Null(new WaitlistBackfill(_store, new FixedClock(Now)).OfferFreedSlot(Cancelled(2)));
++        Assert.Null(new WaitlistBackfill(_store, new FakeTimeProvider(Now)).OfferFreedSlot(Cancelled(2)));
+     }
+ }

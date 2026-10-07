@@ -1,0 +1,22 @@
+From 5e9b98c0c11adfd52c7ddd4fc7efc53e04d8ef24 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 14 Apr 2026 10:00:58 +0200
+Subject: ci: weekly CodeQL run
+
+---
+ .github/workflows/codeql.yml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 108f093..2e76355 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -5,6 +5,8 @@ on:
+     branches: [main]
+   pull_request:
+     branches: [main]
++  schedule:
++    - cron: "17 4 * * 1"
+ 
+ permissions:
+   contents: read

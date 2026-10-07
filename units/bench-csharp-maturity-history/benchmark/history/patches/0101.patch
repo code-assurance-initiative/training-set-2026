@@ -1,0 +1,50 @@
+From 7a0dd50ced74012a91a4cf1387a6612dd45bff59 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 6 Aug 2026 15:20:48 +0200
+Subject: docs: configuration section and a fuller API overview in the README
+
+---
+ README.md | 18 ++++++++++++++++--
+ 1 file changed, 16 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index 15a3c69..ec37afc 100644
+--- a/README.md
++++ b/README.md
+@@ -32,7 +32,20 @@ dotnet run --project src/ClinicScheduling.Api
+ The API validates bearer tokens from the identity provider configured under `Authentication` (an `https` authority
+ and the audience `clinic-scheduling-api`). In development the authority is a realm of a local identity provider
+ (`appsettings.Development.json`). Every endpoint except `/health` needs a token with the matching scope:
+-`appointments.read`, `appointments.write`, `schedules.write` or `portal.read`.
++`appointments.read`, `appointments.write`, `schedules.write`, `reports.read` or `portal.read`.
++
++## Configuration
++
++| Section | Setting | Default | Meaning |
++|---|---|---|---|
++| `Authentication` | `Authority`, `Audience` | - | Where tokens come from and whom they must be for. |
++| `Reminders` | `DayBeforeLead`, `SameDayLead` | 2 days, 2 hours | How long before the appointment each reminder goes out. |
++| `Reminders` | `QuietHoursStart`, `QuietHoursEnd` | 21:00, 08:00 | No SMS in this window; a reminder that would fall in it is sent at 20:30 the evening before. |
++| `ReminderDispatch` | `PollInterval`, `BatchSize` | 30 s, 50 | How often the worker looks for due reminders, and how many it sends per poll. |
++| `ReminderDispatch` | `ClinicPhone` | - | The number patients are asked to call to cancel or move an appointment. |
++
++The patient-portal feed takes the patient's time zone as a query parameter (`?timeZone=Europe/Copenhagen`); times in
++the feed are written with that zone's offset.
+ 
+ ## Testing
+ 
+@@ -77,12 +90,13 @@ for 30 minutes before it moves on to the next patient.
+ | `GET /api/practitioners/{id}/slots?from&to&durationMinutes` | `appointments.read` | Open slots. |
+ | `POST /api/appointments` | `appointments.write` | Book. |
+ | `GET /api/appointments/{id}` | `appointments.read` | Read one appointment. |
+-| `POST /api/appointments/{id}/reschedule` | `appointments.write` | Move to another open slot. |
++| `POST /api/appointments/{id}/reschedule` | `appointments.write` | Move to another open slot (at most three times). |
+ | `POST /api/appointments/{id}/cancellation` | `appointments.write` | Cancel; returns the fee, if any. |
+ | `POST /api/appointments/{id}/no-show` | `appointments.write` | Record a no-show. |
+ | `POST /api/series` | `appointments.write` | Book a treatment series. |
+ | `GET /api/patients/{id}/feed` | `portal.read` | The patient-portal feed. |
+ | `GET /api/patients/{id}/calendar.ics` | `portal.read` | The patient's calendar subscription. |
++| `GET /api/reports/no-shows?from&to` | `reports.read` | No-shows and late cancellations per practitioner. |
+ 
+ ## Persistence
+ 

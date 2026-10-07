@@ -1,0 +1,22 @@
+From c82816bac5b57044100ac63de44c4758d5b31fe3 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Fri, 20 Mar 2026 09:15:37 +0100
+Subject: fix(notifications): typo in the Danish same-day reminder
+
+---
+ .../Notifications/ReminderTexts.cs                              | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index fb72c34..c7b2471 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -23,7 +23,7 @@ public static class ReminderTexts
+             ["da"] = new Dictionary<string, string>
+             {
+                 [DayBefore] = "Påmindelse: du har tid hos {0} den {1}. Ring til {2}, hvis du vil aflyse eller flytte.",
+-                [SameDay] = "Vi ses snart: din tid hos {0} er idag kl. {1}.",
++                [SameDay] = "Vi ses snart: din tid hos {0} er i dag kl. {1}.",
+                 ["signature"] = "Venlig hilsen din fysioterapiklinik",
+             },
+             ["de"] = new Dictionary<string, string>

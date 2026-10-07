@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Invoicing.Api/Invoicing.Api.csproj" />
+    <Project Path="src/Invoicing.Contracts/Invoicing.Contracts.csproj" />
+    <Project Path="src/Invoicing.Rendering/Invoicing.Rendering.csproj" />
+    <Project Path="src/Invoicing.Worker/Invoicing.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Invoicing.ArchiveExporter/Invoicing.ArchiveExporter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Invoicing.Api.IntegrationTests/Invoicing.Api.IntegrationTests.csproj" />
+    <Project Path="tests/Invoicing.UnitTests/Invoicing.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,32 @@
+From db1c0c51fcd40b260a3c1cbd4138a4b4e193ba7f Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Thu, 20 Aug 2026 09:33:12 +0200
+Subject: test: wait for the consumer to start before stopping it
+
+BackgroundService runs ExecuteAsync on the thread pool, so stopping right after starting could cancel the consumer before it declared its queue; the test failed about one run in ten on CI.
+---
+ .../Messaging/InboxTests.cs                            | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs b/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
+index 9dd3af5..9746b54 100644
+--- a/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
++++ b/tests/Quellbrook.Notifier.UnitTests/Messaging/InboxTests.cs
+@@ -137,7 +137,17 @@ public sealed class InboxTests : IDisposable
+         connections.GetConnectionAsync(Arg.Any<CancellationToken>()).Returns(connection);
+         var consumer = new EventsConsumer(connections, Inbox(), Options.Create(new RabbitMqOptions { Exchange = "quellbrook.events" }), NullLogger<EventsConsumer>.Instance);
+ 
++        var consuming = new TaskCompletionSource();
++        channel.BasicConsumeAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<bool>(),
++                Arg.Any<IDictionary<string, object?>?>(), Arg.Any<IAsyncBasicConsumer>(), Arg.Any<CancellationToken>())
++            .Returns(_ =>
++            {
++                consuming.TrySetResult();
++                return Task.FromResult("consumer-tag");
++            });
++
+         await consumer.StartAsync(TestContext.Current.CancellationToken);
++        await consuming.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+         await consumer.StopAsync(TestContext.Current.CancellationToken);
+ 
+         await channel.Received(1).QueueDeclareAsync(

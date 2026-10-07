@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Shipping.Rates.Api/Shipping.Rates.Api.csproj" />
+    <Project Path="src/Shipping.Rates.Core/Shipping.Rates.Core.csproj" />
+    <Project Path="src/Shipping.Rates.Tools/Shipping.Rates.Tools.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Shipping.Rates.IntegrationTests/Shipping.Rates.IntegrationTests.csproj" />
+    <Project Path="tests/Shipping.Rates.UnitTests/Shipping.Rates.UnitTests.csproj" />
+  </Folder>
+</Solution>

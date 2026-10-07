@@ -1,0 +1,1487 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.0",
+  "repo": "code-assurance-initiative/bench-csharp-baseline-clean",
+  "keyVersion": "1.0.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Certified-clean control: a small, well-engineered ASP.NET Core stock & reservation API",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".editorconfig",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/dependabot.yml",
+      "rationale": "CI/automation config: every action pinned by full commit SHA, least-privilege permissions, no secrets, no untrusted input interpolated into run steps."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/workflows/ci.yml",
+      "rationale": "CI/automation config: every action pinned by full commit SHA, least-privilege permissions, no secrets, no untrusted input interpolated into run steps."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "CI/automation config: every action pinned by full commit SHA, least-privilege permissions, no secrets, no untrusted input interpolated into run steps."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": "*",
+      "file": ".gitignore",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": "*",
+      "file": "CHANGELOG.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": "*",
+      "file": "Directory.Build.props",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": "*",
+      "file": "Directory.Packages.props",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": "*",
+      "file": "LICENSE",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": "*",
+      "file": "README.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": "*",
+      "file": "SECURITY.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": "*",
+      "file": "Warehouse.Stock.slnx",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/README.md",
+      "rationale": "Benchmark documentation and labels; prose and data only, nothing executable."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/answer-key.json",
+      "rationale": "Benchmark documentation and labels; prose and data only, nothing executable."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": "*",
+      "file": "benchmark/journal.md",
+      "rationale": "Benchmark documentation and labels; prose and data only, nothing executable."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0001-layered-architecture.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0002-in-memory-store.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/adr/0003-jwt-bearer-authorization.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": "*",
+      "file": "docs/architecture.md",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": "*",
+      "file": "global.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/.editorconfig",
+      "rationale": "Repository documentation or editor/tooling config; no secrets, no executable content with defects."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/BinResponse.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/CodePatterns.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/CountStockRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/CreateReservationRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/PageQuery.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/PagedResponse.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/ReceiveStockRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/RegisterBinRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/RegisterSkuRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/ReservationResponse.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/SkuResponse.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Contracts/StockLevelResponse.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Controllers/BinsController.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Controllers/ReservationsController.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Controllers/SkusController.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Controllers/StockController.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Errors/ProblemMapping.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Hosting/ApiApplicationBuilderExtensions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Hosting/ApiServiceCollectionExtensions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Program.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Security/AuthorizationPolicies.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Security/ConfigureJwtBearerOptions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Security/JwtAuthenticationOptions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Security/ScopeClaims.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/Warehouse.Stock.Api.csproj",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/appsettings.Development.json",
+      "rationale": "Configuration without any secret: JWT authority and audience only (signing keys come from the identity provider's metadata), logging levels, reservation timings that are all consumed."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/appsettings.json",
+      "rationale": "Configuration without any secret: JWT authority and audience only (signing keys come from the identity provider's metadata), logging levels, reservation timings that are all consumed."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Api/packages.lock.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/ApplicationServiceCollectionExtensions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Catalog/BinLocation.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Catalog/CatalogService.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Catalog/ICatalogStore.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Catalog/Sku.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Common/ErrorKind.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Common/OperationError.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Common/OperationResult.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Common/Page.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Common/PageRequest.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/IInventoryLedger.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/IInventoryStore.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/IInventoryView.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/StockKey.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/StockLevel.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Inventory/StockService.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Reservations/NewReservation.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Reservations/Reservation.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Reservations/ReservationOptions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Reservations/ReservationService.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Reservations/ReservationStatus.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/Warehouse.Stock.Application.csproj",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Application/packages.lock.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/InMemory/InMemoryCatalogStore.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/InMemory/InMemoryInventoryStore.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/InMemory/InventoryState.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/InfrastructureServiceCollectionExtensions.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/Warehouse.Stock.Infrastructure.csproj",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/Workers/ReservationExpiryWorker.cs",
+      "rationale": "Production source of a small layered web API written to be defect-free: short single-purpose methods, nullable enabled with no null-forgiving operator, CancellationToken taken and forwarded, structured logging, no secrets, no injection sinks, no debt markers or suppressions."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": "*",
+      "file": "src/Warehouse.Stock.Infrastructure/packages.lock.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/ApiClientExtensions.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/AuthorizationTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/CatalogEndpointsTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/HealthEndpointTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/ReservationFlowTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/SecurityHeadersTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/StockApiFactory.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-088",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/TestTokens.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-089",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/Warehouse.Stock.IntegrationTests.csproj",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-090",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.IntegrationTests/packages.lock.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-091",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/Catalog/CatalogServiceTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-092",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/InMemory/InMemoryCatalogStoreTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-093",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/InMemory/InMemoryInventoryStoreTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-094",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/Inventory/StockServiceTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-095",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/Reservations/ReservationServiceTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-096",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/Security/ScopeClaimsTests.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-097",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/TestSupport/InventoryTestContext.cs",
+      "rationale": "Test source with real assertions (xUnit v3), no skipped tests, no sleeps or wall-clock waits (time is a FakeTimeProvider), no mocking framework, no committed key material (test signing keys are generated in memory per run)."
+    },
+    {
+      "id": "CLN-098",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/Warehouse.Stock.UnitTests.csproj",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-099",
+      "label": "clean",
+      "concepts": "*",
+      "file": "tests/Warehouse.Stock.UnitTests/packages.lock.json",
+      "rationale": "Build and dependency manifest: current, supported, non-deprecated direct packages pinned centrally and locked; net10.0 (supported); nullable and warnings-as-errors enabled for every project."
+    },
+    {
+      "id": "CLN-REPO",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "secret-in-version-history",
+        "unused-dependency",
+        "undeclared-dependency",
+        "misplaced-dev-dependency",
+        "nullable-analysis-disabled",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "rationale": "Repository-level properties certified clean: every directly referenced NuGet package is the current stable release, supported, non-deprecated, permissively licensed and used by the project that declares it (test-only packages only in test projects); no package, direct or transitive, has a known vulnerability (transitive versions are those the current direct packages resolve); the target framework is net10.0; no secret was ever committed in any revision; nullable analysis is on in every project; every CI action is pinned by commit SHA; there are no container images."
+    },
+    {
+      "id": "NA-001",
+      "label": "not-applicable",
+      "concept": "architecture-rules-unenforced",
+      "rationale": "The repository records no checkable architecture rules beyond layering, and layering is enforced by the compiler through project references (Application references nothing; Infrastructure references Application only)."
+    },
+    {
+      "id": "NA-002",
+      "label": "not-applicable",
+      "concept": "network-egress-policy",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-003",
+      "label": "not-applicable",
+      "concept": "workload-syscall-confinement",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-004",
+      "label": "not-applicable",
+      "concept": "runtime-threat-detection-and-admission",
+      "rationale": "No Kubernetes or other orchestrator manifests; nothing is deployed."
+    },
+    {
+      "id": "NA-005",
+      "label": "not-applicable",
+      "concept": "missing-text-alternative",
+      "rationale": "A JSON-only web API: no HTML, Razor or other markup."
+    },
+    {
+      "id": "NA-006",
+      "label": "not-applicable",
+      "concept": "form-control-without-label",
+      "rationale": "A JSON-only web API: no HTML, Razor or other markup."
+    },
+    {
+      "id": "NA-007",
+      "label": "not-applicable",
+      "concept": "page-structure-violation",
+      "rationale": "A JSON-only web API: no HTML, Razor or other markup."
+    },
+    {
+      "id": "NA-008",
+      "label": "not-applicable",
+      "concept": "non-keyboard-accessible-interaction",
+      "rationale": "A JSON-only web API: no HTML, Razor or other markup."
+    },
+    {
+      "id": "NA-009",
+      "label": "not-applicable",
+      "concept": "invalid-aria-usage",
+      "rationale": "A JSON-only web API: no HTML, Razor or other markup."
+    },
+    {
+      "id": "NA-010",
+      "label": "not-applicable",
+      "concept": "visual-and-motion-safety",
+      "rationale": "A JSON-only web API: no HTML, CSS or other markup."
+    },
+    {
+      "id": "NA-011",
+      "label": "not-applicable",
+      "concept": "accessibility-checks-in-ci",
+      "rationale": "No user interface exists, so there is nothing for accessibility checks to run on."
+    },
+    {
+      "id": "NA-012",
+      "label": "not-applicable",
+      "concept": "alt-text-quality",
+      "rationale": "No markup, so no alternative texts."
+    },
+    {
+      "id": "NA-013",
+      "label": "not-applicable",
+      "concept": "link-and-button-text-quality",
+      "rationale": "No markup, so no links or buttons."
+    },
+    {
+      "id": "NA-014",
+      "label": "not-applicable",
+      "concept": "heading-and-label-text-quality",
+      "rationale": "No markup, so no headings or form labels."
+    },
+    {
+      "id": "NA-015",
+      "label": "not-applicable",
+      "concept": "cross-slice-coupling",
+      "rationale": "Organised as horizontal layers (Api / Application / Infrastructure), not vertical slices."
+    },
+    {
+      "id": "NA-016",
+      "label": "not-applicable",
+      "concept": "data-encryption-controls",
+      "rationale": "The service stores no personal or sensitive data: SKUs, bin codes and quantities only, held in process memory."
+    },
+    {
+      "id": "NA-017",
+      "label": "not-applicable",
+      "concept": "audit-trail",
+      "rationale": "No personal data and no regulated records are processed, so no compliance audit trail is required."
+    },
+    {
+      "id": "NA-018",
+      "label": "not-applicable",
+      "concept": "data-retention-policy",
+      "rationale": "No personal data is stored, and nothing is persisted beyond the process lifetime."
+    },
+    {
+      "id": "NA-019",
+      "label": "not-applicable",
+      "concept": "data-subject-rights",
+      "rationale": "No personal data about any data subject is processed."
+    },
+    {
+      "id": "NA-020",
+      "label": "not-applicable",
+      "concept": "personal-data-inventory",
+      "rationale": "No personal data is processed (no names, e-mail addresses, phone numbers or addresses of people)."
+    },
+    {
+      "id": "NA-021",
+      "label": "not-applicable",
+      "concept": "personal-data-in-event-store",
+      "rationale": "No event store and no personal data."
+    },
+    {
+      "id": "NA-022",
+      "label": "not-applicable",
+      "concept": "cross-aggregate-object-reference",
+      "rationale": "No domain-driven design model: plain application records and services, no aggregates."
+    },
+    {
+      "id": "NA-023",
+      "label": "not-applicable",
+      "concept": "primitive-entity-identifier",
+      "rationale": "No domain-driven design model: no entities in the DDD sense."
+    },
+    {
+      "id": "NA-024",
+      "label": "not-applicable",
+      "concept": "integration-event-leaks-domain-type",
+      "rationale": "No integration events and no messaging."
+    },
+    {
+      "id": "NA-025",
+      "label": "not-applicable",
+      "concept": "anemic-domain-model",
+      "rationale": "No domain-driven design model: a deliberate transaction-script application layer over plain records."
+    },
+    {
+      "id": "NA-026",
+      "label": "not-applicable",
+      "concept": "publicly-mutable-entity-state",
+      "rationale": "No domain-driven design model: no entities in the DDD sense; records are immutable."
+    },
+    {
+      "id": "NA-027",
+      "label": "not-applicable",
+      "concept": "domain-depends-on-infrastructure",
+      "rationale": "No domain layer; the Application layer references no infrastructure."
+    },
+    {
+      "id": "NA-028",
+      "label": "not-applicable",
+      "concept": "repository-for-non-aggregate",
+      "rationale": "No aggregates, so the aggregate/repository rule has nothing to apply to."
+    },
+    {
+      "id": "NA-029",
+      "label": "not-applicable",
+      "concept": "primitive-obsession",
+      "rationale": "Gated on a domain model, which this repository deliberately does not have."
+    },
+    {
+      "id": "NA-030",
+      "label": "not-applicable",
+      "concept": "scattered-domain-rule",
+      "rationale": "No domain-driven design model."
+    },
+    {
+      "id": "NA-031",
+      "label": "not-applicable",
+      "concept": "multi-aggregate-transaction",
+      "rationale": "No aggregates."
+    },
+    {
+      "id": "NA-032",
+      "label": "not-applicable",
+      "concept": "constructible-invalid-entity",
+      "rationale": "No domain-driven design model: no entities."
+    },
+    {
+      "id": "NA-033",
+      "label": "not-applicable",
+      "concept": "ambient-nondeterminism-in-domain",
+      "rationale": "No domain layer (and time is injected through TimeProvider throughout)."
+    },
+    {
+      "id": "NA-034",
+      "label": "not-applicable",
+      "concept": "synchronous-remote-call-in-event-handler",
+      "rationale": "No event handlers and no remote calls."
+    },
+    {
+      "id": "NA-035",
+      "label": "not-applicable",
+      "concept": "command-with-multiple-handlers",
+      "rationale": "No command/message bus."
+    },
+    {
+      "id": "NA-036",
+      "label": "not-applicable",
+      "concept": "event-not-named-in-past-tense",
+      "rationale": "No events."
+    },
+    {
+      "id": "NA-037",
+      "label": "not-applicable",
+      "concept": "dual-write-without-outbox",
+      "rationale": "No messaging and no database: nothing is written to two stores."
+    },
+    {
+      "id": "NA-038",
+      "label": "not-applicable",
+      "concept": "nondeterministic-event-fold",
+      "rationale": "Not event-sourced."
+    },
+    {
+      "id": "NA-039",
+      "label": "not-applicable",
+      "concept": "mutable-persisted-event",
+      "rationale": "Not event-sourced."
+    },
+    {
+      "id": "NA-040",
+      "label": "not-applicable",
+      "concept": "versioned-schema-migrations",
+      "rationale": "No database (ADR 0002): the store is in process memory."
+    },
+    {
+      "id": "NA-041",
+      "label": "not-applicable",
+      "concept": "library-api-versioning",
+      "rationale": "A service, not a published library; no package is produced."
+    },
+    {
+      "id": "NA-042",
+      "label": "not-applicable",
+      "concept": "executable-specifications",
+      "rationale": "No BDD tooling; behaviour is specified by xUnit tests."
+    },
+    {
+      "id": "NA-043",
+      "label": "not-applicable",
+      "concept": "untyped-javascript-share",
+      "rationale": "No JavaScript or TypeScript."
+    },
+    {
+      "id": "NA-044",
+      "label": "not-applicable",
+      "concept": "frontend-tooling-scripts",
+      "rationale": "No frontend and no package.json."
+    },
+    {
+      "id": "NA-045",
+      "label": "not-applicable",
+      "concept": "js-interop-contract-mismatch",
+      "rationale": "No Blazor and no JavaScript interop."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "high-cyclomatic-complexity",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "Methods are small with few branches by construction; a clean baseline should score near the top."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "high-cognitive-complexity",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "No nesting beyond two levels, no compound flag logic."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "duplicated-code",
+      "band": [
+        85,
+        100
+      ],
+      "rationale": "No copy-paste: shared mapping and validation live in one place."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "unstable-dependency",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Three projects with acyclic references (Api -> Application, Infrastructure -> Application); instability metrics are noisy on a three-module graph, so the band is wide."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "low-class-cohesion",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Classes are small and single-purpose; services share their injected collaborators across all methods."
+    },
+    {
+      "id": "BND-006",
+      "label": "score-band",
+      "concept": "test-coverage",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Unit tests cover every service and the store; integration tests drive every endpoint. Expected line coverage is well above 80 %."
+    },
+    {
+      "id": "BND-007",
+      "label": "score-band",
+      "concept": "test-pyramid-distribution",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "More unit than integration tests, no end-to-end layer: a healthy pyramid for a small API."
+    },
+    {
+      "id": "BND-008",
+      "label": "score-band",
+      "concept": "churn-complexity-hotspot",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Short history and low complexity: no file is both churning and complex."
+    },
+    {
+      "id": "BND-009",
+      "label": "score-band",
+      "concept": "knowledge-concentration",
+      "band": [
+        0,
+        100
+      ],
+      "rationale": "No claim. The repository has a single author by construction, which a scanner may legitimately report as concentration; history-based dimensions are measured by bench-csharp-maturity-history. Recorded only so the dimension is reported."
+    },
+    {
+      "id": "BND-010",
+      "label": "score-band",
+      "concept": "knowledge-freshness",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Every file was written recently by an author who is still active."
+    },
+    {
+      "id": "BND-011",
+      "label": "score-band",
+      "concept": "change-coupling",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A short history of feature commits; any coupling is between a feature and its tests, which is expected."
+    },
+    {
+      "id": "BND-012",
+      "label": "score-band",
+      "concept": "solution-structure",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "src/ + tests/, one solution, three production and two test projects with a common root namespace."
+    },
+    {
+      "id": "BND-013",
+      "label": "score-band",
+      "concept": "oversized-module",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Every project and file is small."
+    },
+    {
+      "id": "BND-014",
+      "label": "score-band",
+      "concept": "call-indirection",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Controller -> service -> store: two hops, no wrapper chains. Wide band because indirection metrics vary between scanners."
+    },
+    {
+      "id": "BND-015",
+      "label": "score-band",
+      "concept": "compiled-code-size",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Small assemblies, no generated bulk."
+    },
+    {
+      "id": "BND-016",
+      "label": "score-band",
+      "concept": "business-logic-share",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Most rules live in the Application layer, but a web API necessarily carries controller and hosting glue; a wide band from intent."
+    },
+    {
+      "id": "BND-017",
+      "label": "score-band",
+      "concept": "domain-vs-controller-coverage",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "Application services are unit tested directly; controllers are exercised by integration tests. Wide band: the metric's role classification differs between scanners."
+    },
+    {
+      "id": "BND-018",
+      "label": "score-band",
+      "concept": "build-provenance-and-signing",
+      "band": [
+        30,
+        100
+      ],
+      "rationale": "Actions are pinned by commit SHA, but the repository publishes no release artifact, so there is nothing to sign or attest and no SBOM; partial posture by design, wide band."
+    },
+    {
+      "id": "BND-019",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "SECURITY.md with a private reporting channel and response times."
+    },
+    {
+      "id": "BND-020",
+      "label": "score-band",
+      "concept": "architecture-style-fit",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "A plain layered architecture applied consistently; judged by heuristics, so the band is wide."
+    },
+    {
+      "id": "BND-021",
+      "label": "score-band",
+      "concept": "authorization-enforcement",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "JWT bearer authentication, three named scope policies, [Authorize] on every controller and action, an authenticated-user fallback policy; only the health endpoint is anonymous."
+    },
+    {
+      "id": "BND-022",
+      "label": "score-band",
+      "concept": "readme-quality",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "README over 120 words with Build/Run, Testing and Architecture sections."
+    },
+    {
+      "id": "BND-023",
+      "label": "score-band",
+      "concept": "architecture-documentation",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "docs/architecture.md with a Mermaid diagram and three ADRs."
+    },
+    {
+      "id": "BND-024",
+      "label": "score-band",
+      "concept": "folder-structure",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "src/ and tests/ separation, one root namespace prefix (Warehouse.Stock)."
+    },
+    {
+      "id": "BND-025",
+      "label": "score-band",
+      "concept": "ci-build-and-test-pipeline",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "GitHub Actions builds and tests on push and pull_request."
+    },
+    {
+      "id": "BND-026",
+      "label": "score-band",
+      "concept": "observability",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "ILogger<T> with source-generated structured log messages in every project, a health-check endpoint."
+    },
+    {
+      "id": "BND-027",
+      "label": "score-band",
+      "concept": "security-tooling-in-ci",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "CodeQL on pull_request and push, Dependabot for NuGet and Actions, and a vulnerable-package gate in CI."
+    },
+    {
+      "id": "BND-028",
+      "label": "score-band",
+      "concept": "deployment-rollback-safety",
+      "band": [
+        50,
+        100
+      ],
+      "rationale": "Nothing is deployed, so there is no rollout to make safe; a scanner should not deduct for a deployment that does not exist. Wide band."
+    },
+    {
+      "id": "BND-029",
+      "label": "score-band",
+      "concept": "disaster-recovery-evidence",
+      "band": [
+        50,
+        100
+      ],
+      "rationale": "No persistent state (ADR 0002 documents that the in-memory store is lost on restart by design), so there is nothing to back up. Wide band."
+    },
+    {
+      "id": "BND-030",
+      "label": "score-band",
+      "concept": "release-hygiene",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "CHANGELOG.md in Keep a Changelog form and a <Version> in Directory.Build.props."
+    },
+    {
+      "id": "BND-031",
+      "label": "score-band",
+      "concept": "outbound-http-resilience",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "The service makes no outbound HTTP calls (the identity provider's metadata is fetched by the framework's JWT handler); nothing lacks resilience."
+    },
+    {
+      "id": "BND-032",
+      "label": "score-band",
+      "concept": "ci-test-gate-integrity",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Tests run in CI and fail the build; no continue-on-error, no coverage collected without a gate."
+    },
+    {
+      "id": "BND-033",
+      "label": "score-band",
+      "concept": "benchmark-discipline",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Reward-leaning: a small CRUD-style API has no performance-critical path, so no benchmarks is the neutral posture, never a defect. Wide band."
+    },
+    {
+      "id": "BND-034",
+      "label": "score-band",
+      "concept": "allocation-awareness",
+      "band": [
+        40,
+        100
+      ],
+      "rationale": "Reward-leaning: allocation-conscious APIs are not called for in this service; neutral expected. Wide band."
+    },
+    {
+      "id": "BND-035",
+      "label": "score-band",
+      "concept": "security-response-headers",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Middleware sets Content-Security-Policy, X-Content-Type-Options, X-Frame-Options and Referrer-Policy; HSTS outside Development."
+    },
+    {
+      "id": "BND-036",
+      "label": "score-band",
+      "concept": "https-enforcement",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "UseHttpsRedirection and UseHsts; the JWT handler requires HTTPS metadata."
+    },
+    {
+      "id": "BND-037",
+      "label": "score-band",
+      "concept": "inbound-input-validation",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Every request model is validated with data annotations under [ApiController]; options are validated on start."
+    },
+    {
+      "id": "BND-038",
+      "label": "score-band",
+      "concept": "dependencies-not-locked",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Central Package Management plus committed packages.lock.json for every project; CI restores in locked mode."
+    },
+    {
+      "id": "BND-039",
+      "label": "score-band",
+      "concept": "documentation-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: README, architecture overview and ADRs are accurate and proportionate. Wide band for judge variance."
+    },
+    {
+      "id": "BND-040",
+      "label": "score-band",
+      "concept": "adr-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: three ADRs with context, decision and consequences. Wide band."
+    },
+    {
+      "id": "BND-041",
+      "label": "score-band",
+      "concept": "inconsistent-naming",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: one naming scheme throughout. Wide band."
+    },
+    {
+      "id": "BND-042",
+      "label": "score-band",
+      "concept": "internal-api-inconsistency",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: every service returns OperationResult<T> and takes a CancellationToken last. Wide band."
+    },
+    {
+      "id": "BND-043",
+      "label": "score-band",
+      "concept": "low-value-comments",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: comments are few and explain why, not what. Wide band."
+    },
+    {
+      "id": "BND-044",
+      "label": "score-band",
+      "concept": "adr-conformance",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: the code follows its three ADRs. Wide band."
+    },
+    {
+      "id": "BND-045",
+      "label": "score-band",
+      "concept": "non-idempotent-message-handler",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: there are no message handlers; the expiry worker is idempotent (expiring an expired reservation is a no-op). Wide band."
+    },
+    {
+      "id": "BND-046",
+      "label": "score-band",
+      "concept": "vulnerability-disclosure-policy-quality",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: SECURITY.md names a channel, scope and response times. Wide band."
+    },
+    {
+      "id": "BND-047",
+      "label": "score-band",
+      "concept": "environment-separation",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: environment-specific settings in appsettings.{Environment}.json, no production values in the repository. Wide band."
+    },
+    {
+      "id": "BND-048",
+      "label": "score-band",
+      "concept": "documentation-accuracy",
+      "band": [
+        60,
+        100
+      ],
+      "rationale": "LLM-judged: the documentation describes the code as it is. Wide band."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "suppressed-diagnostic",
+      "file": ".editorconfig",
+      "lines": [
+        36,
+        37
+      ],
+      "rationale": "CA2007 (ConfigureAwait) is switched off at the repository root with its reason on the line above: tests must not call ConfigureAwait(false) (xUnit1030), and src/.editorconfig switches it back on as a warning for all production code. A scoped, documented suppression is good practice, not hidden debt. Promoted from a scanner false positive in scan iteration 1."
+    }
+  ]
+}

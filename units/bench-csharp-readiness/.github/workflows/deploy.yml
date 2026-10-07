@@ -1,0 +1,70 @@
+name: Deploy
+
+# Manual, behind the protected "production" environment (required reviewers). Order: migrate the schema with the
+# release's migrations bundle (migrations are additive; see docs/operations/deployment.md), then roll out both
+# images by digest, wait for the rollout, and undo it if the new pods never become ready.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to roll out, e.g. v0.4.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    env:
+      VERSION: ${{ inputs.version }}
+      NAMESPACE: parcel-tracking
+    steps:
+      - name: Fetch release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$VERSION" --repo "$GITHUB_REPOSITORY" --pattern efbundle --pattern SHA256SUMS --pattern image-digests.txt --dir release
+          (cd release && sha256sum --check --ignore-missing SHA256SUMS)
+          gh attestation verify release/efbundle --repo "$GITHUB_REPOSITORY"
+          chmod +x release/efbundle
+
+      - name: Migrate the database
+        env:
+          ConnectionStrings__Tracking: ${{ secrets.PRODUCTION_DB_MIGRATOR_CONNECTION }}
+        run: ./release/efbundle
+
+      - name: Write kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.PRODUCTION_KUBECONFIG }}
+        run: |
+          umask 077
+          printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
+
+      - name: Roll out
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+        run: |
+          api_digest=$(sed -n 's/^api=//p' release/image-digests.txt)
+          worker_digest=$(sed -n 's/^worker=//p' release/image-digests.txt)
+          kubectl -n "$NAMESPACE" set image deployment/parcel-tracking-api api="ghcr.io/code-assurance-initiative/parcel-tracking-api@${api_digest}"
+          kubectl -n "$NAMESPACE" set image deployment/parcel-tracking-worker worker="ghcr.io/code-assurance-initiative/parcel-tracking-worker@${worker_digest}"
+          for deployment in parcel-tracking-api parcel-tracking-worker; do
+            if ! kubectl -n "$NAMESPACE" rollout status "deployment/$deployment" --timeout=5m; then
+              echo "::error::$deployment did not become ready; rolling back"
+              kubectl -n "$NAMESPACE" rollout undo "deployment/$deployment"
+              kubectl -n "$NAMESPACE" rollout status "deployment/$deployment" --timeout=5m
+              exit 1
+            fi
+          done
+
+      - name: Remove kubeconfig
+        if: always()
+        run: rm -f "$RUNNER_TEMP/kubeconfig"

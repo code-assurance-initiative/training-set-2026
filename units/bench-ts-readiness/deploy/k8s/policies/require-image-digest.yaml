@@ -1,0 +1,27 @@
+# Admission policy for this namespace: every image is referenced by digest, so what runs is exactly what the release
+# workflow built and attested. Enforced by the cluster's policy engine.
+apiVersion: kyverno.io/v1
+kind: Policy
+metadata:
+  name: require-image-digest
+  namespace: parcel-tracking
+  annotations:
+    policies.kyverno.io/title: Require image digests
+    policies.kyverno.io/severity: high
+spec:
+  background: true
+  rules:
+    - name: images-by-digest
+      match:
+        any:
+          - resources:
+              kinds: ["Pod"]
+      validate:
+        failureAction: Enforce
+        message: "Container images must be referenced by digest (name@sha256:...)."
+        pattern:
+          spec:
+            =(initContainers):
+              - image: "*@sha256:*"
+            containers:
+              - image: "*@sha256:*"

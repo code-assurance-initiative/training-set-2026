@@ -1,0 +1,22 @@
+From 431370ee0e408b03348655198f9b7a1bb9e55d13 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Wed, 30 Sep 2026 11:20:39 +0200
+Subject: fix(availability): step over the lunch break in one move
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index 997cc28..9c2e375 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -80,7 +80,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                         var lunch = new TimeRange(At(day, breakStarts, schedule.TimeZone), At(day, breakEnds, schedule.TimeZone));
+                         if (candidate.Overlaps(lunch))
+                         {
+-                            cursor += options.Granularity;
++                            cursor = lunch.End;
+                             continue;
+                         }
+                     }

@@ -1,0 +1,179 @@
+From a78787bbbe2869b13f372c7c4a2853aecbb02e99 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 19 Feb 2026 11:10:57 +0100
+Subject: feat(availability): a daily appointment cap per practitioner
+
+---
+ .../Contracts/ScheduleRequest.cs                |  6 ++++--
+ .../Endpoints/ScheduleEndpoints.cs              |  3 ++-
+ .../Availability/PractitionerSchedule.cs        |  7 ++++++-
+ .../Availability/SlotFinder.cs                  | 16 +++++++++++++++-
+ .../Availability/SlotFinderTests.cs             | 17 +++++++++++++++++
+ tests/ClinicScheduling.UnitTests/TestData.cs    |  6 ++++--
+ 6 files changed, 48 insertions(+), 7 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+index 838fd2a..ef125ed 100644
+--- a/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/ScheduleRequest.cs
+@@ -7,7 +7,8 @@ public sealed record ScheduleRequest(
+     string? CountryCode,
+     string? TimeZone,
+     IReadOnlyList<WeeklyHoursRequest>? Hours,
+-    IReadOnlyList<string>? Skills)
++    IReadOnlyList<string>? Skills,
++    int MaxAppointmentsPerDay)
+ {
+     public TimeZoneInfo? Zone => TimeZone is not null && TimeZoneInfo.TryFindSystemTimeZoneById(TimeZone, out var zone) ? zone : null;
+ 
+@@ -15,5 +16,6 @@ public sealed record ScheduleRequest(
+         new RequestErrors()
+             .Require(CountryCode is { Length: 2 }, nameof(CountryCode), "A two-letter country code is required.")
+             .Require(Zone is not null, nameof(TimeZone), "An IANA time zone id is required.")
+-            .Require(Hours is { Count: > 0 } && Hours.All(h => h.Opens < h.Closes), nameof(Hours), "Opening hours must open before they close.");
++            .Require(Hours is { Count: > 0 } && Hours.All(h => h.Opens < h.Closes), nameof(Hours), "Opening hours must open before they close.")
++            .Require(MaxAppointmentsPerDay is >= 1 and <= 40, nameof(MaxAppointmentsPerDay), "Between 1 and 40 appointments a day.");
+ }
+diff --git a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+index cfa5b5f..a792706 100644
+--- a/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/ScheduleEndpoints.cs
+@@ -29,7 +29,8 @@ public static class ScheduleEndpoints
+             country,
+             zone,
+             hours.Select(h => new WeeklyHours(h.Day, h.Opens, h.Closes, h.BreakStarts, h.BreakEnds)),
+-            request.Skills ?? []);
++            request.Skills ?? [],
++            request.MaxAppointmentsPerDay);
+         await schedules.UpsertAsync(schedule, cancellationToken).ConfigureAwait(false);
+         return Results.NoContent();
+     }
+diff --git a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+index 4b33571..f915764 100644
+--- a/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
++++ b/src/ClinicScheduling.Domain/Availability/PractitionerSchedule.cs
+@@ -11,16 +11,19 @@ public sealed class PractitionerSchedule
+         string countryCode,
+         TimeZoneInfo timeZone,
+         IEnumerable<WeeklyHours> hours,
+-        IEnumerable<string> skills)
++        IEnumerable<string> skills,
++        int maxAppointmentsPerDay)
+     {
+         ArgumentException.ThrowIfNullOrWhiteSpace(countryCode);
+         ArgumentNullException.ThrowIfNull(timeZone);
++        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAppointmentsPerDay);
+ 
+         PractitionerId = practitionerId;
+         CountryCode = countryCode.ToUpperInvariant();
+         TimeZone = timeZone;
+         _hours = [.. hours.OrderBy(h => h.Day).ThenBy(h => h.Opens)];
+         _skills = new HashSet<string>(skills, StringComparer.OrdinalIgnoreCase);
++        MaxAppointmentsPerDay = maxAppointmentsPerDay;
+     }
+ 
+     public Guid PractitionerId { get; }
+@@ -29,6 +32,8 @@ public sealed class PractitionerSchedule
+ 
+     public TimeZoneInfo TimeZone { get; }
+ 
++    public int MaxAppointmentsPerDay { get; }
++
+     public IReadOnlyCollection<string> Skills => _skills;
+ 
+     public IReadOnlyList<WeeklyHours> Hours => _hours;
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index f5cc699..8af29a2 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -3,7 +3,10 @@ using ClinicScheduling.Domain.Time;
+ 
+ namespace ClinicScheduling.Domain.Availability;
+ 
+-/// <summary>Finds the bookable slots of one practitioner: opening hours minus holidays and existing appointments.</summary>
++/// <summary>
++/// Finds the bookable slots of one practitioner: opening hours minus breaks, holidays, existing appointments (with
++/// their buffers), notice periods and the practitioner's daily cap.
++/// </summary>
+ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+ {
+     public IReadOnlyList<Slot> FindOpenSlots(
+@@ -17,6 +20,11 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+         ArgumentNullException.ThrowIfNull(query);
+         ArgumentNullException.ThrowIfNull(options);
+ 
++        if (query.To < query.From)
++        {
++            return [];
++        }
++
+         if (query.RequiredSkill is not null && !schedule.HasSkill(query.RequiredSkill))
+         {
+             return [];
+@@ -38,6 +46,12 @@ public sealed class SlotFinder(IHolidayCalendar holidays, IClock clock)
+                 continue;
+             }
+ 
++            var bookedThatDay = booked.Count(b => DateOnly.FromDateTime(b.Start.UtcDateTime) == day);
++            if (bookedThatDay >= schedule.MaxAppointmentsPerDay)
++            {
++                continue;
++            }
++
+             foreach (var hours in schedule.HoursOn(day.DayOfWeek))
+             {
+                 var opens = At(day, hours.Opens, schedule.TimeZone);
+diff --git a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+index 0ff065f..090d585 100644
+--- a/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Availability/SlotFinderTests.cs
+@@ -67,10 +67,27 @@ public sealed class SlotFinderTests
+         Assert.Empty(afternoon);
+     }
+ 
++    [Fact]
++    public void StopsAtTheDailyCap()
++    {
++        var tuesday = Monday.AddDays(1);
++        var booked = new[] { new TimeRange(At(tuesday, 8), At(tuesday, 8, 30)), new TimeRange(At(tuesday, 9), At(tuesday, 9, 30)) };
++
++        var slots = Finder().FindOpenSlots(Schedule(maxPerDay: 2), booked, Tuesday(), new SlotSearchOptions());
++
++        Assert.Empty(slots);
++    }
++
+     [Fact]
+     public void MatchesSkills()
+     {
+         Assert.Empty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "pelvic-floor"), new SlotSearchOptions()));
+         Assert.NotEmpty(Finder().FindOpenSlots(Schedule(), [], Tuesday(skill: "SPORTS"), new SlotSearchOptions()));
+     }
++
++    [Fact]
++    public void RejectsEmptyQueries()
++    {
++        Assert.Empty(Finder().FindOpenSlots(Schedule(), [], new SlotQuery(Monday.AddDays(2), Monday.AddDays(1), HalfHour), new SlotSearchOptions()));
++    }
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/TestData.cs b/tests/ClinicScheduling.UnitTests/TestData.cs
+index 39d09d7..6a85c2d 100644
+--- a/tests/ClinicScheduling.UnitTests/TestData.cs
++++ b/tests/ClinicScheduling.UnitTests/TestData.cs
+@@ -27,13 +27,15 @@ public static class TestData
+ 
+     public static PractitionerSchedule Schedule(
+         IEnumerable<WeeklyHours>? hours = null,
+-        IEnumerable<string>? skills = null) =>
++        IEnumerable<string>? skills = null,
++        int maxPerDay = 12) =>
+         new(
+             PractitionerId,
+             "DK",
+             TimeZoneInfo.Utc,
+             hours ?? Weekdays(new TimeOnly(8, 0), new TimeOnly(16, 0)),
+-            skills ?? ["sports"]);
++            skills ?? ["sports"],
++            maxPerDay);
+ 
+     public static IEnumerable<WeeklyHours> Weekdays(TimeOnly opens, TimeOnly closes, TimeOnly? breakStarts = null, TimeOnly? breakEnds = null) =>
+         new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday }

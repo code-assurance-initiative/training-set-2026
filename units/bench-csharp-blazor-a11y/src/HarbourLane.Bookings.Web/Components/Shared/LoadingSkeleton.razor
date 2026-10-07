@@ -1,0 +1,35 @@
+<style>
+    .skeleton {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .skeleton-line {
+        height: 1rem;
+        border-radius: 0.25rem;
+        background: linear-gradient(90deg, #eaeef2 25%, #f6f8fa 50%, #eaeef2 75%);
+        background-size: 200% 100%;
+        animation: skeleton-shimmer 1.2s linear infinite;
+    }
+
+    @@keyframes skeleton-shimmer {
+        from { background-position: 200% 0; }
+        to { background-position: -200% 0; }
+    }
+</style>
+
+<div class="skeleton" aria-hidden="true">
+    @for (var i = 0; i < Lines; i++)
+    {
+        <div class="skeleton-line"></div>
+    }
+</div>
+<p class="visually-hidden" role="status">@Label</p>
+
+@code {
+    [Parameter]
+    public int Lines { get; set; } = 3;
+
+    [Parameter]
+    public string Label { get; set; } = "Loading";
+}

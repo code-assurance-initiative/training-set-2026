@@ -1,0 +1,21 @@
+From 3767c6b4eed2a678b39ff2fdfeb0f5d639736325 Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Wed, 17 Jun 2026 14:40:02 +0200
+Subject: test: content security policy on every response
+
+---
+ .../ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs  | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+index a07da82..ae3d1de 100644
+--- a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+@@ -24,6 +24,7 @@ public sealed class HealthAndSecurityTests(SchedulingApiFactory factory) : IClas
+ 
+         Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+         Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
++        Assert.Contains("default-src 'none'", response.Headers.GetValues("Content-Security-Policy").Single(), StringComparison.Ordinal);
+     }
+ 
+     [Theory]

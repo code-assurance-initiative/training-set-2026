@@ -1,0 +1,26 @@
+From 6d4297e4b2f8d3c58024a8a9af06dd765aad2752 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Fri, 7 Aug 2026 15:48:19 +0200
+Subject: release 0.1.0
+
+---
+ CHANGELOG.md | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+ create mode 100644 CHANGELOG.md
+
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+new file mode 100644
+index 0000000..185f9fb
+--- /dev/null
++++ b/CHANGELOG.md
+@@ -0,0 +1,10 @@
++# Changelog
++
++All notable changes to this project are documented here. The format follows
++[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
++
++## [0.1.0] - 2026-08-07
++
++### Added
++- Booking confirmations by e-mail for `orders.order-placed.v1`, through an inbox and a notification log.
++- Worker host with heartbeat probes, container image, manifests, CI, CodeQL, release and deploy workflows.

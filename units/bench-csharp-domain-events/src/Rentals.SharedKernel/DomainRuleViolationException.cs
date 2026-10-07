@@ -1,0 +1,19 @@
+namespace Rentals.SharedKernel;
+
+/// <summary>Thrown when an operation would break an invariant of the model.</summary>
+public sealed class DomainRuleViolationException : Exception
+{
+    public DomainRuleViolationException()
+    {
+    }
+
+    public DomainRuleViolationException(string message)
+        : base(message)
+    {
+    }
+
+    public DomainRuleViolationException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}

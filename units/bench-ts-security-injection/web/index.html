@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Archive uploads</title>
+    <script type="module" src="./dist/main.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Upload metadata</h1>
+      <label for="metadata-file">Metadata file (XML)</label>
+      <input id="metadata-file" type="file" accept=".xml,application/xml" />
+      <p id="upload-error" role="alert"></p>
+      <section aria-labelledby="preview-heading">
+        <h2 id="preview-heading">Preview</h2>
+        <div id="preview"></div>
+      </section>
+      <section aria-labelledby="queue-heading">
+        <h2 id="queue-heading">Queued files</h2>
+        <ul id="queue"></ul>
+      </section>
+      <form id="delivery-form" method="post" action="/api/deliveries">
+        <h2>Send the import report</h2>
+        <label for="recipient">Recipient</label>
+        <input id="recipient" name="recipient" type="email" list="recent-recipients" required />
+        <datalist id="recent-recipients"></datalist>
+        <button type="submit">Send</button>
+      </form>
+      <label for="page-size">Results per page</label>
+      <select id="page-size">
+        <option>10</option>
+        <option>25</option>
+        <option>50</option>
+        <option>100</option>
+      </select>
+    </main>
+  </body>
+</html>

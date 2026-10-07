@@ -1,0 +1,160 @@
+From 228ad94d45b4655f2d6a8c73b5bf961bec6ff476 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Mon, 16 Mar 2026 13:45:28 +0100
+Subject: feat(calendar): iCalendar writer
+
+---
+ .../Calendar/IcsCalendarWriter.cs             | 86 +++++++++++++++++++
+ .../Calendar/IcsCalendarWriterTests.cs        | 50 +++++++++++
+ 2 files changed, 136 insertions(+)
+ create mode 100644 src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+
+diff --git a/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+new file mode 100644
+index 0000000..f5512d0
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+@@ -0,0 +1,86 @@
++using System.Globalization;
++using System.Text;
++
++namespace ClinicScheduling.Infrastructure.Calendar;
++
++/// <summary>One event of an iCalendar file.</summary>
++public sealed record CalendarEvent(string Uid, DateTimeOffset Start, DateTimeOffset End, string Summary, string? Location, DateTimeOffset Stamp);
++
++/// <summary>
++/// Writes iCalendar (RFC 5545) text: CRLF line endings, TEXT values escaped (§3.3.11) and content lines folded at
++/// 75 characters (§3.1). Times are written in UTC.
++/// </summary>
++public static class IcsCalendarWriter
++{
++    private const int MaxOctetsPerLine = 75;
++    private const string ProductId = "-//ClinicScheduling//Appointments//EN";
++
++    public static string Write(IEnumerable<CalendarEvent> events)
++    {
++        ArgumentNullException.ThrowIfNull(events);
++        var ics = new StringBuilder();
++        AppendLine(ics, "BEGIN:VCALENDAR");
++        AppendLine(ics, "VERSION:2.0");
++        AppendLine(ics, "PRODID:" + ProductId);
++        AppendLine(ics, "CALSCALE:GREGORIAN");
++        foreach (var e in events)
++        {
++            AppendLine(ics, "BEGIN:VEVENT");
++            AppendLine(ics, "UID:" + Escape(e.Uid));
++            AppendLine(ics, "DTSTAMP:" + Utc(e.Stamp));
++            AppendLine(ics, "DTSTART:" + Utc(e.Start));
++            AppendLine(ics, "DTEND:" + Utc(e.End));
++            AppendLine(ics, "SUMMARY:" + Escape(e.Summary));
++            AppendLine(ics, "LOCATION:" + Escape(e.Location ?? string.Empty));
++            AppendLine(ics, "END:VEVENT");
++        }
++
++        AppendLine(ics, "END:VCALENDAR");
++        return ics.ToString();
++    }
++
++    /// <summary>Escapes a TEXT value: backslash, semicolon, comma and line breaks.</summary>
++    public static string Escape(string value)
++    {
++        ArgumentNullException.ThrowIfNull(value);
++        return value
++            .Replace("\\", "\\\\", StringComparison.Ordinal)
++            .Replace(";", "\\;", StringComparison.Ordinal)
++            .Replace(",", "\\,", StringComparison.Ordinal)
++            .Replace("\r\n", "\\n", StringComparison.Ordinal)
++            .Replace("\n", "\\n", StringComparison.Ordinal);
++    }
++
++    /// <summary>Splits a content line into physical lines of at most 75 characters; continuations start with a space.</summary>
++    public static IEnumerable<string> Fold(string line)
++    {
++        ArgumentNullException.ThrowIfNull(line);
++        var current = new StringBuilder();
++        var count = 0;
++        foreach (var c in line)
++        {
++            if (count == MaxOctetsPerLine)
++            {
++                yield return current.ToString();
++                current.Clear().Append(' ');
++                count = 1;
++            }
++
++            current.Append(c);
++            count++;
++        }
++
++        yield return current.ToString();
++    }
++
++    private static void AppendLine(StringBuilder ics, string line)
++    {
++        foreach (var physical in Fold(line))
++        {
++            ics.Append(physical).Append("\r\n");
++        }
++    }
++
++    private static string Utc(DateTimeOffset value) =>
++        value.UtcDateTime.ToString("yyyyMMdd'T'HHmmss'Z'", CultureInfo.InvariantCulture);
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+new file mode 100644
+index 0000000..52dccd8
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+@@ -0,0 +1,50 @@
++using System.Text;
++using ClinicScheduling.Infrastructure.Calendar;
++
++namespace ClinicScheduling.UnitTests.Calendar;
++
++public sealed class IcsCalendarWriterTests
++{
++    private static readonly DateTimeOffset Start = new(2026, 3, 5, 9, 0, 0, TimeSpan.FromHours(1));
++
++    [Fact]
++    public void WritesACalendarWithCrlfLineEndings()
++    {
++        var ics = IcsCalendarWriter.Write([new CalendarEvent("a1@test", Start, Start.AddHours(1), "Physiotherapy", "Room 2", Start.AddDays(-1))]);
++
++        Assert.StartsWith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n", ics, StringComparison.Ordinal);
++        Assert.Contains("\r\nDTSTART:20260305T080000Z\r\n", ics, StringComparison.Ordinal);
++        Assert.Contains("\r\nDTEND:20260305T090000Z\r\n", ics, StringComparison.Ordinal);
++        Assert.Contains("\r\nLOCATION:Room 2\r\n", ics, StringComparison.Ordinal);
++        Assert.EndsWith("END:VEVENT\r\nEND:VCALENDAR\r\n", ics, StringComparison.Ordinal);
++        Assert.DoesNotContain("\n", ics.Replace("\r\n", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
++    }
++
++    [Theory]
++    [InlineData("a,b", "a\\,b")]
++    [InlineData("a;b", "a\\;b")]
++    [InlineData("a\\b", "a\\\\b")]
++    [InlineData("line1\nline2", "line1\\nline2")]
++    [InlineData("line1\r\nline2", "line1\\nline2")]
++    public void EscapesTextValues(string value, string expected)
++    {
++        Assert.Equal(expected, IcsCalendarWriter.Escape(value));
++    }
++
++    [Fact]
++    public void FoldsLongLinesAtSeventyFiveOctets()
++    {
++        var lines = IcsCalendarWriter.Fold("SUMMARY:" + new string('x', 200)).ToList();
++
++        Assert.Equal(3, lines.Count);
++        Assert.All(lines, l => Assert.True(Encoding.UTF8.GetByteCount(l) <= 75));
++        Assert.All(lines.Skip(1), l => Assert.StartsWith(" ", l, StringComparison.Ordinal));
++        Assert.Equal("SUMMARY:" + new string('x', 200), string.Concat(lines.Select((l, i) => i == 0 ? l : l[1..])));
++    }
++
++    [Fact]
++    public void LeavesShortLinesAlone()
++    {
++        Assert.Equal(["VERSION:2.0"], IcsCalendarWriter.Fold("VERSION:2.0"));
++    }
++}

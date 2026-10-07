@@ -1,0 +1,1906 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-csharp-security-dependencies",
+  "keyVersion": "1.1.0",
+  "languages": [
+    "csharp"
+  ],
+  "theme": "Third-party dependency risk — vulnerable (direct, transitive, test-only), deprecated, outdated, copyleft and end-of-life platform — and their look-alikes, in a small .NET invoice-rendering service, worker and legacy exporter",
+  "lineTolerance": 0,
+  "entries": [
+    {
+      "id": "DEP-001",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "Directory.Packages.props",
+      "lines": [
+        16,
+        16
+      ],
+      "subject": "Newtonsoft.Json",
+      "rationale": "NuGet Newtonsoft.Json 12.0.3, direct dependency of Invoicing.Api (it parses the legacy ERP webhook payload). Affected by GHSA-5crp-9r3c-p9vr / CVE-2024-21907 (high: improper handling of exceptional conditions; deeply nested JSON exhausts the stack and kills the process), fixed in 13.0.1 (osv.dev: introduced 0, fixed 13.0.1). The webhook endpoint parses caller-supplied JSON with JObject.Parse, so the vulnerable path is on an internet-facing request."
+    },
+    {
+      "id": "DEP-002",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "Directory.Packages.props",
+      "lines": [
+        28,
+        28
+      ],
+      "subject": "SharpZipLib",
+      "rationale": "NuGet SharpZipLib 1.3.2, direct dependency of the archive exporter (a shipped command-line tool), which writes the yearly archive ZIP with it. Affected by GHSA-m22m-h4rf-pwq3 / CVE-2021-32840 (high), GHSA-2x7h-96h5-rq84 / CVE-2021-32841 and GHSA-mm6g-mmq6-53ff / CVE-2021-32842, all path traversal on extraction and all fixed in 1.3.3 (osv.dev: introduced 0, fixed 1.3.3). The exporter only writes archives today, so the vulnerable extraction path is not reached; the concept is the affected version, which this is, and the fix is a minor-version bump."
+    },
+    {
+      "id": "DEP-003",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "src/Invoicing.Rendering/packages.lock.json",
+      "lines": [
+        45,
+        49
+      ],
+      "subject": "SixLabors.ImageSharp",
+      "rationale": "TRANSITIVE: NuGet SixLabors.ImageSharp 1.0.4, never declared by this repository, resolved because the direct dependency PdfSharpCore 1.3.67 (the current release) declares SixLabors.ImageSharp >= 1.0.4 and NuGet picks the lowest version the range admits. ImageSharp 1.0.4 is affected by seven published advisories, among them GHSA-65x7-c272-7g7r / CVE-2024-27929 (use after free, fixed 2.1.7), GHSA-63p8-c4ww-9cg7 / CVE-2024-41131 (out-of-bounds write, fixed 2.1.9) and GHSA-2cmq-823j-5qj8 / CVE-2025-27598 (out-of-bounds write, fixed 2.1.10) (osv.dev). The renderer feeds customer-uploaded logos through PdfSharpCore's XImage, which decodes them with ImageSharp. The site is the resolved entry in the lock file of the project that declares PdfSharpCore; the fix is a central transitive pin or a direct reference to a patched ImageSharp."
+    },
+    {
+      "id": "DEP-004",
+      "label": "must-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "Directory.Packages.props",
+      "lines": [
+        37,
+        37
+      ],
+      "subject": "SharpCompress",
+      "rationale": "NuGet SharpCompress 0.28.3, referenced ONLY by the unit-test project (it opens the exporter's ZIP output to assert its contents). Affected by GHSA-jp7f-grcv-6mjf / CVE-2021-39208 (partial path traversal, fixed 0.29) and GHSA-6c8g-7p36-r338 / CVE-2026-44788 (directory traversal via directory entries in WriteTo, fixed 0.48.0) (osv.dev). Decided as a must-fire, not a trap: the concept is 'a declared or locked package version affected by a published advisory' and carries no scope; the package is declared, locked, restored and executed on every CI run, on runners that hold repository tokens. It is LOWER RISK than a shipped dependency (fixture input only, nothing shipped), which changes its priority, not whether it is true."
+    },
+    {
+      "id": "DEP-005",
+      "label": "must-fire",
+      "concept": "deprecated-dependency",
+      "file": "Directory.Packages.props",
+      "lines": [
+        17,
+        17
+      ],
+      "subject": "Polly.Extensions.Http",
+      "rationale": "NuGet Polly.Extensions.Http 3.0.0 (the last release), direct dependency of Invoicing.Api for the logo client's retry policy. nuget.org deprecation metadata on every version: reason 'Legacy', alternate package Microsoft.Extensions.Http.Resilience. No advisory: this is deprecation only."
+    },
+    {
+      "id": "DEP-006",
+      "label": "must-fire",
+      "concept": "outdated-dependency",
+      "file": "Directory.Packages.props",
+      "lines": [
+        26,
+        26
+      ],
+      "subject": "CsvHelper",
+      "rationale": "NuGet CsvHelper 12.1.2, published 2019-01-28, direct dependency of the archive exporter. The current release is 33.1.0 (2025-06-02): 21 major versions and more than six years behind. No advisory and no deprecation (osv.dev and nuget.org metadata checked 2026-10-07): pure staleness, which is what makes it the outdated-only plant."
+    },
+    {
+      "id": "DEP-007",
+      "label": "must-fire",
+      "concept": "license-policy-violation",
+      "file": "Directory.Packages.props",
+      "lines": [
+        23,
+        23
+      ],
+      "subject": "MySql.Data",
+      "rationale": "NuGet MySql.Data 26.7.0, direct dependency of Invoicing.Worker, licence expression 'GPL-2.0-only WITH Universal-FOSS-exception-1.0' (nuspec). The worker ships in the customer-installed bundle under a proprietary licence (docs/adr/0003-third-party-licence-policy.md); the policy forbids GPL-family licences in any shipped component, and the Universal FOSS Exception only covers combination with FOSS-licensed software, which a proprietary bundle is not. Oracle sells a commercial Connector/NET licence for exactly this case; none is recorded."
+    },
+    {
+      "id": "DEP-008",
+      "label": "must-fire",
+      "concept": "end-of-life-platform",
+      "cwe": "CWE-1104",
+      "file": "tools/Invoicing.ArchiveExporter/Invoicing.ArchiveExporter.csproj",
+      "lines": [
+        5,
+        6
+      ],
+      "subject": "net6.0",
+      "rationale": "The archive exporter is an executable whose only target framework is net6.0, and the next line switches off the SDK's own end-of-life warning (CheckEolTargetFramework=false). .NET 6 LTS reached end of support on 2024-11-12 (Microsoft release metadata, dotnetcli releases-index.json: eol-date 2024-11-12): the runtime it runs on receives no security patches."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "Directory.Packages.props",
+      "lines": [
+        12,
+        12
+      ],
+      "subject": "System.Security.Cryptography.Xml",
+      "rationale": "NuGet System.Security.Cryptography.Xml 10.0.12 (XML-DSig for the signed e-invoice). The package has a long advisory record: GHSA-vh55-786g-wjwj / CVE-2022-34716 (fixed 4.7.1 / 6.0.1), and five 2026 advisories against the 10.0 line (GHSA-cvvh-rhrc-wg4q, GHSA-g8r8-53c2-pm3f, GHSA-23rf-6693-g89p, GHSA-8q5v-6pqq-x66h, GHSA-mmjf-rqrv-855v: introduced 10.0.0, fixed 10.0.10). 10.0.12 is past every fix; osv.dev returns no advisory for 10.0.12. A matcher that keys on the package name, or on a version prefix, is caught."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "vulnerable-dependency",
+      "cwe": "CWE-1395",
+      "file": "Directory.Packages.props",
+      "lines": [
+        21,
+        21
+      ],
+      "subject": "MailKit",
+      "rationale": "NuGet MailKit 4.18.1 (resolving MimeKit 4.18.1), used by the worker to send the rendered invoice. Both packages carry 2026 advisories against earlier versions: MailKit GHSA-9j88-vvj5-vhgr / CVE-2026-41319 (STARTTLS response injection, fixed 4.16.0) and MimeKit GHSA-g7hc-96xr-gvvx / CVE-2026-30227 (CRLF injection, fixed 4.15.1). The pinned versions are patched; osv.dev returns nothing for either."
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "license-policy-violation",
+      "file": "Directory.Packages.props",
+      "lines": [
+        27,
+        27
+      ],
+      "subject": "iTextSharp.LGPLv2.Core",
+      "rationale": "NuGet iTextSharp.LGPLv2.Core 3.8.6, licence expression LGPL-2.0-only, used unmodified by the archive exporter to stamp archived PDFs. Two ways to be fooled: the NAME (iTextSharp is widely known as AGPL; this is the LGPL fork of the last pre-AGPL code line) and a substring rule that bans 'GPL-2.0' and therefore matches 'LGPL-2.0-only'. The policy (docs/adr/0003-third-party-licence-policy.md) allows LGPL-2.0/2.1 for unmodified libraries consumed as separate assemblies, which a NuGet package loaded at run time is: the end user can replace the DLL."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "outdated-dependency",
+      "file": "Directory.Packages.props",
+      "lines": [
+        33,
+        33
+      ],
+      "subject": "FluentAssertions",
+      "rationale": "NuGet FluentAssertions 7.2.2, test-only. 8.x exists, but from 8.0 the package is under a commercial licence (Xceed); 7.x stays Apache-2.0 and is still maintained (7.2.1 2026-02-07, 7.2.2 2026-03-16). Staying on the 7 line is a recorded decision (docs/adr/0004-stay-on-fluentassertions-7.md) and 7.2.2 is the newest release of that line: current within its line, pinned by design, no advisory."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "malicious-dependency",
+      "cwe": "CWE-506",
+      "file": "Directory.Packages.props",
+      "lines": [
+        31,
+        31
+      ],
+      "subject": "Bogus",
+      "rationale": "NuGet Bogus 35.6.5, test-only fake-data generator (bchavez/Bogus, MIT, 35 major versions, the standard .NET port of faker.js). The name reads like a warning; the package is not in any malicious-package feed (no MAL- or CWE-506 record on osv.dev). A name or keyword heuristic is caught."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "end-of-life-platform",
+      "cwe": "CWE-1104",
+      "file": "src/Invoicing.Contracts/Invoicing.Contracts.csproj",
+      "lines": [
+        4,
+        4
+      ],
+      "subject": "netstandard2.0",
+      "rationale": "The contracts library multi-targets netstandard2.0 and net10.0 so that the customer's ERP connector (.NET Framework 4.8) can reference it. .NET Standard is a specification, not a runtime, and has no end-of-support date; the library runs on net10.0 (supported to 2028-11-14) everywhere this repository runs it. Neither target is an end-of-life platform."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "prerelease-dependency",
+      "file": "Directory.Packages.props",
+      "lines": [
+        20,
+        20
+      ],
+      "subject": "Cronos",
+      "rationale": "NuGet Cronos 0.13.0 (MIT, HangfireIO/Cronos), the worker's cron-expression parser. A 0.x version number reads as unfinished, but 0.13.0 is a STABLE release: it carries no SemVer pre-release label, nuget.org lists it as the latest stable version (2026-04-29), and the project has shipped 0.x releases for years. A rule that equates 0.x with pre-release is caught. No advisory, not deprecated, current."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "suppressed-diagnostic",
+      "file": ".editorconfig",
+      "lines": [
+        37,
+        37
+      ],
+      "rationale": "CA2007 (ConfigureAwait) is switched off for the repository root, and the reason is on the line directly above it: tests must not use ConfigureAwait(false) (xUnit1030); src/.editorconfig and tools/.editorconfig switch CA2007 back on as a warning for all production code. A documented, scoped suppression is not a defect. Promoted from scan iteration 1 (a scanner reported it as unexplained), as in bench-csharp-baseline-clean TRP-001."
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "dependencies-not-locked",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Central Package Management (Directory.Packages.props) and a committed packages.lock.json for every project, the net6.0 exporter included; CI restores in locked mode. The dependencies are pinned and reproducible even though several pinned versions are bad."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "build-provenance-and-signing",
+      "band": [
+        30,
+        100
+      ],
+      "rationale": "Actions are pinned by commit SHA, but the repository publishes no release artifact, so there is nothing to sign or attest and no SBOM; partial posture by design, wide band (same reasoning as bench-csharp-baseline-clean)."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".editorconfig",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": ".gitignore",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "Directory.Build.props",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "Invoicing.slnx",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "README.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0001-pdf-rendering-with-pdfsharpcore.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0002-render-queue-in-the-billing-database.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0003-third-party-licence-policy.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/adr/0004-stay-on-fluentassertions-7.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "global.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/.editorconfig",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Branding/BrandingOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Branding/BrandingServiceClient.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Branding/ILogoSource.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Branding/TransientRetryHandler.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Controllers/ErpInvoicesController.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Controllers/InvoicesController.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Erp/ErpPayloadException.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Erp/ErpWebhookParser.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Hosting/ApiApplicationBuilderExtensions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Hosting/ApiServiceCollectionExtensions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Invoicing.Api.csproj",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Program.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Requests/InvoiceLineRequest.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Requests/PartyRequest.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Requests/RenderInvoiceRequest.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/AuthorizationPolicies.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/ConfigureJwtBearerOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/JwtAuthenticationOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/ScopeClaims.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/SecurityHeadersMiddleware.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Security/TenantClaims.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Signing/FileSigningCertificateSource.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/Signing/SigningCertificateOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/appsettings.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Api/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Contracts/InvoiceDocument.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Contracts/InvoiceLine.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Contracts/Party.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Contracts/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Invoicing.Rendering.csproj",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Pdf/InvoiceBranding.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Pdf/PdfInvoiceRenderer.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Pdf/PdfRenderingOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/RenderingServiceCollectionExtensions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Ubl/ISigningCertificateSource.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Ubl/UblInvoiceWriter.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Rendering/Ubl/XmlInvoiceSigner.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Invoicing.Worker.csproj",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Jobs/IRenderJobStore.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Jobs/InvoicePayload.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Jobs/MySqlRenderJobStore.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Jobs/RenderJob.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Mail/IInvoiceMailer.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Mail/SmtpInvoiceMailer.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Mail/SmtpOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Processing/RenderQueueProcessor.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Processing/RenderQueueWorker.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Processing/WorkerOptions.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/Program.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/appsettings.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "src/Invoicing.Worker/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/AuthorizationTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/HealthAndHeadersTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/InvoiceEndpointsTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/Invoicing.Api.IntegrationTests.csproj",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-072",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/InvoicingApiFactory.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-073",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/RenderRequests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-074",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/TestTokens.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-075",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.Api.IntegrationTests/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-076",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Archive/ArchiveExporterTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-077",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Branding/BrandingServiceClientTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-078",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Contracts/InvoiceDocumentTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-079",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Erp/ErpWebhookParserTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-080",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Invoicing.UnitTests.csproj",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-081",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Rendering/PdfInvoiceRendererTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-082",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Rendering/SignedUblTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-083",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Signing/FileSigningCertificateSourceTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-084",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/TestSupport/Invoices.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-085",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/TestSupport/Renderers.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-086",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/TestSupport/TestCertificates.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-087",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Worker/InvoicePayloadTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-088",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Worker/MySqlRenderJobStoreTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-089",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Worker/RenderQueueProcessorTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-090",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Worker/RenderQueueWorkerTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-091",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/Worker/SmtpInvoiceMailerTests.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-092",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tests/Invoicing.UnitTests/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-093",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/.editorconfig",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-094",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/ArchiveExporter.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-095",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/ArchiveIndexWriter.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-096",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/ArchiveLayout.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-097",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/ArchivedInvoice.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-098",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/PdfArchiveStamper.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-099",
+      "label": "clean",
+      "concepts": [
+        "vulnerable-dependency",
+        "outdated-dependency",
+        "deprecated-dependency",
+        "prerelease-dependency",
+        "malicious-dependency",
+        "license-policy-violation",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/Program.cs",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    },
+    {
+      "id": "CLN-100",
+      "label": "clean",
+      "concepts": [
+        "malicious-dependency",
+        "end-of-life-platform",
+        "unpinned-ci-action",
+        "mutable-image-reference"
+      ],
+      "file": "tools/Invoicing.ArchiveExporter/packages.lock.json",
+      "rationale": "Certified free of the dependency, licence, end-of-life-platform and CI/image-pinning concepts this repository covers (whole file)."
+    }
+  ]
+}

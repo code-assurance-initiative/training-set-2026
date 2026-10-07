@@ -1,0 +1,79 @@
+From 3029458cf1fef8439734e2d49fa099782b7b13ee Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 2 Apr 2026 10:05:38 +0200
+Subject: fix(calendar): fold lines by octets, never inside a character
+
+---
+ .../Calendar/IcsCalendarWriter.cs             | 19 +++++++++++--------
+ .../Calendar/IcsCalendarWriterTests.cs        | 11 +++++++++++
+ 2 files changed, 22 insertions(+), 8 deletions(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+index f5512d0..99be9af 100644
+--- a/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
++++ b/src/ClinicScheduling.Infrastructure/Calendar/IcsCalendarWriter.cs
+@@ -8,7 +8,7 @@ public sealed record CalendarEvent(string Uid, DateTimeOffset Start, DateTimeOff
+ 
+ /// <summary>
+ /// Writes iCalendar (RFC 5545) text: CRLF line endings, TEXT values escaped (§3.3.11) and content lines folded at
+-/// 75 characters (§3.1). Times are written in UTC.
++/// 75 octets (§3.1) without splitting a UTF-8 sequence. Times are written in UTC.
+ /// </summary>
+ public static class IcsCalendarWriter
+ {
+@@ -51,23 +51,26 @@ public static class IcsCalendarWriter
+             .Replace("\n", "\\n", StringComparison.Ordinal);
+     }
+ 
+-    /// <summary>Splits a content line into physical lines of at most 75 characters; continuations start with a space.</summary>
++    /// <summary>Splits a content line into physical lines of at most 75 octets; continuations start with a space.</summary>
+     public static IEnumerable<string> Fold(string line)
+     {
+         ArgumentNullException.ThrowIfNull(line);
+         var current = new StringBuilder();
+-        var count = 0;
+-        foreach (var c in line)
++        var octets = 0;
++        var elements = StringInfo.GetTextElementEnumerator(line);
++        while (elements.MoveNext())
+         {
+-            if (count == MaxOctetsPerLine)
++            var element = elements.GetTextElement();
++            var size = Encoding.UTF8.GetByteCount(element);
++            if (octets + size > MaxOctetsPerLine)
+             {
+                 yield return current.ToString();
+                 current.Clear().Append(' ');
+-                count = 1;
++                octets = 1;
+             }
+ 
+-            current.Append(c);
+-            count++;
++            current.Append(element);
++            octets += size;
+         }
+ 
+         yield return current.ToString();
+diff --git a/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+index 52dccd8..11965d6 100644
+--- a/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Calendar/IcsCalendarWriterTests.cs
+@@ -42,6 +42,17 @@ public sealed class IcsCalendarWriterTests
+         Assert.Equal("SUMMARY:" + new string('x', 200), string.Concat(lines.Select((l, i) => i == 0 ? l : l[1..])));
+     }
+ 
++    [Fact]
++    public void NeverSplitsAMultiByteCharacter()
++    {
++        var line = "SUMMARY:" + string.Concat(Enumerable.Repeat("æøå", 30));
++
++        var lines = IcsCalendarWriter.Fold(line).ToList();
++
++        Assert.All(lines, l => Assert.True(Encoding.UTF8.GetByteCount(l) <= 75));
++        Assert.Equal(line, string.Concat(lines.Select((l, i) => i == 0 ? l : l[1..])));
++    }
++
+     [Fact]
+     public void LeavesShortLinesAlone()
+     {

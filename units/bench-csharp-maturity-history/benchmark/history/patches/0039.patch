@@ -1,0 +1,72 @@
+From 91e8fb8eb255cc98f85592e5e68d662e55038294 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Tue, 3 Mar 2026 11:40:36 +0100
+Subject: feat(policy): deposits after repeated strikes
+
+---
+ .../Policies/CancellationPolicy.cs                  | 13 ++++++++++++-
+ .../Policies/CancellationPolicyOptions.cs           |  5 +++++
+ .../Policies/CancellationPolicyTests.cs             |  9 +++++++++
+ 3 files changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 9f4216d..2f4e2a7 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -2,7 +2,10 @@ using ClinicScheduling.Domain.Appointments;
+ 
+ namespace ClinicScheduling.Domain.Policies;
+ 
+-/// <summary>The clinic's cancellation rules: who pays a fee for cancelling, and how much.</summary>
++/// <summary>
++/// The clinic's cancellation and no-show rules: who pays a fee, how much, and which events count as strikes that
++/// eventually require a deposit before the patient can book again.
++/// </summary>
+ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+ {
+     /// <summary>The consequence of cancelling <paramref name="appointment"/> at <paramref name="at"/>.</summary>
+@@ -29,4 +32,12 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+         ArgumentNullException.ThrowIfNull(appointment);
+         return new CancellationDecision(options.NoShowFee, true, "no-show");
+     }
++
++    /// <summary>Whether a patient with these past strikes must pay a deposit to book at <paramref name="now"/>.</summary>
++    public bool RequiresDeposit(IEnumerable<DateTimeOffset> strikes, DateTimeOffset now)
++    {
++        ArgumentNullException.ThrowIfNull(strikes);
++        var since = now - options.StrikeWindow;
++        return strikes.Count(s => s >= since) >= options.StrikesBeforeDeposit;
++    }
+ }
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+index 5cc117a..0d757f9 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+@@ -8,4 +8,9 @@ public sealed record CancellationPolicyOptions
+     public decimal LateCancellationFee { get; init; } = 250m;
+ 
+     public decimal NoShowFee { get; init; } = 400m;
++
++    /// <summary>After this many strikes within <see cref="StrikeWindow"/> a deposit is required for new bookings.</summary>
++    public int StrikesBeforeDeposit { get; init; } = 2;
++
++    public TimeSpan StrikeWindow { get; init; } = TimeSpan.FromDays(180);
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 21d093f..9e0e347 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -42,4 +42,13 @@ public sealed class CancellationPolicyTests
+     {
+         Assert.Equal(new CancellationDecision(400m, true, "no-show"), _policy.EvaluateNoShow(Booked()));
+     }
++
++    [Fact]
++    public void TwoRecentStrikesRequireADeposit()
++    {
++        var now = Now;
++
++        Assert.False(_policy.RequiresDeposit([now.AddDays(-10)], now));
++        Assert.True(_policy.RequiresDeposit([now.AddDays(-10), now.AddDays(-100)], now));
++    }
+ }

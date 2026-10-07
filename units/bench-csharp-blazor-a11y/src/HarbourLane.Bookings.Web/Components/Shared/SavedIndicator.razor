@@ -1,0 +1,33 @@
+<style>
+    .saved {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        margin-left: 0.75rem;
+        font-weight: 600;
+    }
+
+    @@media (prefers-reduced-motion: no-preference) {
+        .saved-tick {
+            animation: saved-pop 400ms ease-out;
+        }
+
+        @@keyframes saved-pop {
+            from { transform: scale(0.4); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    }
+</style>
+
+@if (Visible)
+{
+    <span class="saved" role="status">
+        <svg class="saved-tick" aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M2 8l4 4 8-8" fill="none" stroke="currentColor" stroke-width="2" /></svg>
+        Saved
+    </span>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+}

@@ -1,0 +1,47 @@
+From a2d4e25cb581016bf8ad71d271ff155829bb4a3c Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Thu, 26 Feb 2026 10:30:15 +0100
+Subject: docs: architecture overview with a Mermaid diagram
+
+---
+ docs/architecture.md | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+ create mode 100644 docs/architecture.md
+
+diff --git a/docs/architecture.md b/docs/architecture.md
+new file mode 100644
+index 0000000..47106ae
+--- /dev/null
++++ b/docs/architecture.md
+@@ -0,0 +1,31 @@
++# Architecture
++
++ClinicScheduling is a single ASP.NET Core service with a layered solution (ADR 0002). The domain holds the scheduling
++rules and depends on nothing; the application layer holds the use cases and the ports they need; infrastructure
++implements those ports; the API project hosts everything and is the composition root.
++
++```mermaid
++flowchart LR
++    FrontDesk[Front desk app] -->|bookings, schedules| Api
++    subgraph Service[ClinicScheduling service]
++        Api[ClinicScheduling.Api<br/>Minimal API endpoints] --> Application[ClinicScheduling.Application<br/>use cases, ports]
++        Api --> Infrastructure[ClinicScheduling.Infrastructure<br/>stores, holidays]
++        Infrastructure --> Application
++        Application --> Domain[ClinicScheduling.Domain<br/>slots, appointments, policies, recurrence]
++    end
++```
++
++## Main flows
++
++- **Find slots** - `FindSlotsHandler` loads the practitioner's schedule and booked appointments and asks `SlotFinder`
++  for open slots: opening hours minus breaks, public holidays (the generated table in `Infrastructure/Holidays`),
++  booked appointments with their buffers, minimum notice, the same-day cut-off and the daily cap.
++- **Book, reschedule, cancel** - handlers in `Application/Booking`. Booking re-checks the requested time against
++  `SlotFinder`; cancelling asks `CancellationPolicy` for the fee and whether the cancellation is a strike.
++- **Treatment series** - `BookTreatmentSeriesHandler` expands a recurrence rule with `RecurrenceExpander` (holidays
++  move a session to the next free weekday) and books all sessions or none.
++
++## Decisions
++
++See [`adr/`](adr/): record keeping (0001), layering (0002), the clock (0003), Minimal API
++endpoints (0004).

@@ -1,0 +1,145 @@
+From 7a741dd3a2d988e0e49cd99f7c699c44b86f3619 Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 17 Mar 2026 10:10:59 +0100
+Subject: feat(api): calendar subscription for patients
+
+---
+ .../Endpoints/PatientEndpoints.cs             | 37 +++++++++++++++++++
+ .../ApiApplicationBuilderExtensions.cs        |  1 +
+ .../Security/AuthorizationPolicies.cs         |  4 +-
+ .../Abstractions/IAppointmentRepository.cs    |  2 +
+ .../InMemoryAppointmentRepository.cs          |  3 ++
+ .../PortalTests.cs                            | 20 ++++++++++
+ 6 files changed, 66 insertions(+), 1 deletion(-)
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+
+diff --git a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+new file mode 100644
+index 0000000..6bdeb65
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+@@ -0,0 +1,37 @@
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Time;
++using ClinicScheduling.Infrastructure.Calendar;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++/// <summary>The calendar subscription of the patient portal.</summary>
++public static class PatientEndpoints
++{
++    public static IEndpointRouteBuilder MapPatientEndpoints(this IEndpointRouteBuilder app)
++    {
++        var group = app.MapGroup("/api/patients/{patientId:guid}")
++            .WithTags("Patient portal")
++            .RequireAuthorization(AuthorizationPolicies.PortalRead);
++        group.MapGet("/calendar.ics", CalendarAsync);
++        return app;
++    }
++
++    private static async Task<IResult> CalendarAsync(
++        Guid patientId, IAppointmentRepository appointments, IClock clock, CancellationToken cancellationToken)
++    {
++        var mine = await appointments.ForPatientAsync(patientId, cancellationToken).ConfigureAwait(false);
++        var stamp = clock.UtcNow;
++        var events = mine
++            .Where(a => a.Status == AppointmentStatus.Booked)
++            .Select(a => new CalendarEvent(
++                $"{a.Id}@clinic-scheduling",
++                a.Time.Start,
++                a.Time.End,
++                "Physiotherapy appointment",
++                "Clinic",
++                stamp));
++        return Results.Text(IcsCalendarWriter.Write(events), "text/calendar");
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index 2046e7a..b494f9e 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -24,6 +24,7 @@ public static class ApiApplicationBuilderExtensions
+         app.MapAvailabilityEndpoints();
+         app.MapScheduleEndpoints();
+         app.MapSeriesEndpoints();
++        app.MapPatientEndpoints();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+index 71617e5..b34b129 100644
+--- a/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
++++ b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+@@ -8,13 +8,15 @@ public static class AuthorizationPolicies
+     public const string AppointmentsRead = "appointments.read";
+     public const string AppointmentsWrite = "appointments.write";
+     public const string SchedulesWrite = "schedules.write";
++    public const string PortalRead = "portal.read";
+ 
+     public static AuthorizationBuilder AddSchedulingPolicies(this AuthorizationBuilder builder) =>
+         builder
+             .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+             .AddPolicy(AppointmentsRead, policy => policy.RequireScope(AppointmentsRead))
+             .AddPolicy(AppointmentsWrite, policy => policy.RequireScope(AppointmentsWrite))
+-            .AddPolicy(SchedulesWrite, policy => policy.RequireScope(SchedulesWrite));
++            .AddPolicy(SchedulesWrite, policy => policy.RequireScope(SchedulesWrite))
++            .AddPolicy(PortalRead, policy => policy.RequireScope(PortalRead));
+ 
+     private static AuthorizationPolicyBuilder RequireScope(this AuthorizationPolicyBuilder policy, string scope) =>
+         policy
+diff --git a/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+index ca69d48..09de7d3 100644
+--- a/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
++++ b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+@@ -10,6 +10,8 @@ public interface IAppointmentRepository
+     Task<IReadOnlyList<Appointment>> BookedForPractitionerAsync(
+         Guid practitionerId, DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken);
+ 
++    Task<IReadOnlyList<Appointment>> ForPatientAsync(Guid patientId, CancellationToken cancellationToken);
++
+     Task AddAsync(Appointment appointment, CancellationToken cancellationToken);
+ 
+     Task SaveAsync(Appointment appointment, CancellationToken cancellationToken);
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+index 63c66ad..bab6853 100644
+--- a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+@@ -16,6 +16,9 @@ public sealed class InMemoryAppointmentRepository : IAppointmentRepository
+         Guid practitionerId, DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken) =>
+         Query(a => a.PractitionerId == practitionerId && a.Status == AppointmentStatus.Booked && a.Time.Start >= startsFrom && a.Time.Start < startsBefore);
+ 
++    public Task<IReadOnlyList<Appointment>> ForPatientAsync(Guid patientId, CancellationToken cancellationToken) =>
++        Query(a => a.PatientId == patientId);
++
+     public Task AddAsync(Appointment appointment, CancellationToken cancellationToken)
+     {
+         ArgumentNullException.ThrowIfNull(appointment);
+diff --git a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+new file mode 100644
+index 0000000..cbee7eb
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+@@ -0,0 +1,20 @@
++using System.Net;
++
++namespace ClinicScheduling.IntegrationTests;
++
++public sealed class PortalTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
++{
++    [Fact]
++    public async Task ServesTheCalendar()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++        var patient = Guid.NewGuid();
++        using var booked = await client.BookAsync(patient, new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(1)));
++        Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
++
++        var ics = await client.GetStringAsync($"api/patients/{patient}/calendar.ics", ApiClient.Token);
++
++        Assert.Contains("DTSTART:20260312T090000Z", ics, StringComparison.Ordinal);
++    }
++}

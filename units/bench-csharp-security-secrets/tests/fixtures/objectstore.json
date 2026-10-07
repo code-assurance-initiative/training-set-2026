@@ -1,0 +1,8 @@
+{
+  "ObjectStore": {
+    "ServiceUrl": "https://objects.test.internal",
+    "Bucket": "exports-under-test",
+    "AccessKeyId": "AKIAX6DULQPPEBDHK7LB",
+    "SecretAccessKey": "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"
+  }
+}

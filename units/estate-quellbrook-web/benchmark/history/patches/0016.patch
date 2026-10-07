@@ -1,0 +1,48 @@
+From d8aa8f02a3edb2014bdf39da11184409cfb0f80e Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Wed, 2 Sep 2026 09:58:44 +0200
+Subject: docs: search, filters and board preferences in the README
+
+---
+ README.md | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/README.md b/README.md
+index aaa1a5e..42aac3a 100644
+--- a/README.md
++++ b/README.md
+@@ -9,11 +9,11 @@ session is the ingress authentication proxy's cookie — the console never handl
+ 
+ ## Screens
+ 
+-| Path           | Screen                                                                          | Gateway routes                                                    |
+-| -------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+-| `/orders`      | Orders, newest first, a page at a time                                          | `GET /api/orders`                                                 |
+-| `/orders/{id}` | One order with its delivery status; cancelling it                               | `GET /api/shipments/{id}`, `POST /api/orders/{id}/cancellation`   |
+-| `/dispatch`    | Dispatch board: the routes of a day, their vehicles and stops; starting a route | `GET /api/dispatch/board`, `POST /api/dispatch/routes/{id}/start` |
++| Path           | Screen                                                                                         | Gateway routes                                                    |
++| -------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
++| `/orders`      | Orders, newest first, a page at a time; search the page by consignee or city, filter by status | `GET /api/orders`                                                 |
++| `/orders/{id}` | One order with its delivery status; cancelling it                                              | `GET /api/shipments/{id}`, `POST /api/orders/{id}/cancellation`   |
++| `/dispatch`    | Dispatch board: the routes of a day, their vehicles and stops; starting a route                | `GET /api/dispatch/board`, `POST /api/dispatch/routes/{id}/start` |
+ 
+ ## Build and run
+ 
+@@ -34,6 +34,7 @@ npm run lint && npm run typecheck
+ ```
+ 
+ The tests render the real components and replace `fetch` with fixed answers per path; no test touches the network.
++The dispatch board remembers the card density in the browser's local storage (a display preference only).
+ 
+ ## Architecture
+ 
+@@ -42,7 +43,8 @@ See [docs/architecture.md](docs/architecture.md) and [docs/adr](docs/adr).
+ ## Deployment
+ 
+ A published GitHub release builds the nginx image (`.github/workflows/release.yml`); the manual `deploy.yml` workflow
+-rolls it out to the `quellbrook-edge` namespace (`deploy/k8s/`), behind the ingress and the authentication proxy.
++rolls it out to the `quellbrook-edge` namespace (`deploy/k8s/`), behind the ingress and the authentication proxy, after
++verifying the image's signed build provenance.
+ nginx sends the security headers (`nginx/default.conf`).
+ 
+ ## Contributing

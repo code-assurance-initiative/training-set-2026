@@ -1,0 +1,89 @@
+From 2cf10383a5ed5f51f3ac5f75f14926a8e26000fb Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Thu, 23 Apr 2026 15:40:03 +0200
+Subject: feat(notifications): reminder texts for video appointments
+
+---
+ .../Notifications/ReminderComposer.cs                  |  8 +++++++-
+ .../Notifications/ReminderTexts.cs                     |  8 ++++++++
+ .../Notifications/ReminderComposerTests.cs             | 10 ++++++++++
+ 3 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+index f71d1e5..86e7aa0 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderComposer.cs
+@@ -22,7 +22,13 @@ public static class ReminderComposer
+ 
+         var language = LanguageByCountry.GetValueOrDefault(schedule.CountryCode, ReminderTexts.DefaultLanguage);
+         var texts = ReminderTexts.ByLanguage[language];
+-        var key = reminder.Kind == ReminderKind.DayBefore ? ReminderTexts.DayBefore : ReminderTexts.SameDay;
++        var key = (reminder.Kind, appointment.IsTelehealth) switch
++        {
++            (ReminderKind.DayBefore, false) => ReminderTexts.DayBefore,
++            (ReminderKind.DayBefore, true) => ReminderTexts.DayBeforeVideo,
++            (ReminderKind.SameDay, false) => ReminderTexts.SameDay,
++            _ => ReminderTexts.SameDayVideo,
++        };
+ 
+         var culture = CultureInfo.GetCultureInfo(language);
+         var local = TimeZoneInfo.ConvertTime(appointment.Time.Start, schedule.TimeZone);
+diff --git a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+index c7b2471..1309cf2 100644
+--- a/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
++++ b/src/ClinicScheduling.Infrastructure/Notifications/ReminderTexts.cs
+@@ -10,6 +10,8 @@ public static class ReminderTexts
+ 
+     public const string DayBefore = "day-before";
+     public const string SameDay = "same-day";
++    public const string DayBeforeVideo = "day-before-video";
++    public const string SameDayVideo = "same-day-video";
+ 
+     public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ByLanguage =
+         new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.OrdinalIgnoreCase)
+@@ -18,18 +20,24 @@ public static class ReminderTexts
+             {
+                 [DayBefore] = "Reminder: you have an appointment with {0} on {1}. To cancel or reschedule, please call {2}.",
+                 [SameDay] = "See you soon: your appointment with {0} is today at {1}.",
++                [DayBeforeVideo] = "Reminder: your video appointment with {0} is on {1}. The link arrives an hour before.",
++                [SameDayVideo] = "Your video appointment with {0} starts at {1}. Please open the link from your patient portal a few minutes early.",
+                 ["signature"] = "Best regards, your physiotherapy clinic",
+             },
+             ["da"] = new Dictionary<string, string>
+             {
+                 [DayBefore] = "Påmindelse: du har tid hos {0} den {1}. Ring til {2}, hvis du vil aflyse eller flytte.",
+                 [SameDay] = "Vi ses snart: din tid hos {0} er i dag kl. {1}.",
++                [DayBeforeVideo] = "Påmindelse: din videokonsultation med {0} er den {1}. Linket kommer en time før.",
++                [SameDayVideo] = "Din videokonsultation med {0} starter kl. {1}. Åbn linket fra patientportalen.",
+                 ["signature"] = "Venlig hilsen din fysioterapiklinik",
+             },
+             ["de"] = new Dictionary<string, string>
+             {
+                 [DayBefore] = "Erinnerung: Ihr Termin bei {0} ist am {1}. Zum Absagen oder Verschieben rufen Sie {2} an.",
+                 [SameDay] = "Bis gleich: Ihr Termin bei {0} ist heute um {1}.",
++                [DayBeforeVideo] = "Erinnerung: Ihre Videosprechstunde bei {0} ist am {1}. Den Link erhalten Sie eine Stunde vorher.",
++                [SameDayVideo] = "Ihre Videosprechstunde bei {0} beginnt um {1}. Öffnen Sie den Link im Patientenportal.",
+                 ["signature"] = "Mit freundlichen Grüßen, Ihre Physiotherapiepraxis",
+             },
+         };
+diff --git a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+index 6767a9d..b71b230 100644
+--- a/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Notifications/ReminderComposerTests.cs
+@@ -27,6 +27,16 @@ public sealed class ReminderComposerTests
+         Assert.Contains("+45 11 22 33 44", text, StringComparison.Ordinal);
+     }
+ 
++    [Fact]
++    public void UsesTheVideoTextForTelehealth()
++    {
++        var appointment = Booked(telehealth: true);
++
++        var text = ReminderComposer.Compose(Reminder(appointment, ReminderKind.SameDay), appointment, Schedule(), "Ida", "+45 11 22 33 44");
++
++        Assert.StartsWith("Din videokonsultation med Ida starter kl. 09.00.", text, StringComparison.Ordinal);
++    }
++
+     [Fact]
+     public void FallsBackToEnglish()
+     {

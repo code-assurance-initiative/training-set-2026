@@ -1,0 +1,115 @@
+From 60da208accc6f598bc37b6595ae18035891bd17b Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Tue, 10 Feb 2026 09:05:14 +0100
+Subject: ci: CodeQL, Dependabot, a vulnerable-package gate and a security
+ policy
+
+---
+ .github/dependabot.yml       | 11 ++++++++++
+ .github/workflows/ci.yml     |  5 +++++
+ .github/workflows/codeql.yml | 39 ++++++++++++++++++++++++++++++++++++
+ SECURITY.md                  | 15 ++++++++++++++
+ 4 files changed, 70 insertions(+)
+ create mode 100644 .github/dependabot.yml
+ create mode 100644 .github/workflows/codeql.yml
+ create mode 100644 SECURITY.md
+
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+new file mode 100644
+index 0000000..d88aaaf
+--- /dev/null
++++ b/.github/dependabot.yml
+@@ -0,0 +1,11 @@
++version: 2
++updates:
++  - package-ecosystem: nuget
++    directory: /
++    schedule:
++      interval: weekly
++
++  - package-ecosystem: github-actions
++    directory: /
++    schedule:
++      interval: weekly
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 5ac22a2..adcbcc8 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -29,6 +29,11 @@ jobs:
+       - name: Restore (locked)
+         run: dotnet restore ClinicScheduling.slnx --locked-mode
+ 
++      - name: Fail on vulnerable packages
++        run: |
++          dotnet list ClinicScheduling.slnx package --vulnerable --include-transitive | tee vulnerable.txt
++          if grep -q "has the following vulnerable packages" vulnerable.txt; then exit 1; fi
++
+       - name: Build
+         run: dotnet build ClinicScheduling.slnx -c Release --no-restore
+ 
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+new file mode 100644
+index 0000000..108f093
+--- /dev/null
++++ b/.github/workflows/codeql.yml
+@@ -0,0 +1,39 @@
++name: CodeQL
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++permissions:
++  contents: read
++
++jobs:
++  analyze:
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    permissions:
++      contents: read
++      security-events: write
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          persist-credentials: false
++
++      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
++        with:
++          global-json-file: global.json
++
++      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
++        with:
++          languages: csharp
++          build-mode: manual
++          queries: security-and-quality
++
++      - name: Build
++        run: dotnet build ClinicScheduling.slnx -c Release
++
++      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
++        with:
++          category: /language:csharp
+diff --git a/SECURITY.md b/SECURITY.md
+new file mode 100644
+index 0000000..61839c7
+--- /dev/null
++++ b/SECURITY.md
+@@ -0,0 +1,15 @@
++# Security policy
++
++## Reporting a vulnerability
++
++Please report suspected vulnerabilities privately through GitHub's
++[private vulnerability reporting](https://github.com/code-assurance-initiative/bench-csharp-maturity-history/security/advisories/new)
++for this repository. Do not open a public issue.
++
++Include what you found, how to reproduce it, and the impact you expect. We acknowledge reports within three working
++days and aim to publish a fix or a mitigation within 30 days of confirming the issue. We will credit you in the advisory
++unless you ask us not to.
++
++## Supported versions
++
++Only the latest commit on `main` is supported.

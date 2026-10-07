@@ -1,0 +1,20 @@
+From 728616fe8a1bcb5adcd2c7e027af7853b7bf2e2a Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Mon, 27 Jul 2026 10:25:34 +0200
+Subject: build: copyright in the assembly metadata
+
+---
+ Directory.Build.props | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Directory.Build.props b/Directory.Build.props
+index de817d9..b7428e4 100644
+--- a/Directory.Build.props
++++ b/Directory.Build.props
+@@ -11,5 +11,6 @@
+     <RestoreLockedMode Condition="'$(ContinuousIntegrationBuild)' == 'true'">true</RestoreLockedMode>
+     <Version>0.4.0</Version>
+     <Authors>ClinicScheduling team</Authors>
++    <Copyright>Copyright (c) 2026 code-assurance-initiative</Copyright>
+   </PropertyGroup>
+ </Project>

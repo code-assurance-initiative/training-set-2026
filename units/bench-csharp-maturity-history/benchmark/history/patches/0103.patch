@@ -1,0 +1,21 @@
+From 4161bd413ec2f085fdfc0addeb03fa0b744c07a3 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 12 Aug 2026 10:40:27 +0200
+Subject: test: strikes outside the window do not count
+
+---
+ .../Policies/CancellationPolicyTests.cs                          | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 26a2011..76854ee 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -68,6 +68,7 @@ public sealed class CancellationPolicyTests
+ 
+         Assert.False(_policy.RequiresDeposit([now.AddDays(-10)], now));
+         Assert.True(_policy.RequiresDeposit([now.AddDays(-10), now.AddDays(-100)], now));
++        Assert.False(_policy.RequiresDeposit([now.AddDays(-10), now.AddDays(-200)], now));
+     }
+ 
+     [Fact]

@@ -1,0 +1,81 @@
+From ecf724af52eeb1e1fde5993f66bb5edeb215a95c Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 3 Jun 2026 13:10:46 +0200
+Subject: feat(policy): illness cancellations are free but count as a strike
+
+---
+ .../Contracts/CancelAppointmentRequest.cs              |  1 +
+ .../Appointments/CancellationReason.cs                 |  1 +
+ .../Policies/CancellationPolicy.cs                     |  6 ++++++
+ .../Policies/CancellationPolicyTests.cs                | 10 ++++++++++
+ 4 files changed, 18 insertions(+)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs b/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
+index afd98e7..de967ef 100644
+--- a/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
++++ b/src/ClinicScheduling.Api/Contracts/CancelAppointmentRequest.cs
+@@ -7,6 +7,7 @@ public sealed record CancelAppointmentRequest(string? Reason)
+     private static readonly Dictionary<string, CancellationReason> Reasons = new(StringComparer.OrdinalIgnoreCase)
+     {
+         ["patient-request"] = CancellationReason.PatientRequest,
++        ["patient-illness"] = CancellationReason.PatientIllness,
+         ["practitioner-unavailable"] = CancellationReason.PractitionerUnavailable,
+         ["clinic-closed"] = CancellationReason.ClinicClosed,
+     };
+diff --git a/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs b/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
+index ff7c40f..0495709 100644
+--- a/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
++++ b/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
+@@ -3,6 +3,7 @@ namespace ClinicScheduling.Domain.Appointments;
+ public enum CancellationReason
+ {
+     PatientRequest,
++    PatientIllness,
+     PractitionerUnavailable,
+     ClinicClosed,
+ }
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index c90343b..94d038e 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -12,6 +12,7 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+     public const string LateCancellation = "late";
+     public const string NoShow = "no-show";
+     public const string ClinicInitiated = "clinic-initiated";
++    public const string Illness = "illness";
+ 
+     /// <summary>The consequence of cancelling <paramref name="appointment"/> at <paramref name="at"/>.</summary>
+     public CancellationDecision EvaluateCancellation(Appointment appointment, CancellationReason reason, DateTimeOffset at)
+@@ -28,6 +29,11 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+             return CancellationDecision.Free(FreeCancellation);
+         }
+ 
++        if (reason == CancellationReason.PatientIllness)
++        {
++            return CancellationDecision.Free(Illness) with { CountsAsStrike = true };
++        }
++
+         return new CancellationDecision(Scaled(options.LateCancellationFee, appointment), true, LateCancellation);
+     }
+ 
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 7061489..c4bc593 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -37,6 +37,16 @@ public sealed class CancellationPolicyTests
+         Assert.Equal(125m, decision.Fee);
+     }
+ 
++    [Fact]
++    public void IllnessIsFreeButStillAStrike()
++    {
++        var decision = _policy.EvaluateCancellation(Booked(), CancellationReason.PatientIllness, Start.AddHours(-1));
++
++        Assert.Equal(0m, decision.Fee);
++        Assert.True(decision.CountsAsStrike);
++        Assert.Equal(CancellationPolicy.Illness, decision.Code);
++    }
++
+     [Fact]
+     public void ClinicInitiatedCancellationsNeverCostThePatient()
+     {

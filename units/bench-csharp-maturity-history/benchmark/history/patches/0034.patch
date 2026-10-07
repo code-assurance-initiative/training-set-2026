@@ -1,0 +1,131 @@
+From 22528e2b1c40bb45eec7e8ab24c2e0acebb0f942 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Mon, 23 Feb 2026 14:00:24 +0100
+Subject: feat(policy): no-show fees
+
+---
+ .../Endpoints/AppointmentEndpoints.cs         |  9 ++++++
+ .../ApplicationServiceCollectionExtensions.cs |  1 +
+ .../Booking/RecordNoShow.cs                   | 31 +++++++++++++++++++
+ .../Policies/CancellationPolicy.cs            |  7 +++++
+ .../Policies/CancellationPolicyOptions.cs     |  2 ++
+ .../Policies/CancellationPolicyTests.cs       |  6 ++++
+ 6 files changed, 56 insertions(+)
+ create mode 100644 src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index 5615650..f2b6929 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -15,6 +15,7 @@ public static class AppointmentEndpoints
+         group.MapGet("/{id:guid}", GetAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsRead).WithName("GetAppointment");
+         group.MapPost("/{id:guid}/cancellation", CancelAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         group.MapPost("/{id:guid}/reschedule", RescheduleAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
++        group.MapPost("/{id:guid}/no-show", NoShowAsync).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
+         return app;
+     }
+ 
+@@ -67,4 +68,12 @@ public static class AppointmentEndpoints
+             ? Results.Ok(AppointmentResponse.From(appointment))
+             : EndpointResults.Problem(result);
+     }
++
++    private static async Task<IResult> NoShowAsync(Guid id, RecordNoShowHandler handler, CancellationToken cancellationToken)
++    {
++        var result = await handler.HandleAsync(id, cancellationToken).ConfigureAwait(false);
++        return result is { Status: OperationStatus.Ok, Value: { } decision }
++            ? Results.Ok(CancellationResponse.From(decision))
++            : EndpointResults.Problem(result);
++    }
+ }
+diff --git a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+index 215e7fe..308da7d 100644
+--- a/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Application/ApplicationServiceCollectionExtensions.cs
+@@ -20,6 +20,7 @@ public static class ApplicationServiceCollectionExtensions
+         services.AddScoped<BookAppointmentHandler>();
+         services.AddScoped<CancelAppointmentHandler>();
+         services.AddScoped<RescheduleAppointmentHandler>();
++        services.AddScoped<RecordNoShowHandler>();
+         services.AddScoped<FindSlotsHandler>();
+         services.AddScoped<BookTreatmentSeriesHandler>();
+         return services;
+diff --git a/src/ClinicScheduling.Application/Booking/RecordNoShow.cs b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+new file mode 100644
+index 0000000..fbdb02a
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+@@ -0,0 +1,31 @@
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Policies;
++using ClinicScheduling.Domain.Time;
++
++namespace ClinicScheduling.Application.Booking;
++
++public sealed class RecordNoShowHandler(
++    IAppointmentRepository appointments,
++    CancellationPolicy policy,
++    IClock clock)
++{
++    public async Task<OperationResult<CancellationDecision>> HandleAsync(Guid appointmentId, CancellationToken cancellationToken)
++    {
++        var appointment = await appointments.FindAsync(appointmentId, cancellationToken).ConfigureAwait(false);
++        if (appointment is null)
++        {
++            return Operation.NotFound<CancellationDecision>($"Appointment {appointmentId} does not exist.");
++        }
++
++        var now = clock.UtcNow;
++        if (appointment.Status != AppointmentStatus.Booked || appointment.Time.Start > now)
++        {
++            return Operation.Conflict<CancellationDecision>("Only a booked appointment that has started can be a no-show.");
++        }
++
++        appointment.MarkNoShow();
++        await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        return Operation.Ok<CancellationDecision>(policy.EvaluateNoShow(appointment));
++    }
++}
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 00dc658..9f4216d 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -22,4 +22,11 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+ 
+         return new CancellationDecision(options.LateCancellationFee, true, "late");
+     }
++
++    /// <summary>The consequence of the patient not turning up at all.</summary>
++    public CancellationDecision EvaluateNoShow(Appointment appointment)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        return new CancellationDecision(options.NoShowFee, true, "no-show");
++    }
+ }
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+index f0a72cf..5cc117a 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+@@ -6,4 +6,6 @@ public sealed record CancellationPolicyOptions
+     public TimeSpan FreeCancellationWindow { get; init; } = TimeSpan.FromHours(24);
+ 
+     public decimal LateCancellationFee { get; init; } = 250m;
++
++    public decimal NoShowFee { get; init; } = 400m;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index ca99277..21d093f 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -36,4 +36,10 @@ public sealed class CancellationPolicyTests
+ 
+         Assert.Equal(CancellationDecision.Free("clinic-initiated"), decision);
+     }
++
++    [Fact]
++    public void NoShowCostsTheFullNoShowFee()
++    {
++        Assert.Equal(new CancellationDecision(400m, true, "no-show"), _policy.EvaluateNoShow(Booked()));
++    }
+ }

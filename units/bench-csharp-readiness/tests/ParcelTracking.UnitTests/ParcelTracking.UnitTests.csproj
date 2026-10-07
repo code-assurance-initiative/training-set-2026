@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ParcelTracking.UnitTests</RootNamespace>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ParcelTracking.Cli\ParcelTracking.Cli.csproj" />
+    <ProjectReference Include="..\..\src\ParcelTracking.Client\ParcelTracking.Client.csproj" />
+    <ProjectReference Include="..\..\src\ParcelTracking.Core\ParcelTracking.Core.csproj" />
+    <ProjectReference Include="..\..\src\ParcelTracking.Infrastructure\ParcelTracking.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ParcelTracking.Worker\ParcelTracking.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3.mtp-off" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

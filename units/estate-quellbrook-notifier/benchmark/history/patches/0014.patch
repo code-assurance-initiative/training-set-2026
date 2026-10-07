@@ -1,0 +1,27 @@
+From c9bbeb7f800732af65557ac1e80b07d9f5853ca4 Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Wed, 19 Aug 2026 10:14:27 +0200
+Subject: chore(email): log the recipient of accepted e-mails to chase staging
+ bounces
+
+---
+ src/Quellbrook.Notifier/Channels/EmailSender.cs | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/Quellbrook.Notifier/Channels/EmailSender.cs b/src/Quellbrook.Notifier/Channels/EmailSender.cs
+index 9ab35cb..6dde287 100644
+--- a/src/Quellbrook.Notifier/Channels/EmailSender.cs
++++ b/src/Quellbrook.Notifier/Channels/EmailSender.cs
+@@ -31,9 +31,9 @@ public sealed partial class EmailSender(HttpClient http, IOptions<EmailProviderO
+         }
+ 
+         var providerId = response.Headers.TryGetValues("X-Message-Id", out var ids) ? ids.FirstOrDefault() : null;
+-        LogAccepted(message.OrderId, providerId ?? "unknown");
++        LogAccepted(message.OrderId, message.To, providerId ?? "unknown");
+     }
+ 
+-    [LoggerMessage(Level = LogLevel.Information, Message = "E-mail for order {OrderId} accepted by the provider ({ProviderMessageId})")]
+-    private partial void LogAccepted(Guid orderId, string providerMessageId);
++    [LoggerMessage(Level = LogLevel.Information, Message = "E-mail for order {OrderId} accepted by the provider for {Recipient} ({ProviderMessageId})")]
++    private partial void LogAccepted(Guid orderId, string recipient, string providerMessageId);
+ }

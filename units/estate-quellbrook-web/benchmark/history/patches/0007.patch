@@ -1,0 +1,154 @@
+From 2aa242e676f1b8ee67c31b9478eff1f8b129ea49 Mon Sep 17 00:00:00 2001
+From: Teodor Vasko <teodor.vasko@example.invalid>
+Date: Thu, 6 Aug 2026 10:27:39 +0200
+Subject: docs: README, architecture and catalog entry
+
+---
+ README.md            | 54 ++++++++++++++++++++++++++++++++++++++++++++
+ SECURITY.md          | 21 +++++++++++++++++
+ catalog-info.yaml    | 15 ++++++++++++
+ docs/architecture.md | 24 ++++++++++++++++++++
+ 4 files changed, 114 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 SECURITY.md
+ create mode 100644 catalog-info.yaml
+ create mode 100644 docs/architecture.md
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..2cd252e
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,54 @@
++# Quellbrook Operations Console
++
++The web console of Quellbrook Freight's operations platform. Customer-service operators find and read orders;
++dispatchers (from sprint 2) plan the day on the dispatch board. It is a React single-page application built with
++Vite and served as static files by nginx; every call goes to the API gateway under `/api` on the same host, and the
++session is the ingress authentication proxy's cookie — the console never handles a token.
++
++**Owner:** the Edge team (`#team-edge`). **System:** Quellbrook operations platform (see `catalog-info.yaml`).
++
++## Screens
++
++| Path           | Screen                                 | Gateway routes         |
++| -------------- | -------------------------------------- | ---------------------- |
++| `/orders`      | Orders, newest first, a page at a time | `GET /api/orders`      |
++| `/orders/{id}` | One order                              | `GET /api/orders/{id}` |
++
++## Build and run
++
++Requires Node.js 22 (`.nvmrc`). In development Vite proxies `/api` to a gateway on `http://localhost:8080`.
++
++```sh
++npm ci
++npm run dev        # http://localhost:5173
++npm run build      # type-check and build into dist/
++```
++
++## Testing
++
++```sh
++npm test               # component and unit tests (Vitest, Testing Library, jsdom)
++npm run test:coverage  # with coverage thresholds
++npm run lint && npm run typecheck
++```
++
++The tests render the real components and replace `fetch` with fixed answers per path; no test touches the network.
++
++## Architecture
++
++See [docs/architecture.md](docs/architecture.md) and [docs/adr](docs/adr).
++
++## Deployment
++
++A published GitHub release builds the nginx image (`.github/workflows/release.yml`); the manual `deploy.yml` workflow
++rolls it out to the `quellbrook-edge` namespace (`deploy/k8s/`), behind the ingress and the authentication proxy.
++nginx sends the security headers (`nginx/default.conf`).
++
++## Contributing
++
++Open a pull request against `main`. CI (format, lint, types, build, tests with coverage, npm audit) must be green and
++CodeQL must report no new alerts. Record user-visible changes in `CHANGELOG.md`.
++
++## Licence
++
++MIT; see [LICENSE](LICENSE).
+diff --git a/SECURITY.md b/SECURITY.md
+new file mode 100644
+index 0000000..e59fe0e
+--- /dev/null
++++ b/SECURITY.md
+@@ -0,0 +1,21 @@
++# Security policy
++
++## Reporting a vulnerability
++
++Please report suspected vulnerabilities privately through GitHub's
++[private vulnerability reporting](https://github.com/code-assurance-initiative/estate-quellbrook-web/security/advisories/new)
++for this repository. Do not open a public issue.
++
++Include what you found, how to reproduce it, and the impact you expect. We acknowledge reports within three working
++days and aim to publish a fix or a mitigation within 30 days of confirming the issue. We credit reporters in the
++advisory unless they ask us not to.
++
++## Supported versions
++
++Only the latest release is supported.
++
++## Scope
++
++In scope: the operator console and the build, release and deployment configuration in this repository. Out of scope:
++the identity provider, the message broker and the platform's shared infrastructure (report those to the platform
++team through the same channel), and the authentication proxy in front of the gateway (run by the platform team).
+diff --git a/catalog-info.yaml b/catalog-info.yaml
+new file mode 100644
+index 0000000..89fa23b
+--- /dev/null
++++ b/catalog-info.yaml
+@@ -0,0 +1,15 @@
++apiVersion: backstage.io/v1alpha1
++kind: Component
++metadata:
++  name: quellbrook-web
++  description: Operator console — orders, shipment status and the dispatch board.
++  annotations:
++    github.com/project-slug: code-assurance-initiative/estate-quellbrook-web
++  tags: [typescript, react, vite]
++spec:
++  type: website
++  lifecycle: production
++  owner: group:edge
++  system: quellbrook-operations
++  consumesApis:
++    - quellbrook-console-api
+diff --git a/docs/architecture.md b/docs/architecture.md
+new file mode 100644
+index 0000000..cabe8f5
+--- /dev/null
++++ b/docs/architecture.md
+@@ -0,0 +1,24 @@
++# Architecture — operator console
++
++```mermaid
++C4Container
++  title Containers — operator console
++  Person(operator, "Operator", "Customer service and dispatch staff")
++  Container_Ext(proxy, "Ingress + authentication proxy", "ingress-nginx, oauth2-proxy", "TLS, sign-in, session cookie")
++  Container(web, "Console", "React 19, Vite, served by nginx", "Orders, shipment status, dispatch board")
++  Container_Ext(gateway, "API gateway / BFF", "estate-quellbrook-gateway")
++  Rel(operator, proxy, "https://ops.quellbrook.example", "HTTPS")
++  Rel(proxy, web, "/ (static files)", "HTTP over mesh mTLS")
++  Rel(proxy, gateway, "/api", "HTTP over mesh mTLS")
++  Rel(web, gateway, "fetch /api (same origin, session cookie)", "HTTPS via the proxy")
++```
++
++| Folder                             | Responsibility                                                                        |
++| ---------------------------------- | ------------------------------------------------------------------------------------- |
++| `src/api/`                         | the gateway client (`request`, problem details as `ApiError`) and one module per area |
++| `src/features/`                    | one folder per screen                                                                 |
++| `src/components/`                  | layout, links, status badge, error message                                            |
++| `src/routing.ts`, `src/useLoad.ts` | path routing with the History API; loading with cancellation                          |
++| `nginx/`                           | the server configuration with the security headers                                    |
++
++The console stores no token (ADR 0002).

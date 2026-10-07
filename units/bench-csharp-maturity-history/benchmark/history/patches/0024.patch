@@ -1,0 +1,71 @@
+From 0690ec9562094c799885ca433d250c24c1346bfe Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Tue, 3 Feb 2026 10:25:03 +0100
+Subject: feat(domain): record why an appointment was cancelled
+
+---
+ src/ClinicScheduling.Domain/Appointments/Appointment.cs   | 5 ++++-
+ .../Appointments/CancellationReason.cs                    | 8 ++++++++
+ .../Appointments/AppointmentTests.cs                      | 5 +++--
+ 3 files changed, 15 insertions(+), 3 deletions(-)
+ create mode 100644 src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
+
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 1ed5517..1627387 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -37,6 +37,8 @@ public sealed class Appointment
+ 
+     public AppointmentStatus Status { get; private set; }
+ 
++    public CancellationReason? CancellationReason { get; private set; }
++
+     public DateTimeOffset? CancelledAt { get; private set; }
+ 
+     public static Appointment Book(
+@@ -47,10 +49,11 @@ public sealed class Appointment
+         Guid? seriesId = null) =>
+         new(Guid.NewGuid(), patientId, practitionerId, clinicId, time, seriesId);
+ 
+-    public void Cancel(DateTimeOffset at)
++    public void Cancel(CancellationReason reason, DateTimeOffset at)
+     {
+         EnsureBooked();
+         Status = AppointmentStatus.Cancelled;
++        CancellationReason = reason;
+         CancelledAt = at;
+     }
+ 
+diff --git a/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs b/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
+new file mode 100644
+index 0000000..ff7c40f
+--- /dev/null
++++ b/src/ClinicScheduling.Domain/Appointments/CancellationReason.cs
+@@ -0,0 +1,8 @@
++namespace ClinicScheduling.Domain.Appointments;
++
++public enum CancellationReason
++{
++    PatientRequest,
++    PractitionerUnavailable,
++    ClinicClosed,
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+index e4e8cbd..619f2f2 100644
+--- a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -14,11 +14,12 @@ public sealed class AppointmentTests
+     {
+         var appointment = Booked();
+ 
+-        appointment.Cancel(Now);
++        appointment.Cancel(CancellationReason.PatientRequest, Now);
+ 
+         Assert.Equal(AppointmentStatus.Cancelled, appointment.Status);
++        Assert.Equal(CancellationReason.PatientRequest, appointment.CancellationReason);
+         Assert.Equal(Now, appointment.CancelledAt);
+-        Assert.Throws<InvalidOperationException>(() => appointment.Cancel(Now));
++        Assert.Throws<InvalidOperationException>(() => appointment.Cancel(CancellationReason.PatientRequest, Now));
+     }
+ 
+     [Fact]

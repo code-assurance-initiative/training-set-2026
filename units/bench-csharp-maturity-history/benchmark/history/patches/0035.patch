@@ -1,0 +1,97 @@
+From bde6fc7df7352bdf78d64952ef5ad2277c294dfd Mon Sep 17 00:00:00 2001
+From: Lena Marsh <lena.marsh@example.invalid>
+Date: Wed, 25 Feb 2026 16:10:42 +0100
+Subject: docs: README with getting started, testing and architecture
+
+---
+ README.md | 81 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 81 insertions(+)
+ create mode 100644 README.md
+
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..067acc5
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,81 @@
++# ClinicScheduling
++
++ClinicScheduling is the appointment-scheduling API behind a chain of physiotherapy clinics. Practitioners publish
++their weekly opening hours; the front desk searches for open slots, books, moves and cancels appointments; and
++treatment series are booked in one go.
++
++## Features
++
++- **Slot search** per practitioner: opening hours and breaks, public holidays (Denmark, Germany, Norway, Sweden),
++  buffers between appointments, minimum notice, a same-day cut-off and a daily cap.
++- **Booking, rescheduling and cancellation** with the clinic's cancellation policy: free until 24 hours before, a fee
++  for late cancellations and no-shows.
++- **Treatment series**: a weekly recurrence (`WEEKLY;INTERVAL=1;COUNT=8;BYDAY=MO,TH`) booked as one request; sessions
++  that fall on a public holiday move to the next free weekday.
++
++## Getting started
++
++Prerequisites: the .NET 10 SDK.
++
++```bash
++dotnet build ClinicScheduling.slnx
++dotnet run --project src/ClinicScheduling.Api
++```
++
++The API validates bearer tokens from the identity provider configured under `Authentication` (an `https` authority
++and the audience `clinic-scheduling-api`). In development the authority is a realm of a local identity provider
++(`appsettings.Development.json`). Every endpoint except `/health` needs a token with the matching scope:
++`appointments.read`, `appointments.write` or `schedules.write`.
++
++## Testing
++
++```bash
++dotnet test ClinicScheduling.slnx
++```
++
++`tests/ClinicScheduling.UnitTests` covers the domain rules (slot search, cancellation policy, recurrence).
++`tests/ClinicScheduling.IntegrationTests` hosts the API in memory with `WebApplicationFactory`, signs its own test
++tokens and drives the endpoints over HTTPS.
++
++## Architecture
++
++A layered solution (see [`docs/architecture.md`](docs/architecture.md) and the decision records in
++[`docs/adr/`](docs/adr/)):
++
++| Project | Role |
++|---|---|
++| `ClinicScheduling.Domain` | Appointments, slot search, cancellation policy, recurrence. No dependencies. |
++| `ClinicScheduling.Application` | Use cases (book, cancel, reschedule, find slots, book a series) and their ports. |
++| `ClinicScheduling.Infrastructure` | In-memory stores and the public-holiday table. |
++| `ClinicScheduling.Api` | The ASP.NET Core host: endpoints, authentication, security headers. |
++
++The public-holiday table (`src/ClinicScheduling.Infrastructure/Holidays/PublicHolidays.g.cs`) is generated: edit
++`tools/holidays/holidays.csv` and run `tools/holidays/generate-holidays.sh`.
++
++## API overview
++
++| Method and path | Scope | Purpose |
++|---|---|---|
++| `PUT /api/practitioners/{id}/schedule` | `schedules.write` | Set a practitioner's weekly hours, skills and daily cap. |
++| `GET /api/practitioners/{id}/slots?from&to&durationMinutes` | `appointments.read` | Open slots. |
++| `POST /api/appointments` | `appointments.write` | Book. |
++| `GET /api/appointments/{id}` | `appointments.read` | Read one appointment. |
++| `POST /api/appointments/{id}/reschedule` | `appointments.write` | Move to another open slot. |
++| `POST /api/appointments/{id}/cancellation` | `appointments.write` | Cancel; returns the fee, if any. |
++| `POST /api/appointments/{id}/no-show` | `appointments.write` | Record a no-show. |
++| `POST /api/series` | `appointments.write` | Book a treatment series. |
++
++## Persistence
++
++Appointments and schedules are held in process memory and are lost on restart. A database
++is planned; until then the service runs as a single instance.
++
++## Contributing
++
++Work happens on short-lived branches with a pull request to `main`. CI builds, checks for vulnerable packages and runs
++every test; a pull request is merged when CI is green and one other team member has approved it. Decisions that change
++the structure of the code get an ADR in `docs/adr/` in the same pull request.
++
++## License
++
++MIT - see [LICENSE](LICENSE).

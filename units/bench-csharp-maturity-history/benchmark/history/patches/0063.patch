@@ -1,0 +1,82 @@
+From c3b972c728328d25eff9aa34aaf3e24ebbefa3ed Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Tue, 21 Apr 2026 11:05:47 +0200
+Subject: feat(policy): reduced fees for video appointments
+
+---
+ .../Policies/CancellationPolicy.cs                   |  7 +++++--
+ .../Policies/CancellationPolicyOptions.cs            |  3 +++
+ .../Policies/CancellationPolicyTests.cs              | 12 ++++++++++--
+ 3 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 40ebc8e..c90343b 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -28,14 +28,14 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+             return CancellationDecision.Free(FreeCancellation);
+         }
+ 
+-        return new CancellationDecision(options.LateCancellationFee, true, LateCancellation);
++        return new CancellationDecision(Scaled(options.LateCancellationFee, appointment), true, LateCancellation);
+     }
+ 
+     /// <summary>The consequence of the patient not turning up at all.</summary>
+     public CancellationDecision EvaluateNoShow(Appointment appointment)
+     {
+         ArgumentNullException.ThrowIfNull(appointment);
+-        return new CancellationDecision(options.NoShowFee, true, NoShow);
++        return new CancellationDecision(Scaled(options.NoShowFee, appointment), true, NoShow);
+     }
+ 
+     /// <summary>Whether a patient with these past strikes must pay a deposit to book at <paramref name="now"/>.</summary>
+@@ -45,4 +45,7 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+         var since = now - options.StrikeWindow;
+         return strikes.Count(s => s >= since) >= options.StrikesBeforeDeposit;
+     }
++
++    private decimal Scaled(decimal fee, Appointment appointment) =>
++        appointment.IsTelehealth ? fee * options.TelehealthFeeFactor : fee;
+ }
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+index 0d757f9..a4400a8 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicyOptions.cs
+@@ -13,4 +13,7 @@ public sealed record CancellationPolicyOptions
+     public int StrikesBeforeDeposit { get; init; } = 2;
+ 
+     public TimeSpan StrikeWindow { get; init; } = TimeSpan.FromDays(180);
++
++    /// <summary>Video visits are cheaper to lose, so their fees are reduced by this factor.</summary>
++    public decimal TelehealthFeeFactor { get; init; } = 0.5m;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index 6ea0c0d..7061489 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -10,8 +10,8 @@ public sealed class CancellationPolicyTests
+     private static readonly DateTimeOffset Start = At(Monday.AddDays(3), 10);
+     private readonly CancellationPolicy _policy = new(new CancellationPolicyOptions());
+ 
+-    private static Appointment Booked() =>
+-        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)), false);
++    private static Appointment Booked(bool telehealth = false) =>
++        Appointment.Book(Guid.NewGuid(), PractitionerId, Guid.NewGuid(), new TimeRange(Start, Start.AddMinutes(45)), telehealth);
+ 
+     [Fact]
+     public void CancellingInGoodTimeIsFree()
+@@ -29,6 +29,14 @@ public sealed class CancellationPolicyTests
+         Assert.Equal(new CancellationDecision(250m, true, CancellationPolicy.LateCancellation), decision);
+     }
+ 
++    [Fact]
++    public void LateVideoCancellationCostsHalf()
++    {
++        var decision = _policy.EvaluateCancellation(Booked(telehealth: true), CancellationReason.PatientRequest, Start.AddHours(-3));
++
++        Assert.Equal(125m, decision.Fee);
++    }
++
+     [Fact]
+     public void ClinicInitiatedCancellationsNeverCostThePatient()
+     {

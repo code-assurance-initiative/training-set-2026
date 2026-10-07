@@ -1,0 +1,170 @@
+@page "/book"
+@page "/book/{Slug}"
+@attribute [Authorize(Policy = AuthorizationPolicies.Member)]
+@using HarbourLane.Bookings.Web.Security
+@inject IRoomCatalog Catalog
+@inject BookingService Bookings
+@inject ToastService Toasts
+@inject TimeProvider Clock
+
+<PageTitle>Book a room · Harbour Lane Community Centre</PageTitle>
+
+<h1>Book a room</h1>
+
+<form class="booking-form" @onsubmit="SubmitAsync" novalidate>
+    <div class="form-row">
+        <label for="organiser-name">Organiser's name</label>
+        <input id="organiser-name" type="text" autocomplete="name" tabindex="1" @bind="_request.OrganiserName"
+               aria-invalid="@InvalidState(BookingField.OrganiserName)" aria-describedby="@ErrorId(BookingField.OrganiserName)" />
+        @if (_errors.For(BookingField.OrganiserName) is { } nameError)
+        {
+            <p id="organiser-name-error" class="field-error">@nameError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="organiser-email">E-mail address</label>
+        <p id="organiser-email-hint" class="hint">We send the confirmation and reminders here.</p>
+        <input id="organiser-email" type="email" autocomplete="email" @bind="_request.OrganiserEmail"
+               aria-invalid="@InvalidState(BookingField.OrganiserEmail)"
+               aria-describedby="organiser-email-hint @ErrorId(BookingField.OrganiserEmail)" />
+        @if (_errors.For(BookingField.OrganiserEmail) is { } emailError)
+        {
+            <p id="organiser-email-error" class="field-error">@emailError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="booking-room">Room</label>
+        <select id="booking-room" @bind="_request.RoomId"
+                aria-invalid="@InvalidState(BookingField.Room)" aria-describedby="@ErrorId(BookingField.Room)">
+            <option value="@Guid.Empty">Choose a room</option>
+            @foreach (var room in _rooms)
+            {
+                <option value="@room.Id">@room.Name (up to @room.Capacity people)</option>
+            }
+        </select>
+        @if (_errors.For(BookingField.Room) is { } roomError)
+        {
+            <p id="booking-room-error" class="field-error">@roomError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="attendees">Number of attendees</label>
+        <input id="attendees" type="number" min="1" @bind="_request.Attendees" />
+        @if (_errors.For(BookingField.Attendees) is { } attendeesError)
+        {
+            <p class="field-error">@attendeesError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="booking-date">Date</label>
+        <input id="booking-date" type="date" @bind="_request.Date"
+               aria-invalid="@InvalidState(BookingField.Date)" aria-describedby="@ErrorId(BookingField.Date)" />
+        @if (_errors.For(BookingField.Date) is { } dateError)
+        {
+            <p id="booking-date-error" class="field-error">@dateError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="start-time">Start time</label>
+        <select id="start-time" @bind="_request.StartTime"
+                aria-invalid="@InvalidState(BookingField.StartTime)" aria-describedby="@ErrorId(BookingField.StartTime)">
+            @foreach (var hour in OpeningHours.Hours)
+            {
+                <option value="@($"{hour:00}:00")">@($"{hour:00}:00")</option>
+            }
+        </select>
+        @if (_errors.For(BookingField.StartTime) is { } timeError)
+        {
+            <p id="start-time-error" class="field-error">@timeError</p>
+        }
+    </div>
+
+    <div class="form-row">
+        <label for="hours">Length of booking in hours</label>
+        <input id="hours" type="number" min="1" max="@OpeningHours.MaximumHours" @bind="_request.Hours"
+               aria-invalid="@InvalidState(BookingField.Hours)" aria-describedby="@ErrorId(BookingField.Hours)" />
+        @if (_errors.For(BookingField.Hours) is { } hoursError)
+        {
+            <p id="hours-error" class="field-error">@hoursError</p>
+        }
+    </div>
+
+    @if (_conflict)
+    {
+        <p class="field-error" role="alert">That room is already booked for part of that time. Choose another time or room.</p>
+    }
+
+    <button type="submit" class="button" disabled="@_submitting">Book the room</button>
+</form>
+
+<BookingSummaryDialog Booking="_booked" RoomName="@_bookedRoomName" />
+
+@code {
+    private static readonly IReadOnlyDictionary<BookingField, string> ErrorIds = new Dictionary<BookingField, string>
+    {
+        [BookingField.OrganiserName] = "organiser-name-error",
+        [BookingField.OrganiserEmail] = "organiser-email-error",
+        [BookingField.Room] = "booking-room-error",
+        [BookingField.Date] = "booking-date-error",
+        [BookingField.StartTime] = "start-time-error",
+        [BookingField.Hours] = "hours-error",
+    };
+
+    private readonly BookingRequest _request = new();
+    private IReadOnlyList<Room> _rooms = [];
+    private BookingErrors _errors = new();
+    private bool _conflict;
+    private bool _submitting;
+    private Booking? _booked;
+    private string _bookedRoomName = string.Empty;
+
+    [Parameter]
+    public string? Slug { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? Authentication { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rooms = await Catalog.GetAllAsync(CancellationToken.None);
+        _request.Date = DateOnly.FromDateTime(Clock.GetLocalNow().DateTime).AddDays(1);
+        _request.RoomId = _rooms.FirstOrDefault(r => string.Equals(r.Slug, Slug, StringComparison.OrdinalIgnoreCase))?.Id ?? Guid.Empty;
+
+        if (Authentication is not null)
+        {
+            var user = (await Authentication).User;
+            _request.OrganiserName = UserIdentity.DisplayName(user);
+            _request.OrganiserEmail = UserIdentity.Email(user) ?? string.Empty;
+        }
+    }
+
+    private string? InvalidState(BookingField field) => _errors.For(field) is null ? null : "true";
+
+    private string? ErrorId(BookingField field) => _errors.For(field) is null ? null : ErrorIds.GetValueOrDefault(field);
+
+    private async Task SubmitAsync()
+    {
+        _submitting = true;
+        try
+        {
+            var outcome = await Bookings.PlaceAsync(_request, CancellationToken.None);
+            _errors = outcome.Errors;
+            _conflict = outcome.Conflict;
+            if (outcome.Booking is { } booking)
+            {
+                _booked = booking;
+                _bookedRoomName = _rooms.First(r => r.Id == booking.RoomId).Name;
+                Toasts.Show($"Booked: {_bookedRoomName}, reference {booking.Reference}.");
+            }
+        }
+        finally
+        {
+            _submitting = false;
+        }
+    }
+}

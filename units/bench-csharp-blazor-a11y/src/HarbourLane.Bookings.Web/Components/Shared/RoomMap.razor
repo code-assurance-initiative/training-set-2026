@@ -1,0 +1,64 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject RoomMapInterop Map
+@inject IRoomCatalog Catalog
+@inject NavigationManager Navigation
+
+<section class="room-map" aria-labelledby="room-map-title">
+    <h2 id="room-map-title">Where to find it</h2>
+    <div class="room-map-canvas" @ref="_host"></div>
+</section>
+
+@code {
+    private ElementReference _host;
+    private DotNetObjectReference<RoomMap>? _receiver;
+    private string? _drawnArea;
+
+    [Parameter, EditorRequired]
+    public string AreaId { get; set; } = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _receiver = DotNetObjectReference.Create(this);
+            await Map.RenderAsync(_host, AreaId, _receiver, CancellationToken.None);
+            _drawnArea = AreaId;
+        }
+        else if (_drawnArea != AreaId)
+        {
+            _drawnArea = AreaId;
+            await JS.InvokeVoidAsync("roomMap.highlightRoom", _host, AreaId);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnAreaSelected(string areaId)
+    {
+        var rooms = await Catalog.GetAllAsync(CancellationToken.None);
+        var room = rooms.FirstOrDefault(r => r.MapAreaId == areaId);
+        if (room is not null)
+        {
+            Navigation.NavigateTo($"rooms/{room.Slug}");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_receiver is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await Map.DisposeAsync(_host, CancellationToken.None);
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; the page that held the map no longer exists.
+        }
+
+        _receiver.Dispose();
+    }
+}

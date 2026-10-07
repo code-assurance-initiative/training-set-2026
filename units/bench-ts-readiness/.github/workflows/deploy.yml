@@ -1,0 +1,68 @@
+name: Deploy
+
+# Manual and environment-gated: migrations first, then the rollout; a failed rollout is rolled back.
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: Image digest (sha256:…) from the service release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check the digest
+        env:
+          DIGEST: ${{ inputs.digest }}
+        run: '[[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]'
+
+      - name: Cluster access
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        run: |
+          umask 077
+          printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Pin the released image
+        env:
+          DIGEST: ${{ inputs.digest }}
+        run: |
+          sed -i -E "s#(ghcr.io/code-assurance-initiative/parcel-tracking)@sha256:[0-9a-f]{64}#\1@${DIGEST}#" \
+            deploy/k8s/api.yaml deploy/k8s/worker.yaml deploy/k8s/migrate-job.yaml
+
+      - name: Namespace, admission policy and network policies
+        run: kubectl apply -f deploy/k8s/namespace.yaml -f deploy/k8s/policies/ -f deploy/k8s/networkpolicy.yaml
+
+      - name: Migrate
+        run: |
+          kubectl -n parcel-tracking delete job parcel-tracking-migrate --ignore-not-found
+          kubectl apply -f deploy/k8s/migrate-job.yaml
+          kubectl -n parcel-tracking wait --for=condition=complete job/parcel-tracking-migrate --timeout=10m
+
+      - name: Roll out
+        run: |
+          kubectl apply -f deploy/k8s/api.yaml -f deploy/k8s/worker.yaml
+          kubectl -n parcel-tracking rollout status deployment/parcel-tracking-api --timeout=10m
+          kubectl -n parcel-tracking rollout status deployment/parcel-tracking-worker --timeout=10m
+
+      - name: Roll back
+        if: failure()
+        run: |
+          kubectl -n parcel-tracking rollout undo deployment/parcel-tracking-api
+          kubectl -n parcel-tracking rollout undo deployment/parcel-tracking-worker

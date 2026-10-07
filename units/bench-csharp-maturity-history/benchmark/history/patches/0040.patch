@@ -1,0 +1,236 @@
+From 22e5bcb6b28fac06f397b78398489979b79b7789 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Wed, 4 Mar 2026 14:25:02 +0100
+Subject: feat: record strikes and require a deposit before booking again
+
+---
+ .../Abstractions/IPatientStrikeLedger.cs      |  9 +++
+ .../Booking/BookAppointment.cs                | 11 +++
+ .../Booking/CancelAppointment.cs              |  6 ++
+ .../Booking/RecordNoShow.cs                   |  2 +
+ ...frastructureServiceCollectionExtensions.cs |  1 +
+ .../Persistence/InMemoryStrikeLedger.cs       | 19 +++++
+ .../Booking/BookingHandlersTests.cs           | 78 +++++++++++++++++++
+ 7 files changed, 126 insertions(+)
+ create mode 100644 src/ClinicScheduling.Application/Abstractions/IPatientStrikeLedger.cs
+ create mode 100644 src/ClinicScheduling.Infrastructure/Persistence/InMemoryStrikeLedger.cs
+ create mode 100644 tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+
+diff --git a/src/ClinicScheduling.Application/Abstractions/IPatientStrikeLedger.cs b/src/ClinicScheduling.Application/Abstractions/IPatientStrikeLedger.cs
+new file mode 100644
+index 0000000..7a267d6
+--- /dev/null
++++ b/src/ClinicScheduling.Application/Abstractions/IPatientStrikeLedger.cs
+@@ -0,0 +1,9 @@
++namespace ClinicScheduling.Application.Abstractions;
++
++/// <summary>When each patient was charged a strike under the cancellation policy.</summary>
++public interface IPatientStrikeLedger
++{
++    Task RecordAsync(Guid patientId, DateTimeOffset at, CancellationToken cancellationToken);
++
++    Task<IReadOnlyList<DateTimeOffset>> StrikesAsync(Guid patientId, CancellationToken cancellationToken);
++}
+diff --git a/src/ClinicScheduling.Application/Booking/BookAppointment.cs b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+index 632d6fa..15405bd 100644
+--- a/src/ClinicScheduling.Application/Booking/BookAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/BookAppointment.cs
+@@ -1,6 +1,8 @@
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Policies;
++using ClinicScheduling.Domain.Time;
+ using Microsoft.Extensions.Logging;
+ 
+ namespace ClinicScheduling.Application.Booking;
+@@ -11,8 +13,11 @@ public sealed record BookAppointmentCommand(
+ public sealed partial class BookAppointmentHandler(
+     IScheduleRepository schedules,
+     IAppointmentRepository appointments,
++    IPatientStrikeLedger strikes,
+     SlotFinder slotFinder,
+     SlotSearchOptions searchOptions,
++    CancellationPolicy policy,
++    IClock clock,
+     ILogger<BookAppointmentHandler> logger)
+ {
+     public async Task<OperationResult<Appointment>> HandleAsync(BookAppointmentCommand command, CancellationToken cancellationToken)
+@@ -24,6 +29,12 @@ public sealed partial class BookAppointmentHandler(
+             return Operation.NotFound<Appointment>($"Practitioner {command.PractitionerId} has no schedule.");
+         }
+ 
++        var history = await strikes.StrikesAsync(command.PatientId, cancellationToken).ConfigureAwait(false);
++        if (policy.RequiresDeposit(history, clock.UtcNow))
++        {
++            return Operation.Invalid<Appointment>("A deposit is required before this patient can book again.");
++        }
++
+         var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.Start, schedule.TimeZone).DateTime);
+         var booked = await BookedRangesAsync(schedule, day, cancellationToken).ConfigureAwait(false);
+         var open = slotFinder.FindOpenSlots(schedule, booked, new SlotQuery(day, day, command.Duration), searchOptions);
+diff --git a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+index 08f4a84..6606e92 100644
+--- a/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/CancelAppointment.cs
+@@ -10,6 +10,7 @@ public sealed record CancelAppointmentCommand(Guid AppointmentId, CancellationRe
+ 
+ public sealed partial class CancelAppointmentHandler(
+     IAppointmentRepository appointments,
++    IPatientStrikeLedger strikes,
+     CancellationPolicy policy,
+     IClock clock,
+     ILogger<CancelAppointmentHandler> logger)
+@@ -32,6 +33,11 @@ public sealed partial class CancelAppointmentHandler(
+         var decision = policy.EvaluateCancellation(appointment, command.Reason, now);
+         appointment.Cancel(command.Reason, now);
+         await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        if (decision.CountsAsStrike)
++        {
++            await strikes.RecordAsync(appointment.PatientId, now, cancellationToken).ConfigureAwait(false);
++        }
++
+         LogCancelled(appointment.Id, decision.Code, decision.Fee);
+         return Operation.Ok<CancellationDecision>(decision);
+     }
+diff --git a/src/ClinicScheduling.Application/Booking/RecordNoShow.cs b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+index fbdb02a..1f6981e 100644
+--- a/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
++++ b/src/ClinicScheduling.Application/Booking/RecordNoShow.cs
+@@ -7,6 +7,7 @@ namespace ClinicScheduling.Application.Booking;
+ 
+ public sealed class RecordNoShowHandler(
+     IAppointmentRepository appointments,
++    IPatientStrikeLedger strikes,
+     CancellationPolicy policy,
+     IClock clock)
+ {
+@@ -26,6 +27,7 @@ public sealed class RecordNoShowHandler(
+ 
+         appointment.MarkNoShow();
+         await appointments.SaveAsync(appointment, cancellationToken).ConfigureAwait(false);
++        await strikes.RecordAsync(appointment.PatientId, now, cancellationToken).ConfigureAwait(false);
+         return Operation.Ok<CancellationDecision>(policy.EvaluateNoShow(appointment));
+     }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+index 477486b..1bafaca 100644
+--- a/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Infrastructure/InfrastructureServiceCollectionExtensions.cs
+@@ -16,6 +16,7 @@ public static class InfrastructureServiceCollectionExtensions
+         services.AddSingleton<IClock, SystemClock>();
+         services.AddSingleton<IAppointmentRepository, InMemoryAppointmentRepository>();
+         services.AddSingleton<IScheduleRepository, InMemoryScheduleRepository>();
++        services.AddSingleton<IPatientStrikeLedger, InMemoryStrikeLedger>();
+         return services;
+     }
+ }
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryStrikeLedger.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryStrikeLedger.cs
+new file mode 100644
+index 0000000..a716ee6
+--- /dev/null
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryStrikeLedger.cs
+@@ -0,0 +1,19 @@
++using System.Collections.Concurrent;
++using System.Collections.Immutable;
++using ClinicScheduling.Application.Abstractions;
++
++namespace ClinicScheduling.Infrastructure.Persistence;
++
++public sealed class InMemoryStrikeLedger : IPatientStrikeLedger
++{
++    private readonly ConcurrentDictionary<Guid, ImmutableList<DateTimeOffset>> _strikes = new();
++
++    public Task RecordAsync(Guid patientId, DateTimeOffset at, CancellationToken cancellationToken)
++    {
++        _strikes.AddOrUpdate(patientId, _ => [at], (_, existing) => existing.Add(at));
++        return Task.CompletedTask;
++    }
++
++    public Task<IReadOnlyList<DateTimeOffset>> StrikesAsync(Guid patientId, CancellationToken cancellationToken) =>
++        Task.FromResult<IReadOnlyList<DateTimeOffset>>(_strikes.GetValueOrDefault(patientId, []));
++}
+diff --git a/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+new file mode 100644
+index 0000000..3dd2189
+--- /dev/null
++++ b/tests/ClinicScheduling.UnitTests/Booking/BookingHandlersTests.cs
+@@ -0,0 +1,78 @@
++using ClinicScheduling.Application;
++using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Domain.Appointments;
++using ClinicScheduling.Domain.Availability;
++using ClinicScheduling.Domain.Policies;
++using ClinicScheduling.Infrastructure.Persistence;
++using Microsoft.Extensions.Logging.Abstractions;
++using static ClinicScheduling.UnitTests.TestData;
++
++namespace ClinicScheduling.UnitTests.Booking;
++
++public sealed class BookingHandlersTests
++{
++    private readonly FixedClock _clock = new(Now);
++    private readonly InMemoryScheduleRepository _schedules = new();
++    private readonly InMemoryAppointmentRepository _appointments = new();
++    private readonly InMemoryStrikeLedger _strikes = new();
++    private readonly CancellationPolicy _policy = new(new CancellationPolicyOptions());
++
++    private static CancellationToken Token => TestContext.Current.CancellationToken;
++
++    private BookAppointmentHandler Booker() => new(
++        _schedules, _appointments, _strikes, new SlotFinder(new FixedHolidays(), _clock), new SlotSearchOptions(), _policy,
++        _clock, NullLogger<BookAppointmentHandler>.Instance);
++
++    private CancelAppointmentHandler Canceller() =>
++        new(_appointments, _strikes, _policy, _clock, NullLogger<CancelAppointmentHandler>.Instance);
++
++    private static BookAppointmentCommand Command(Guid patientId, DateTimeOffset start) =>
++        new(patientId, PractitionerId, Guid.NewGuid(), start, TimeSpan.FromMinutes(30));
++
++    [Fact]
++    public async Task BooksAnOpenSlot()
++    {
++        await _schedules.UpsertAsync(Schedule(), Token);
++
++        var result = await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
++
++        Assert.Equal(OperationStatus.Ok, result.Status);
++    }
++
++    [Fact]
++    public async Task RefusesATakenSlot()
++    {
++        await _schedules.UpsertAsync(Schedule(), Token);
++        await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
++
++        var second = await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
++
++        Assert.Equal(OperationStatus.Conflict, second.Status);
++    }
++
++    [Fact]
++    public async Task UnknownPractitionersAreNotFound()
++    {
++        var result = await Booker().HandleAsync(Command(Guid.NewGuid(), At(Monday.AddDays(3), 10)), Token);
++
++        Assert.Equal(OperationStatus.NotFound, result.Status);
++    }
++
++    [Fact]
++    public async Task LateCancellationsAddUpToADeposit()
++    {
++        await _schedules.UpsertAsync(Schedule(), Token);
++        var patient = Guid.NewGuid();
++        foreach (var hour in new[] { 10, 11 })
++        {
++            var booked = await Booker().HandleAsync(Command(patient, At(Monday, hour)), Token);
++            Assert.NotNull(booked.Value);
++            var cancelled = await Canceller().HandleAsync(new CancelAppointmentCommand(booked.Value.Id, CancellationReason.PatientRequest), Token);
++            Assert.Equal(CancellationPolicy.LateCancellation, cancelled.Value?.Code);
++        }
++
++        var third = await Booker().HandleAsync(Command(patient, At(Monday.AddDays(3), 10)), Token);
++
++        Assert.Equal(OperationStatus.Invalid, third.Status);
++    }
++}

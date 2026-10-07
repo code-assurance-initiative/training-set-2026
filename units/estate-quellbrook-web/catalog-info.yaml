@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: quellbrook-web
+  description: Operator console — orders, shipment status and the dispatch board.
+  annotations:
+    github.com/project-slug: code-assurance-initiative/estate-quellbrook-web
+  tags: [typescript, react, vite]
+spec:
+  type: website
+  lifecycle: production
+  owner: group:edge
+  system: quellbrook-operations
+  consumesApis:
+    - quellbrook-console-api

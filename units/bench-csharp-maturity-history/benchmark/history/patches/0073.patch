@@ -1,0 +1,28 @@
+From 90ad29dbf903b131704a175eaa83a577152fda64 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Wed, 20 May 2026 09:40:54 +0200
+Subject: chore(deps): wait seven days before adopting a new release
+
+---
+ .github/dependabot.yml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+index cb05dc6..d13ab72 100644
+--- a/.github/dependabot.yml
++++ b/.github/dependabot.yml
+@@ -4,6 +4,8 @@ updates:
+     directory: /
+     schedule:
+       interval: weekly
++    cooldown:
++      default-days: 7
+     groups:
+       microsoft-extensions:
+         patterns:
+@@ -16,3 +18,5 @@ updates:
+     directory: /
+     schedule:
+       interval: weekly
++    cooldown:
++      default-days: 7

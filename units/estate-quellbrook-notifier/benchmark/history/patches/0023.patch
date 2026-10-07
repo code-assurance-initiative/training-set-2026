@@ -1,0 +1,65 @@
+From 36cbbb84509df8c7136fbb293faf2015369431aa Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Wed, 2 Sep 2026 13:22:57 +0200
+Subject: docs: personal data, secrets and retention in the README and
+ architecture
+
+---
+ README.md            | 12 ++++++++++--
+ docs/architecture.md |  4 +++-
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/README.md b/README.md
+index 8117d78..5d7701e 100644
+--- a/README.md
++++ b/README.md
+@@ -19,6 +19,13 @@ through an SMS gateway.
+ Every message is processed once per message id (inbox), and every notification is sent at most once per order, kind
+ and channel (the notification log is checked before sending) — see ADR 0002.
+ 
++## Personal data and secrets
++
++The notifier holds consignees' names and contact details; what it keeps, why and for how long is in
++[docs/privacy.md](docs/privacy.md) — contact details are deleted 30 days after the delivery. Credentials (database,
++broker, both providers) come only from the secret store (ADR 0003); configuration files hold empty values, and the
++worker refuses to start without them.
++
+ ## Build and run
+ 
+ Requires the .NET 10 SDK (`global.json`), a PostgreSQL 16 database, a RabbitMQ broker and an e-mail provider key.
+@@ -40,6 +47,7 @@ dotnet run --project src/Quellbrook.Notifier
+ | `RabbitMq__Uri`, `RabbitMq__UserName`, `RabbitMq__Password`, `RabbitMq__Exchange` | the broker; credentials from a Secret |
+ | `EmailProvider__ApiKey`, `EmailProvider__FromAddress`, `EmailProvider__BaseAddress` | the e-mail provider; the key from a Secret or user secrets |
+ | `SmsProvider__ApiKey`, `SmsProvider__Sender`, `SmsProvider__BaseAddress` | the SMS gateway; the key from a Secret or user secrets |
++| `Retention__RecipientAfterDelivery`, `Retention__NotificationLog`, … | retention periods (docs/privacy.md) |
+ | `Heartbeat__Path`, `Heartbeat__Interval` | the file the Kubernetes probes read |
+ | `OTEL_EXPORTER_OTLP_ENDPOINT` | where traces, metrics and logs are exported, when set |
+ 
+@@ -50,8 +58,8 @@ dotnet test Quellbrook.Notifier.slnx
+ ```
+ 
+ `tests/Quellbrook.Notifier.UnitTests` covers the inbox and the notification log over in-memory SQLite, the consumer's
+-acknowledgement and queue setup, the e-mail and SMS senders against stub HTTP handlers, the templates and masking, and the
+-heartbeat. No test touches the network or a real provider.
++acknowledgement and queue setup, the e-mail and SMS senders against stub HTTP handlers, the templates and masking, the
++retention sweeper and the heartbeat. No test touches the network or a real provider.
+ 
+ ## Architecture
+ 
+diff --git a/docs/architecture.md b/docs/architecture.md
+index 228edea..09985c5 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -49,9 +49,11 @@ C4Container
+ | `Notifications/` | the handlers per event, the notification service and log, templates, contact masking |
+ | `Channels/` | the provider clients behind `IEmailSender` and `ISmsSender` (resilience: timeouts, retries, circuit breaker) |
+ | `Persistence/` | EF Core context and migrations |
++| `Retention/` | the hourly sweeper that deletes contact details, log entries and message ids after their retention |
+ | `Hosting/` | service registration, OpenTelemetry, the heartbeat the probes read |
+ 
+-The worker serves no HTTP. Kubernetes reads its health from a heartbeat file (`/tmp/heartbeat`) that is rewritten
++The schemas of the consumed events are pinned under `contracts/consumed/` (`contracts/asyncapi.yaml`). The worker
++serves no HTTP. Kubernetes reads its health from a heartbeat file (`/tmp/heartbeat`) that is rewritten
+ after each health-check round.
+ 
+ ## Message contracts

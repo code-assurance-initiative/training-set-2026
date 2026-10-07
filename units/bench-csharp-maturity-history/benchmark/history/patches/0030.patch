@@ -1,0 +1,60 @@
+From c5eeea6daf896a97d37260ed07cc21fdf8b73b6c Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Thu, 12 Feb 2026 13:30:46 +0100
+Subject: feat(api): cancellation details in appointment responses
+
+---
+ src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs | 8 ++++++--
+ .../ClinicScheduling.IntegrationTests/BookingFlowTests.cs | 1 +
+ tests/ClinicScheduling.IntegrationTests/Responses.cs      | 2 +-
+ 3 files changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+index 3c29791..8031a8e 100644
+--- a/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
++++ b/src/ClinicScheduling.Api/Contracts/AppointmentResponse.cs
+@@ -11,7 +11,9 @@ public sealed record AppointmentResponse(
+     DateTimeOffset Start,
+     DateTimeOffset End,
+     string Status,
+-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId)
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] Guid? SeriesId,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? CancellationReason,
++    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] DateTimeOffset? CancelledAt)
+ {
+     public static AppointmentResponse From(Appointment appointment)
+     {
+@@ -24,6 +26,8 @@ public sealed record AppointmentResponse(
+             appointment.Time.Start,
+             appointment.Time.End,
+             appointment.Status.ToString().ToLowerInvariant(),
+-            appointment.SeriesId);
++            appointment.SeriesId,
++            appointment.CancellationReason?.ToString(),
++            appointment.CancelledAt);
+     }
+ }
+diff --git a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+index f3d3d12..2d0c5cc 100644
+--- a/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/BookingFlowTests.cs
+@@ -23,6 +23,7 @@ public sealed class BookingFlowTests(SchedulingApiFactory factory) : IClassFixtu
+         Assert.Equal(slots[0].Start, appointment.Start);
+         Assert.Equal(new CancellationDto(0m, false, "free"), await cancelled.ReadAsync<CancellationDto>());
+         Assert.Equal("cancelled", fetched.Status);
++        Assert.Equal("PatientRequest", fetched.CancellationReason);
+     }
+ 
+     [Fact]
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index 7d2198f..b774a56 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -1,6 +1,6 @@
+ namespace ClinicScheduling.IntegrationTests;
+ 
+-public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start, string Status);
++public sealed record AppointmentDto(Guid Id, Guid PatientId, DateTimeOffset Start, string Status, string? CancellationReason);
+ 
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+ 

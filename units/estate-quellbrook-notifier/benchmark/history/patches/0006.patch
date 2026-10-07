@@ -1,0 +1,247 @@
+From b2b2339c12e26901576ae815690e94f22d361d2d Mon Sep 17 00:00:00 2001
+From: Sami Oyelaran <sami.oyelaran@example.invalid>
+Date: Mon, 3 Aug 2026 14:02:21 +0200
+Subject: feat: worker host, heartbeat probes and telemetry
+
+---
+ .../Hosting/HeartbeatPublisher.cs             | 52 +++++++++++++++++
+ .../Hosting/NotifierServices.cs               | 56 +++++++++++++++++++
+ src/Quellbrook.Notifier/Program.cs            |  5 ++
+ .../appsettings.Development.json              | 13 +++++
+ src/Quellbrook.Notifier/appsettings.json      | 19 +++++++
+ .../Hosting/HostingTests.cs                   | 46 +++++++++++++++
+ 6 files changed, 191 insertions(+)
+ create mode 100644 src/Quellbrook.Notifier/Hosting/HeartbeatPublisher.cs
+ create mode 100644 src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+ create mode 100644 src/Quellbrook.Notifier/Program.cs
+ create mode 100644 src/Quellbrook.Notifier/appsettings.Development.json
+ create mode 100644 src/Quellbrook.Notifier/appsettings.json
+ create mode 100644 tests/Quellbrook.Notifier.UnitTests/Hosting/HostingTests.cs
+
+diff --git a/src/Quellbrook.Notifier/Hosting/HeartbeatPublisher.cs b/src/Quellbrook.Notifier/Hosting/HeartbeatPublisher.cs
+new file mode 100644
+index 0000000..1abb655
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Hosting/HeartbeatPublisher.cs
+@@ -0,0 +1,52 @@
++using Microsoft.Extensions.Diagnostics.HealthChecks;
++using Microsoft.Extensions.Hosting;
++using Microsoft.Extensions.Logging;
++using Microsoft.Extensions.Options;
++
++namespace Quellbrook.Notifier.Hosting;
++
++public sealed class HeartbeatOptions
++{
++    public const string SectionName = "Heartbeat";
++
++    public string Path { get; set; } = "/tmp/heartbeat";
++
++    public TimeSpan Interval { get; set; } = TimeSpan.FromSeconds(30);
++}
++
++/// <summary>
++/// The worker serves no HTTP, so the kubelet's probes read a file instead: it is rewritten after every health-check
++/// round that is not Unhealthy, and the probes fail when it grows old (deploy/k8s/deployment.yaml).
++/// </summary>
++public sealed partial class HeartbeatPublisher(
++    HealthCheckService health,
++    TimeProvider time,
++    IOptions<HeartbeatOptions> options,
++    ILogger<HeartbeatPublisher> logger) : BackgroundService
++{
++    public async Task<HealthStatus> BeatAsync(CancellationToken cancellationToken)
++    {
++        var report = await health.CheckHealthAsync(cancellationToken).ConfigureAwait(false);
++        if (report.Status == HealthStatus.Unhealthy)
++        {
++            LogUnhealthy(string.Join(", ", report.Entries.Where(entry => entry.Value.Status == HealthStatus.Unhealthy).Select(entry => entry.Key)));
++            return report.Status;
++        }
++
++        await File.WriteAllTextAsync(options.Value.Path, time.GetUtcNow().ToString("O"), cancellationToken).ConfigureAwait(false);
++        return report.Status;
++    }
++
++    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
++    {
++        using var timer = new PeriodicTimer(options.Value.Interval, time);
++        do
++        {
++            await BeatAsync(stoppingToken).ConfigureAwait(false);
++        }
++        while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
++    }
++
++    [LoggerMessage(Level = LogLevel.Warning, Message = "Unhealthy: {Checks}; heartbeat not written")]
++    private partial void LogUnhealthy(string checks);
++}
+diff --git a/src/Quellbrook.Notifier/Hosting/NotifierServices.cs b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+new file mode 100644
+index 0000000..33ba607
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Hosting/NotifierServices.cs
+@@ -0,0 +1,56 @@
++using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.Options;
++using OpenTelemetry;
++using OpenTelemetry.Logs;
++using OpenTelemetry.Metrics;
++using OpenTelemetry.Resources;
++using OpenTelemetry.Trace;
++using Quellbrook.Notifier.Channels;
++using Quellbrook.Notifier.Messaging;
++using Quellbrook.Notifier.Notifications;
++using Quellbrook.Notifier.Persistence;
++using RabbitMQ.Client;
++
++namespace Quellbrook.Notifier.Hosting;
++
++public static class NotifierServices
++{
++    public static HostApplicationBuilder AddNotifier(this HostApplicationBuilder builder)
++    {
++        ArgumentNullException.ThrowIfNull(builder);
++        var services = builder.Services;
++        services.AddSingleton(TimeProvider.System);
++        services.AddDbContext<NotifierDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Notifier")));
++
++        services.AddOptions<RabbitMqOptions>().BindConfiguration(RabbitMqOptions.SectionName).ValidateDataAnnotations().ValidateOnStart();
++        services.AddSingleton<IConnectionFactory>(provider =>
++            RabbitMqConnectionProvider.CreateFactory(provider.GetRequiredService<IOptions<RabbitMqOptions>>()));
++        services.AddSingleton<IRabbitMqConnectionProvider, RabbitMqConnectionProvider>();
++        services.AddSingleton<InboxProcessor>();
++        services.AddHostedService<EventsConsumer>();
++
++        services.AddOptions<EmailProviderOptions>().BindConfiguration(EmailProviderOptions.SectionName).ValidateDataAnnotations().ValidateOnStart();
++        services.AddHttpClient<IEmailSender, EmailSender>((provider, http) =>
++                http.BaseAddress = provider.GetRequiredService<IOptions<EmailProviderOptions>>().Value.BaseAddress)
++            .AddStandardResilienceHandler();
++
++        services.AddScoped<NotificationService>();
++        services.AddScoped<OrderPlacedHandler>();
++
++        services.AddHealthChecks().AddDbContextCheck<NotifierDbContext>("database");
++        services.AddOptions<HeartbeatOptions>().BindConfiguration(HeartbeatOptions.SectionName);
++        services.AddHostedService<HeartbeatPublisher>();
++
++        builder.Logging.AddOpenTelemetry(logging => logging.IncludeScopes = true);
++        var telemetry = services.AddOpenTelemetry()
++            .ConfigureResource(resource => resource.AddService("quellbrook-notifier"))
++            .WithTracing(tracing => tracing.AddHttpClientInstrumentation())
++            .WithMetrics(metrics => metrics.AddHttpClientInstrumentation());
++        if (!string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
++        {
++            telemetry.UseOtlpExporter();
++        }
++
++        return builder;
++    }
++}
+diff --git a/src/Quellbrook.Notifier/Program.cs b/src/Quellbrook.Notifier/Program.cs
+new file mode 100644
+index 0000000..9f4f013
+--- /dev/null
++++ b/src/Quellbrook.Notifier/Program.cs
+@@ -0,0 +1,5 @@
++using Quellbrook.Notifier.Hosting;
++
++var builder = Host.CreateApplicationBuilder(args);
++builder.AddNotifier();
++await builder.Build().RunAsync().ConfigureAwait(false);
+diff --git a/src/Quellbrook.Notifier/appsettings.Development.json b/src/Quellbrook.Notifier/appsettings.Development.json
+new file mode 100644
+index 0000000..bcb24d3
+--- /dev/null
++++ b/src/Quellbrook.Notifier/appsettings.Development.json
+@@ -0,0 +1,13 @@
++{
++  "Logging": {
++    "LogLevel": {
++      "Default": "Debug"
++    }
++  },
++  "RabbitMq": {
++    "Uri": "amqp://localhost:5672/"
++  },
++  "Heartbeat": {
++    "Path": "heartbeat.txt"
++  }
++}
+diff --git a/src/Quellbrook.Notifier/appsettings.json b/src/Quellbrook.Notifier/appsettings.json
+new file mode 100644
+index 0000000..6f0a1da
+--- /dev/null
++++ b/src/Quellbrook.Notifier/appsettings.json
+@@ -0,0 +1,19 @@
++{
++  "Logging": {
++    "LogLevel": {
++      "Default": "Information",
++      "Microsoft.EntityFrameworkCore": "Warning",
++      "System.Net.Http.HttpClient": "Warning"
++    }
++  },
++  "RabbitMq": {
++    "Uri": "amqps://rabbitmq.messaging.svc.cluster.local:5671/quellbrook",
++    "Exchange": "quellbrook.events"
++  },
++  "EmailProvider": {
++    "BaseAddress": "https://api.sendgrid.com/",
++    "ApiKey": "",
++    "FromAddress": "deliveries@quellbrook.example",
++    "FromName": "Quellbrook Freight"
++  }
++}
+diff --git a/tests/Quellbrook.Notifier.UnitTests/Hosting/HostingTests.cs b/tests/Quellbrook.Notifier.UnitTests/Hosting/HostingTests.cs
+new file mode 100644
+index 0000000..c368fb9
+--- /dev/null
++++ b/tests/Quellbrook.Notifier.UnitTests/Hosting/HostingTests.cs
+@@ -0,0 +1,46 @@
++using Microsoft.EntityFrameworkCore;
++using Microsoft.Extensions.Diagnostics.HealthChecks;
++using Microsoft.Extensions.Logging.Abstractions;
++using Microsoft.Extensions.Options;
++using Microsoft.Extensions.Time.Testing;
++using NSubstitute;
++using Quellbrook.Notifier.Hosting;
++using Quellbrook.Notifier.Persistence;
++
++namespace Quellbrook.Notifier.UnitTests.Hosting;
++
++public sealed class HostingTests : IDisposable
++{
++    private readonly string _path = Path.Combine(Path.GetTempPath(), $"heartbeat-{Guid.NewGuid():N}");
++
++    [Theory]
++    [InlineData(HealthStatus.Healthy, true)]
++    [InlineData(HealthStatus.Degraded, true)]
++    [InlineData(HealthStatus.Unhealthy, false)]
++    public async Task TheHeartbeatIsWrittenUnlessTheWorkerIsUnhealthy(HealthStatus status, bool written)
++    {
++        var health = Substitute.For<HealthCheckService>();
++        health.CheckHealthAsync(Arg.Any<Func<HealthCheckRegistration, bool>?>(), Arg.Any<CancellationToken>())
++            .Returns(new HealthReport(new Dictionary<string, HealthReportEntry>
++            {
++                ["database"] = new(status, null, TimeSpan.Zero, null, null),
++            }, TimeSpan.Zero));
++        var publisher = new HeartbeatPublisher(health, new FakeTimeProvider(), Options.Create(new HeartbeatOptions { Path = _path }),
++            NullLogger<HeartbeatPublisher>.Instance);
++
++        var reported = await publisher.BeatAsync(TestContext.Current.CancellationToken);
++
++        Assert.Equal(status, reported);
++        Assert.Equal(written, File.Exists(_path));
++    }
++
++    [Fact]
++    public void TheDesignTimeContextTargetsPostgreSql()
++    {
++        using var context = new DesignTimeDbContextFactory().CreateDbContext([]);
++
++        Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", context.Database.ProviderName);
++    }
++
++    public void Dispose() => File.Delete(_path);
++}

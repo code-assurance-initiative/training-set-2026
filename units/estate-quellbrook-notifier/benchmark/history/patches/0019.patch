@@ -1,0 +1,37 @@
+From b7edcf9ce28e6bfdf8c867c34661904918eca193 Mon Sep 17 00:00:00 2001
+From: Lucia Brennan <lucia.brennan@example.invalid>
+Date: Tue, 25 Aug 2026 14:36:20 +0200
+Subject: ci: scan the commits of every push and pull request for secrets
+
+---
+ .github/workflows/ci.yml | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 4ab7196..c610e77 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -47,3 +47,23 @@ jobs:
+ 
+       - name: Test
+         run: dotnet test Quellbrook.Notifier.slnx -c Release --no-build
++
++  secret-scan:
++    # Every push and pull request: the commits it adds are scanned for credentials before they reach main
++    # (added after the 2026-08-25 incident; see docs/incidents/2026-08-25-email-provider-key.md).
++    if: github.event_name != 'schedule'
++    runs-on: ubuntu-latest
++    timeout-minutes: 10
++    steps:
++      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
++        with:
++          fetch-depth: 0
++          persist-credentials: false
++
++      - name: Scan the new commits for secrets
++        env:
++          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.sha) || format('{0}..{1}', github.event.before, github.sha) }}
++        run: >-
++          docker run --rm -v "$PWD:/repo" -w /repo
++          ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
++          git --log-opts="$RANGE" --redact --exit-code 1 .

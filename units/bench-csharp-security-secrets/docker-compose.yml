@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Exports: "Host=db;Port=5432;Database=exports;Username=postgres;Password=postgres"
+      AuditStore__ConnectionString: "Host=db;Port=5432;Database=exports;Username=postgres;Password=postgres"
+      Partner__DefaultRequestHeaders__Authorization: "Bearer ${PARTNER_API_TOKEN}"
+      ObjectStore__AccessKeyId: ${OBJECTSTORE_ACCESS_KEY_ID}
+      ObjectStore__SecretAccessKey: ${OBJECTSTORE_SECRET_ACCESS_KEY}
+      ObjectStore__Bucket: document-exports-dev
+
+  db:
+    image: postgres@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94 # 17.6-alpine
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    environment:
+      POSTGRES_DB: exports
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "exports"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/TestResults/
+.git/
+.github/
+benchmark/
+benchmarks/
+deploy/
+docs/
+tests/

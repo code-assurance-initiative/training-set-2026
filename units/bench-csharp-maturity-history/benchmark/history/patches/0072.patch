@@ -1,0 +1,79 @@
+From 6909113c220e37f473caeefc2db2c13ea6006792 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Mon, 18 May 2026 11:00:22 +0200
+Subject: feat: limit rescheduling to three moves
+
+---
+ .../Booking/RescheduleAppointment.cs                       | 7 +++++--
+ src/ClinicScheduling.Domain/Appointments/Appointment.cs    | 3 +++
+ .../Appointments/AppointmentTests.cs                       | 3 ++-
+ 3 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+index 5596d5c..7996788 100644
+--- a/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
++++ b/src/ClinicScheduling.Application/Booking/RescheduleAppointment.cs
+@@ -15,6 +15,9 @@ public sealed class RescheduleAppointmentHandler(
+     SlotSearchOptions searchOptions,
+     ReminderPlanner planner)
+ {
++    /// <summary>A patient may move one appointment this many times; after that it must be cancelled and rebooked.</summary>
++    public const int MaxReschedules = 3;
++
+     public async Task<OperationResult<Appointment>> HandleAsync(RescheduleAppointmentCommand command, CancellationToken cancellationToken)
+     {
+         ArgumentNullException.ThrowIfNull(command);
+@@ -24,9 +27,9 @@ public sealed class RescheduleAppointmentHandler(
+             return Operation.NotFound<Appointment>($"Appointment {command.AppointmentId} does not exist.");
+         }
+ 
+-        if (appointment.Status != AppointmentStatus.Booked)
++        if (appointment.Status != AppointmentStatus.Booked || appointment.RescheduleCount >= MaxReschedules)
+         {
+-            return Operation.Conflict<Appointment>("This appointment is no longer booked.");
++            return Operation.Conflict<Appointment>("This appointment can no longer be rescheduled.");
+         }
+ 
+         var schedule = await schedules.FindAsync(appointment.PractitionerId, cancellationToken).ConfigureAwait(false);
+diff --git a/src/ClinicScheduling.Domain/Appointments/Appointment.cs b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+index 79dfbc2..377b132 100644
+--- a/src/ClinicScheduling.Domain/Appointments/Appointment.cs
++++ b/src/ClinicScheduling.Domain/Appointments/Appointment.cs
+@@ -45,6 +45,8 @@ public sealed class Appointment
+ 
+     public DateTimeOffset? CancelledAt { get; private set; }
+ 
++    public int RescheduleCount { get; private set; }
++
+     public static Appointment Book(
+         Guid patientId,
+         Guid practitionerId,
+@@ -66,6 +68,7 @@ public sealed class Appointment
+     {
+         EnsureBooked();
+         Time = time;
++        RescheduleCount++;
+     }
+ 
+     public void Complete()
+diff --git a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+index ed6af7c..a9b0d35 100644
+--- a/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Appointments/AppointmentTests.cs
+@@ -23,7 +23,7 @@ public sealed class AppointmentTests
+     }
+ 
+     [Fact]
+-    public void ReschedulingMovesTheTime()
++    public void ReschedulingMovesTheTimeAndCountsTheMove()
+     {
+         var appointment = Booked();
+         var later = new TimeRange(At(Monday, 11), At(Monday, 12));
+@@ -31,6 +31,7 @@ public sealed class AppointmentTests
+         appointment.Reschedule(later);
+ 
+         Assert.Equal(later, appointment.Time);
++        Assert.Equal(1, appointment.RescheduleCount);
+     }
+ 
+     [Fact]

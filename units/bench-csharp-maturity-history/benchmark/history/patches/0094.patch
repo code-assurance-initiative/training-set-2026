@@ -1,0 +1,246 @@
+From 413ca60aadffa6e61ac35a6132df2a61fb3dcff3 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Tue, 21 Jul 2026 15:00:26 +0200
+Subject: feat(reports): no-show report per practitioner
+
+---
+ .../Controllers/ReportsController.cs          | 39 ++++++++++++++
+ .../ApiApplicationBuilderExtensions.cs        |  1 +
+ .../Hosting/ApiServiceCollectionExtensions.cs |  1 +
+ .../Security/AuthorizationPolicies.cs         |  2 +
+ .../Abstractions/IAppointmentRepository.cs    |  3 ++
+ .../InMemoryAppointmentRepository.cs          |  3 ++
+ .../HealthAndSecurityTests.cs                 |  1 +
+ .../PortalTests.cs                            | 23 ---------
+ .../ReportsAndPortalTests.cs                  | 51 +++++++++++++++++++
+ .../Responses.cs                              |  2 +
+ 10 files changed, 103 insertions(+), 23 deletions(-)
+ create mode 100644 src/ClinicScheduling.Api/Controllers/ReportsController.cs
+ delete mode 100644 tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+ create mode 100644 tests/ClinicScheduling.IntegrationTests/ReportsAndPortalTests.cs
+
+diff --git a/src/ClinicScheduling.Api/Controllers/ReportsController.cs b/src/ClinicScheduling.Api/Controllers/ReportsController.cs
+new file mode 100644
+index 0000000..4548efa
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Controllers/ReportsController.cs
+@@ -0,0 +1,39 @@
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Application.Abstractions;
++using ClinicScheduling.Domain.Appointments;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++
++namespace ClinicScheduling.Api.Controllers;
++
++public sealed record NoShowReportRow(Guid PractitionerId, int Appointments, int NoShows, int LateCancellations);
++
++[ApiController]
++[Route("api/reports")]
++[Authorize(Policy = AuthorizationPolicies.ReportsRead)]
++public sealed class ReportsController(IAppointmentRepository appointments) : ControllerBase
++{
++    /// <summary>No-shows and cancellations per practitioner for appointments starting in [from, to).</summary>
++    [HttpGet("no-shows")]
++    public async Task<ActionResult<IReadOnlyList<NoShowReportRow>>> NoShowsAsync(
++        [FromQuery] DateOnly from, [FromQuery] DateOnly to, CancellationToken cancellationToken)
++    {
++        if (to <= from || to.DayNumber - from.DayNumber > 366)
++        {
++            return ValidationProblem("The range must be between one day and one year.");
++        }
++
++        var start = new DateTimeOffset(from.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
++        var end = new DateTimeOffset(to.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
++        var inRange = await appointments.StartingBetweenAsync(start, end, cancellationToken).ConfigureAwait(false);
++        return Ok(inRange
++            .GroupBy(a => a.PractitionerId)
++            .Select(g => new NoShowReportRow(
++                g.Key,
++                g.Count(),
++                g.Count(a => a.Status == AppointmentStatus.NoShow),
++                g.Count(a => a.Status == AppointmentStatus.Cancelled && a.CancelledAt > a.Time.Start.AddHours(-24))))
++            .OrderByDescending(r => r.NoShows)
++            .ToList());
++    }
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index b494f9e..f6b60b8 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -25,6 +25,7 @@ public static class ApiApplicationBuilderExtensions
+         app.MapScheduleEndpoints();
+         app.MapSeriesEndpoints();
+         app.MapPatientEndpoints();
++        app.MapControllers();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+index 9c38cd1..e517107 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -13,6 +13,7 @@ public static class ApiServiceCollectionExtensions
+         services.AddSchedulingApplication();
+         services.AddSchedulingInfrastructure();
+         services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
++        services.AddControllers();
+         services.AddProblemDetails();
+         services.AddHealthChecks();
+         services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(365));
+diff --git a/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+index b34b129..a4f620e 100644
+--- a/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
++++ b/src/ClinicScheduling.Api/Security/AuthorizationPolicies.cs
+@@ -8,6 +8,7 @@ public static class AuthorizationPolicies
+     public const string AppointmentsRead = "appointments.read";
+     public const string AppointmentsWrite = "appointments.write";
+     public const string SchedulesWrite = "schedules.write";
++    public const string ReportsRead = "reports.read";
+     public const string PortalRead = "portal.read";
+ 
+     public static AuthorizationBuilder AddSchedulingPolicies(this AuthorizationBuilder builder) =>
+@@ -16,6 +17,7 @@ public static class AuthorizationPolicies
+             .AddPolicy(AppointmentsRead, policy => policy.RequireScope(AppointmentsRead))
+             .AddPolicy(AppointmentsWrite, policy => policy.RequireScope(AppointmentsWrite))
+             .AddPolicy(SchedulesWrite, policy => policy.RequireScope(SchedulesWrite))
++            .AddPolicy(ReportsRead, policy => policy.RequireScope(ReportsRead))
+             .AddPolicy(PortalRead, policy => policy.RequireScope(PortalRead));
+ 
+     private static AuthorizationPolicyBuilder RequireScope(this AuthorizationPolicyBuilder policy, string scope) =>
+diff --git a/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+index 09de7d3..0ff663e 100644
+--- a/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
++++ b/src/ClinicScheduling.Application/Abstractions/IAppointmentRepository.cs
+@@ -12,6 +12,9 @@ public interface IAppointmentRepository
+ 
+     Task<IReadOnlyList<Appointment>> ForPatientAsync(Guid patientId, CancellationToken cancellationToken);
+ 
++    /// <summary>Every appointment, whatever its status, that starts within [startsFrom, startsBefore).</summary>
++    Task<IReadOnlyList<Appointment>> StartingBetweenAsync(DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken);
++
+     Task AddAsync(Appointment appointment, CancellationToken cancellationToken);
+ 
+     Task SaveAsync(Appointment appointment, CancellationToken cancellationToken);
+diff --git a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+index bab6853..46db479 100644
+--- a/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
++++ b/src/ClinicScheduling.Infrastructure/Persistence/InMemoryAppointmentRepository.cs
+@@ -19,6 +19,9 @@ public sealed class InMemoryAppointmentRepository : IAppointmentRepository
+     public Task<IReadOnlyList<Appointment>> ForPatientAsync(Guid patientId, CancellationToken cancellationToken) =>
+         Query(a => a.PatientId == patientId);
+ 
++    public Task<IReadOnlyList<Appointment>> StartingBetweenAsync(DateTimeOffset startsFrom, DateTimeOffset startsBefore, CancellationToken cancellationToken) =>
++        Query(a => a.Time.Start >= startsFrom && a.Time.Start < startsBefore);
++
+     public Task AddAsync(Appointment appointment, CancellationToken cancellationToken)
+     {
+         ArgumentNullException.ThrowIfNull(appointment);
+diff --git a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+index ae3d1de..0a0e060 100644
+--- a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+@@ -28,6 +28,7 @@ public sealed class HealthAndSecurityTests(SchedulingApiFactory factory) : IClas
+     }
+ 
+     [Theory]
++    [InlineData("api/reports/no-shows?from=2026-03-01&to=2026-04-01")]
+     [InlineData("api/patients/0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60/feed")]
+     public async Task AnonymousCallersAreRejected(string path)
+     {
+diff --git a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+deleted file mode 100644
+index 13b6580..0000000
+--- a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
++++ /dev/null
+@@ -1,23 +0,0 @@
+-using System.Net;
+-using System.Text.Json;
+-
+-namespace ClinicScheduling.IntegrationTests;
+-
+-public sealed class PortalTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
+-{
+-    [Fact]
+-    public async Task ServesThePortalFeedAndCalendar()
+-    {
+-        using var client = factory.CreateClient(ApiClient.AllScopes);
+-        await client.PutScheduleAsync();
+-        var patient = Guid.NewGuid();
+-        using var booked = await client.BookAsync(patient, new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(1)));
+-        Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+-
+-        using var feed = JsonDocument.Parse(await client.GetStringAsync($"api/patients/{patient}/feed?timeZone=Europe/Copenhagen", ApiClient.Token));
+-        var ics = await client.GetStringAsync($"api/patients/{patient}/calendar.ics", ApiClient.Token);
+-
+-        Assert.Equal("2026-03-12T10:00:00.0000000+01:00", feed.RootElement.GetProperty("appointments")[0].GetProperty("startsAt").GetString());
+-        Assert.Contains("DTSTART:20260312T090000Z", ics, StringComparison.Ordinal);
+-    }
+-}
+diff --git a/tests/ClinicScheduling.IntegrationTests/ReportsAndPortalTests.cs b/tests/ClinicScheduling.IntegrationTests/ReportsAndPortalTests.cs
+new file mode 100644
+index 0000000..f707c02
+--- /dev/null
++++ b/tests/ClinicScheduling.IntegrationTests/ReportsAndPortalTests.cs
+@@ -0,0 +1,51 @@
++using System.Net;
++using System.Net.Http.Json;
++using System.Text.Json;
++
++namespace ClinicScheduling.IntegrationTests;
++
++public sealed class ReportsAndPortalTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
++{
++    [Fact]
++    public async Task ReportsNoShowsPerPractitioner()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++        using var booked = await client.BookAsync(Guid.NewGuid(), new DateTimeOffset(2026, 3, 10, 9, 0, 0, TimeSpan.FromHours(1)));
++        var appointment = await booked.ReadAsync<AppointmentDto>();
++        factory.Clock.SetUtcNow(new DateTimeOffset(2026, 3, 10, 9, 30, 0, TimeSpan.Zero));
++
++        using var noShow = await client.PostAsync($"api/appointments/{appointment.Id}/no-show", null, ApiClient.Token);
++        var rows = await (await client.GetAsync("api/reports/no-shows?from=2026-03-01&to=2026-04-01", ApiClient.Token)).ReadAsync<List<NoShowRowDto>>();
++
++        Assert.Equal(HttpStatusCode.OK, noShow.StatusCode);
++        Assert.Equal(400m, (await noShow.ReadAsync<CancellationDto>()).Fee);
++        Assert.Contains(rows, r => r.PractitionerId == ApiClient.PractitionerId && r.NoShows == 1);
++    }
++
++    [Fact]
++    public async Task ServesThePortalFeedAndCalendar()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++        await client.PutScheduleAsync();
++        var patient = Guid.NewGuid();
++        using var booked = await client.BookAsync(patient, new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(1)));
++        Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
++
++        using var feed = JsonDocument.Parse(await client.GetStringAsync($"api/patients/{patient}/feed?timeZone=Europe/Copenhagen", ApiClient.Token));
++        var ics = await client.GetStringAsync($"api/patients/{patient}/calendar.ics", ApiClient.Token);
++
++        Assert.Equal("2026-03-12T10:00:00.0000000+01:00", feed.RootElement.GetProperty("appointments")[0].GetProperty("startsAt").GetString());
++        Assert.Contains("DTSTART:20260312T090000Z", ics, StringComparison.Ordinal);
++    }
++
++    [Fact]
++    public async Task TheReportRejectsAnEmptyRange()
++    {
++        using var client = factory.CreateClient(ApiClient.AllScopes);
++
++        using var response = await client.GetAsync("api/reports/no-shows?from=2026-03-01&to=2026-03-01", ApiClient.Token);
++
++        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
++    }
++}
+diff --git a/tests/ClinicScheduling.IntegrationTests/Responses.cs b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+index 9ae94ca..2c52697 100644
+--- a/tests/ClinicScheduling.IntegrationTests/Responses.cs
++++ b/tests/ClinicScheduling.IntegrationTests/Responses.cs
+@@ -5,3 +5,5 @@ public sealed record AppointmentDto(Guid Id, Guid PatientId, string StartsAt, st
+ public sealed record SlotDto(Guid PractitionerId, DateTimeOffset Start, DateTimeOffset End, bool IsTelehealth);
+ 
+ public sealed record CancellationDto(decimal Fee, bool CountsAsStrike, string Code);
++
++public sealed record NoShowRowDto(Guid PractitionerId, int Appointments, int NoShows, int LateCancellations);

@@ -1,0 +1,118 @@
+@page "/calendar"
+@inject IRoomCatalog Catalog
+@inject WeekCalendarBuilder Weeks
+@inject TimeProvider Clock
+
+<PageTitle>Calendar · Harbour Lane Community Centre</PageTitle>
+
+<h1>Calendar</h1>
+
+<div class="form-row">
+    <label for="calendar-room">Room</label>
+    <select id="calendar-room" @bind="_roomId" @bind:after="LoadAsync">
+        @foreach (var room in _rooms)
+        {
+            <option value="@room.Id">@room.Name</option>
+        }
+    </select>
+</div>
+
+<div class="week-nav">
+    <button type="button" class="icon-button" aria-label="Previous week" @onclick="() => MoveAsync(-7)">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20">
+            <path d="M12 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+    </button>
+    <h2 class="week-title">Week of @_monday.ToString("d MMMM yyyy", Culture)</h2>
+    <button type="button" class="link-button" @onclick="TodayAsync">This week</button>
+    <button type="button" class="icon-button" @onclick="() => MoveAsync(7)">
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 20 20">
+            <path d="M8 4l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" />
+        </svg>
+    </button>
+</div>
+
+@if (_week is null)
+{
+    <LoadingSkeleton Lines="8" Label="Loading the calendar" />
+}
+else
+{
+    <table class="week">
+        <thead>
+            <tr>
+                <th scope="col">Time</th>
+                @foreach (var day in _week.Days)
+                {
+                    <th scope="col">@day.ToString("ddd d", Culture)</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var hour in _week.Hours)
+            {
+                <tr>
+                    <th scope="row">@($"{hour:00}:00")</th>
+                    @foreach (var day in _week.Days)
+                    {
+                        var slot = _week.SlotAt(day, hour);
+                        <td>
+                            @if (slot.Booking is { } booking)
+                            {
+                                <div class="slot slot-booked" @onclick="() => _selected = booking">Booked</div>
+                            }
+                            else
+                            {
+                                <span class="slot-free">Free</span>
+                            }
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (_selected is { } selected)
+{
+    <section class="booking-panel" aria-labelledby="booking-panel-title">
+        <h2 id="booking-panel-title">Booking @selected.Reference</h2>
+        <p>@selected.Start.ToString("dddd d MMMM, HH:mm", Culture) to @selected.End.ToString("HH:mm", Culture) · @selected.Attendees attending</p>
+        <p>Organised by @selected.OrganiserName</p>
+        <button type="button" class="link-button" @onclick="() => _selected = null">Close booking details</button>
+    </section>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+    private IReadOnlyList<Room> _rooms = [];
+    private Guid _roomId;
+    private DateOnly _monday;
+    private CalendarWeek? _week;
+    private Booking? _selected;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _rooms = await Catalog.GetAllAsync(CancellationToken.None);
+        _roomId = _rooms.FirstOrDefault()?.Id ?? Guid.Empty;
+        await TodayAsync();
+    }
+
+    private Task TodayAsync()
+    {
+        _monday = CalendarWeek.MondayOf(DateOnly.FromDateTime(Clock.GetLocalNow().DateTime));
+        return LoadAsync();
+    }
+
+    private Task MoveAsync(int days)
+    {
+        _monday = _monday.AddDays(days);
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _selected = null;
+        _week = await Weeks.BuildAsync(_roomId, _monday, CancellationToken.None);
+    }
+}

@@ -1,0 +1,250 @@
+code,name,zone,customs
+AD,Andorra,4,true
+AE,United Arab Emirates,5,true
+AF,Afghanistan,5,true
+AG,Antigua & Barbuda,5,true
+AI,Anguilla,5,true
+AL,Albania,4,true
+AM,Armenia,5,true
+AO,Angola,5,true
+AQ,Antarctica,5,true
+AR,Argentina,5,true
+AS,Samoa (American),5,true
+AT,Austria,2,false
+AU,Australia,5,true
+AW,Aruba,5,true
+AX,Åland Islands,4,true
+AZ,Azerbaijan,5,true
+BA,Bosnia & Herzegovina,4,true
+BB,Barbados,5,true
+BD,Bangladesh,5,true
+BE,Belgium,2,false
+BF,Burkina Faso,5,true
+BG,Bulgaria,3,false
+BH,Bahrain,5,true
+BI,Burundi,5,true
+BJ,Benin,5,true
+BL,St Barthelemy,5,true
+BM,Bermuda,5,true
+BN,Brunei,5,true
+BO,Bolivia,5,true
+BQ,Caribbean NL,5,true
+BR,Brazil,5,true
+BS,Bahamas,5,true
+BT,Bhutan,5,true
+BV,Bouvet Island,5,true
+BW,Botswana,5,true
+BY,Belarus,4,true
+BZ,Belize,5,true
+CA,Canada,5,true
+CC,Cocos (Keeling) Islands,5,true
+CD,Congo (Dem. Rep.),5,true
+CF,Central African Rep.,5,true
+CG,Congo (Rep.),5,true
+CH,Switzerland,4,true
+CI,Côte d’Ivoire,5,true
+CK,Cook Islands,5,true
+CL,Chile,5,true
+CM,Cameroon,5,true
+CN,China,5,true
+CO,Colombia,5,true
+CR,Costa Rica,5,true
+CU,Cuba,5,true
+CV,Cape Verde,5,true
+CW,Curaçao,5,true
+CX,Christmas Island,5,true
+CY,Cyprus,3,false
+CZ,Czech Republic,2,false
+DE,Germany,1,false
+DJ,Djibouti,5,true
+DK,Denmark,2,false
+DM,Dominica,5,true
+DO,Dominican Republic,5,true
+DZ,Algeria,5,true
+EC,Ecuador,5,true
+EE,Estonia,3,false
+EG,Egypt,5,true
+EH,Western Sahara,5,true
+ER,Eritrea,5,true
+ES,Spain,3,false
+ET,Ethiopia,5,true
+FI,Finland,3,false
+FJ,Fiji,5,true
+FK,Falkland Islands,5,true
+FM,Micronesia,5,true
+FO,Faroe Islands,4,true
+FR,France,2,false
+GA,Gabon,5,true
+GB,Britain (UK),4,true
+GD,Grenada,5,true
+GE,Georgia,5,true
+GF,French Guiana,5,true
+GG,Guernsey,4,true
+GH,Ghana,5,true
+GI,Gibraltar,4,true
+GL,Greenland,5,true
+GM,Gambia,5,true
+GN,Guinea,5,true
+GP,Guadeloupe,5,true
+GQ,Equatorial Guinea,5,true
+GR,Greece,3,false
+GS,South Georgia & the South Sandwich Islands,5,true
+GT,Guatemala,5,true
+GU,Guam,5,true
+GW,Guinea-Bissau,5,true
+GY,Guyana,5,true
+HK,Hong Kong,5,true
+HM,Heard Island & McDonald Islands,5,true
+HN,Honduras,5,true
+HR,Croatia,3,false
+HT,Haiti,5,true
+HU,Hungary,3,false
+ID,Indonesia,5,true
+IE,Ireland,3,false
+IL,Israel,5,true
+IM,Isle of Man,4,true
+IN,India,5,true
+IO,British Indian Ocean Territory,5,true
+IQ,Iraq,5,true
+IR,Iran,5,true
+IS,Iceland,4,true
+IT,Italy,3,false
+JE,Jersey,4,true
+JM,Jamaica,5,true
+JO,Jordan,5,true
+JP,Japan,5,true
+KE,Kenya,5,true
+KG,Kyrgyzstan,5,true
+KH,Cambodia,5,true
+KI,Kiribati,5,true
+KM,Comoros,5,true
+KN,St Kitts & Nevis,5,true
+KP,Korea (North),5,true
+KR,Korea (South),5,true
+KW,Kuwait,5,true
+KY,Cayman Islands,5,true
+KZ,Kazakhstan,5,true
+LA,Laos,5,true
+LB,Lebanon,5,true
+LC,St Lucia,5,true
+LI,Liechtenstein,4,true
+LK,Sri Lanka,5,true
+LR,Liberia,5,true
+LS,Lesotho,5,true
+LT,Lithuania,3,false
+LU,Luxembourg,2,false
+LV,Latvia,3,false
+LY,Libya,5,true
+MA,Morocco,5,true
+MC,Monaco,4,true
+MD,Moldova,4,true
+ME,Montenegro,4,true
+MF,St Martin (French),5,true
+MG,Madagascar,5,true
+MH,Marshall Islands,5,true
+MK,North Macedonia,4,true
+ML,Mali,5,true
+MM,Myanmar (Burma),5,true
+MN,Mongolia,5,true
+MO,Macau,5,true
+MP,Northern Mariana Islands,5,true
+MQ,Martinique,5,true
+MR,Mauritania,5,true
+MS,Montserrat,5,true
+MT,Malta,3,false
+MU,Mauritius,5,true
+MV,Maldives,5,true
+MW,Malawi,5,true
+MX,Mexico,5,true
+MY,Malaysia,5,true
+MZ,Mozambique,5,true
+NA,Namibia,5,true
+NC,New Caledonia,5,true
+NE,Niger,5,true
+NF,Norfolk Island,5,true
+NG,Nigeria,5,true
+NI,Nicaragua,5,true
+NL,Netherlands,2,false
+NO,Norway,4,true
+NP,Nepal,5,true
+NR,Nauru,5,true
+NU,Niue,5,true
+NZ,New Zealand,5,true
+OM,Oman,5,true
+PA,Panama,5,true
+PE,Peru,5,true
+PF,French Polynesia,5,true
+PG,Papua New Guinea,5,true
+PH,Philippines,5,true
+PK,Pakistan,5,true
+PL,Poland,2,false
+PM,St Pierre & Miquelon,5,true
+PN,Pitcairn,5,true
+PR,Puerto Rico,5,true
+PS,Palestine,5,true
+PT,Portugal,3,false
+PW,Palau,5,true
+PY,Paraguay,5,true
+QA,Qatar,5,true
+RE,Réunion,5,true
+RO,Romania,3,false
+RS,Serbia,4,true
+RU,Russia,5,true
+RW,Rwanda,5,true
+SA,Saudi Arabia,5,true
+SB,Solomon Islands,5,true
+SC,Seychelles,5,true
+SD,Sudan,5,true
+SE,Sweden,3,false
+SG,Singapore,5,true
+SH,St Helena,5,true
+SI,Slovenia,3,false
+SJ,Svalbard & Jan Mayen,4,true
+SK,Slovakia,3,false
+SL,Sierra Leone,5,true
+SM,San Marino,4,true
+SN,Senegal,5,true
+SO,Somalia,5,true
+SR,Suriname,5,true
+SS,South Sudan,5,true
+ST,Sao Tome & Principe,5,true
+SV,El Salvador,5,true
+SX,St Maarten (Dutch),5,true
+SY,Syria,5,true
+SZ,Eswatini (Swaziland),5,true
+TC,Turks & Caicos Is,5,true
+TD,Chad,5,true
+TF,French S. Terr.,5,true
+TG,Togo,5,true
+TH,Thailand,5,true
+TJ,Tajikistan,5,true
+TK,Tokelau,5,true
+TL,East Timor,5,true
+TM,Turkmenistan,5,true
+TN,Tunisia,5,true
+TO,Tonga,5,true
+TR,Turkey,5,true
+TT,Trinidad & Tobago,5,true
+TV,Tuvalu,5,true
+TW,Taiwan,5,true
+TZ,Tanzania,5,true
+UA,Ukraine,4,true
+UG,Uganda,5,true
+UM,US minor outlying islands,5,true
+US,United States,5,true
+UY,Uruguay,5,true
+UZ,Uzbekistan,5,true
+VA,Vatican City,4,true
+VC,St Vincent,5,true
+VE,Venezuela,5,true
+VG,Virgin Islands (UK),5,true
+VI,Virgin Islands (US),5,true
+VN,Vietnam,5,true
+VU,Vanuatu,5,true
+WF,Wallis & Futuna,5,true
+WS,Samoa (western),5,true
+YE,Yemen,5,true
+YT,Mayotte,5,true
+ZA,South Africa,5,true
+ZM,Zambia,5,true
+ZW,Zimbabwe,5,true

@@ -1,0 +1,89 @@
+From 789915aac17e6476bbfad11a627742c73891ce5a Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Wed, 8 Apr 2026 10:00:42 +0200
+Subject: feat(api): serve the portal feed
+
+---
+ .../Endpoints/PatientEndpoints.cs                     | 11 ++++++++++-
+ .../HealthAndSecurityTests.cs                         |  2 +-
+ .../ClinicScheduling.IntegrationTests/PortalTests.cs  |  5 ++++-
+ 3 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+index 370c33f..0b14ce4 100644
+--- a/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/PatientEndpoints.cs
+@@ -3,10 +3,11 @@ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Domain.Appointments;
+ using ClinicScheduling.Domain.Time;
+ using ClinicScheduling.Infrastructure.Calendar;
++using ClinicScheduling.Infrastructure.PatientPortal;
+ 
+ namespace ClinicScheduling.Api.Endpoints;
+ 
+-/// <summary>The calendar subscription of the patient portal.</summary>
++/// <summary>What the patient portal reads: the appointment feed and a calendar subscription.</summary>
+ public static class PatientEndpoints
+ {
+     public static IEndpointRouteBuilder MapPatientEndpoints(this IEndpointRouteBuilder app)
+@@ -14,10 +15,18 @@ public static class PatientEndpoints
+         var group = app.MapGroup("/api/patients/{patientId:guid}")
+             .WithTags("Patient portal")
+             .RequireAuthorization(AuthorizationPolicies.PortalRead);
++        group.MapGet("/feed", FeedAsync);
+         group.MapGet("/calendar.ics", CalendarAsync);
+         return app;
+     }
+ 
++    private static async Task<IResult> FeedAsync(
++        Guid patientId, IAppointmentRepository appointments, CancellationToken cancellationToken)
++    {
++        var mine = await appointments.ForPatientAsync(patientId, cancellationToken).ConfigureAwait(false);
++        return Results.Text(PortalAppointmentFeed.Serialize(patientId, mine), "application/json");
++    }
++
+     private static async Task<IResult> CalendarAsync(
+         Guid patientId, IAppointmentRepository appointments, IClock clock, CancellationToken cancellationToken)
+     {
+diff --git a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+index 186e7c3..a07da82 100644
+--- a/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/HealthAndSecurityTests.cs
+@@ -27,7 +27,7 @@ public sealed class HealthAndSecurityTests(SchedulingApiFactory factory) : IClas
+     }
+ 
+     [Theory]
+-    [InlineData("api/appointments/0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60")]
++    [InlineData("api/patients/0b6c0e4e-2a7f-4d0b-8f5e-3c1a9d8e7f60/feed")]
+     public async Task AnonymousCallersAreRejected(string path)
+     {
+         using var client = factory.CreateClient(scopes: []);
+diff --git a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+index cbee7eb..33e11eb 100644
+--- a/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
++++ b/tests/ClinicScheduling.IntegrationTests/PortalTests.cs
+@@ -1,11 +1,12 @@
+ using System.Net;
++using System.Text.Json;
+ 
+ namespace ClinicScheduling.IntegrationTests;
+ 
+ public sealed class PortalTests(SchedulingApiFactory factory) : IClassFixture<SchedulingApiFactory>
+ {
+     [Fact]
+-    public async Task ServesTheCalendar()
++    public async Task ServesThePortalFeedAndCalendar()
+     {
+         using var client = factory.CreateClient(ApiClient.AllScopes);
+         await client.PutScheduleAsync();
+@@ -13,8 +14,10 @@ public sealed class PortalTests(SchedulingApiFactory factory) : IClassFixture<Sc
+         using var booked = await client.BookAsync(patient, new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(1)));
+         Assert.Equal(HttpStatusCode.Created, booked.StatusCode);
+ 
++        using var feed = JsonDocument.Parse(await client.GetStringAsync($"api/patients/{patient}/feed", ApiClient.Token));
+         var ics = await client.GetStringAsync($"api/patients/{patient}/calendar.ics", ApiClient.Token);
+ 
++        Assert.Equal("2026-03-12T10:00:00.0000000+01:00", feed.RootElement.GetProperty("appointments")[0].GetProperty("startsAt").GetString());
+         Assert.Contains("DTSTART:20260312T090000Z", ics, StringComparison.Ordinal);
+     }
+ }

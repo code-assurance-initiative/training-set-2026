@@ -1,0 +1,40 @@
+@inject DialogInterop Dialogs
+
+<dialog @ref="_dialog" class="summary-dialog" aria-labelledby="summary-title">
+    @if (Booking is { } booking)
+    {
+        <h2 id="summary-title">Booking confirmed</h2>
+        <dl class="summary">
+            <dt>Reference</dt>
+            <dd>@booking.Reference</dd>
+            <dt>Room</dt>
+            <dd>@RoomName</dd>
+            <dt>When</dt>
+            <dd>@booking.Start.ToString("dddd d MMMM, HH:mm", Culture) to @booking.End.ToString("HH:mm", Culture)</dd>
+        </dl>
+        <form method="dialog">
+            <button type="submit" class="button">Done</button>
+        </form>
+    }
+</dialog>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("en-GB");
+    private ElementReference _dialog;
+    private string? _shownReference;
+
+    [Parameter]
+    public Booking? Booking { get; set; }
+
+    [Parameter]
+    public string RoomName { get; set; } = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Booking is { } booking && booking.Reference != _shownReference)
+        {
+            _shownReference = booking.Reference;
+            await Dialogs.ShowModalAsync(_dialog, CancellationToken.None);
+        }
+    }
+}

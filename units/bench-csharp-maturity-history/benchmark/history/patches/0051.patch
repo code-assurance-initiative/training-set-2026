@@ -1,0 +1,191 @@
+From f83360550656da0abea17bdd971b010a6b0bb27c Mon Sep 17 00:00:00 2001
+From: Oskar Vale <oskar.vale@example.invalid>
+Date: Tue, 24 Mar 2026 11:35:21 +0100
+Subject: feat(api): waitlist endpoints and back-fill on cancellation
+
+---
+ .../ClinicScheduling.Api.csproj               |  1 +
+ .../Contracts/JoinWaitlistRequest.cs          | 10 ++++++
+ .../Endpoints/AppointmentEndpoints.cs         |  8 ++++-
+ .../Endpoints/WaitlistEndpoints.cs            | 32 +++++++++++++++++++
+ .../ApiApplicationBuilderExtensions.cs        |  1 +
+ .../Hosting/ApiServiceCollectionExtensions.cs |  2 ++
+ src/ClinicScheduling.Api/packages.lock.json   |  6 ++++
+ .../packages.lock.json                        |  7 ++++
+ 8 files changed, 66 insertions(+), 1 deletion(-)
+ create mode 100644 src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
+ create mode 100644 src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+
+diff --git a/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj b/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
+index 0e10363..8c435bf 100644
+--- a/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
++++ b/src/ClinicScheduling.Api/ClinicScheduling.Api.csproj
+@@ -7,6 +7,7 @@
+   <ItemGroup>
+     <ProjectReference Include="..\ClinicScheduling.Application\ClinicScheduling.Application.csproj" />
+     <ProjectReference Include="..\ClinicScheduling.Infrastructure\ClinicScheduling.Infrastructure.csproj" />
++    <ProjectReference Include="..\ClinicScheduling.Waitlist\ClinicScheduling.Waitlist.csproj" />
+   </ItemGroup>
+ 
+   <ItemGroup>
+diff --git a/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs b/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
+new file mode 100644
+index 0000000..58ede49
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Contracts/JoinWaitlistRequest.cs
+@@ -0,0 +1,10 @@
++namespace ClinicScheduling.Api.Contracts;
++
++public sealed record JoinWaitlistRequest(Guid PatientId, Guid PractitionerId, DateOnly Earliest, DateOnly Latest)
++{
++    public RequestErrors Validate() =>
++        new RequestErrors()
++            .Require(PatientId != Guid.Empty, nameof(PatientId), "A patient is required.")
++            .Require(PractitionerId != Guid.Empty, nameof(PractitionerId), "A practitioner is required.")
++            .Require(Latest >= Earliest, nameof(Latest), "The window must end on or after its first day.");
++}
+diff --git a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+index f2b6929..80d92f7 100644
+--- a/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
++++ b/src/ClinicScheduling.Api/Endpoints/AppointmentEndpoints.cs
+@@ -3,6 +3,7 @@ using ClinicScheduling.Api.Security;
+ using ClinicScheduling.Application;
+ using ClinicScheduling.Application.Abstractions;
+ using ClinicScheduling.Application.Booking;
++using ClinicScheduling.Waitlist;
+ 
+ namespace ClinicScheduling.Api.Endpoints;
+ 
+@@ -41,7 +42,7 @@ public static class AppointmentEndpoints
+         return appointment is null ? Results.NotFound() : Results.Ok(AppointmentResponse.From(appointment));
+     }
+ 
+-    private static async Task<IResult> CancelAsync(Guid id, CancelAppointmentRequest request, CancelAppointmentHandler handler, CancellationToken cancellationToken)
++    private static async Task<IResult> CancelAsync(Guid id, CancelAppointmentRequest request, CancelAppointmentHandler handler, IAppointmentRepository appointments, WaitlistBackfill backfill, CancellationToken cancellationToken)
+     {
+         var errors = request.Validate();
+         if (errors.Any || request.ParsedReason is not { } reason)
+@@ -50,6 +51,11 @@ public static class AppointmentEndpoints
+         }
+ 
+         var result = await handler.HandleAsync(new CancelAppointmentCommand(id, reason), cancellationToken).ConfigureAwait(false);
++        if (result.Status == OperationStatus.Ok && await appointments.FindAsync(id, cancellationToken).ConfigureAwait(false) is { } cancelled)
++        {
++            backfill.OfferFreedSlot(cancelled);
++        }
++
+         return result is { Status: OperationStatus.Ok, Value: { } decision }
+             ? Results.Ok(CancellationResponse.From(decision))
+             : EndpointResults.Problem(result);
+diff --git a/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs b/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+new file mode 100644
+index 0000000..56ea100
+--- /dev/null
++++ b/src/ClinicScheduling.Api/Endpoints/WaitlistEndpoints.cs
+@@ -0,0 +1,32 @@
++using ClinicScheduling.Api.Contracts;
++using ClinicScheduling.Api.Security;
++using ClinicScheduling.Domain.Time;
++using ClinicScheduling.Waitlist;
++
++namespace ClinicScheduling.Api.Endpoints;
++
++public static class WaitlistEndpoints
++{
++    public static IEndpointRouteBuilder MapWaitlistEndpoints(this IEndpointRouteBuilder app)
++    {
++        var group = app.MapGroup("/api/waitlist").WithTags("Waitlist");
++        group.MapPost("/", Join).RequireAuthorization(AuthorizationPolicies.AppointmentsWrite);
++        group.MapGet("/{practitionerId:guid}", List).RequireAuthorization(AuthorizationPolicies.AppointmentsRead);
++        return app;
++    }
++
++    private static IResult Join(JoinWaitlistRequest request, WaitlistStore store, IClock clock)
++    {
++        var errors = request.Validate();
++        if (errors.Any)
++        {
++            return Results.ValidationProblem(errors.ToDictionary());
++        }
++
++        var entry = new WaitlistEntry(Guid.NewGuid(), request.PatientId, request.PractitionerId, request.Earliest, request.Latest, clock.UtcNow);
++        store.Join(entry);
++        return Results.Ok(entry);
++    }
++
++    private static IResult List(Guid practitionerId, WaitlistStore store) => Results.Ok(store.For(practitionerId));
++}
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+index b494f9e..7d86b7f 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiApplicationBuilderExtensions.cs
+@@ -25,6 +25,7 @@ public static class ApiApplicationBuilderExtensions
+         app.MapScheduleEndpoints();
+         app.MapSeriesEndpoints();
+         app.MapPatientEndpoints();
++        app.MapWaitlistEndpoints();
+         return app;
+     }
+ }
+diff --git a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+index 9c38cd1..e4588ce 100644
+--- a/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
++++ b/src/ClinicScheduling.Api/Hosting/ApiServiceCollectionExtensions.cs
+@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
+ using ClinicScheduling.Api.Security;
+ using ClinicScheduling.Application;
+ using ClinicScheduling.Infrastructure;
++using ClinicScheduling.Waitlist;
+ using Microsoft.AspNetCore.Authentication.JwtBearer;
+ 
+ namespace ClinicScheduling.Api.Hosting;
+@@ -12,6 +13,7 @@ public static class ApiServiceCollectionExtensions
+     {
+         services.AddSchedulingApplication();
+         services.AddSchedulingInfrastructure();
++        services.AddWaitlist();
+         services.ConfigureHttpJsonOptions(options => options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+         services.AddProblemDetails();
+         services.AddHealthChecks();
+diff --git a/src/ClinicScheduling.Api/packages.lock.json b/src/ClinicScheduling.Api/packages.lock.json
+index bf00788..683b344 100644
+--- a/src/ClinicScheduling.Api/packages.lock.json
++++ b/src/ClinicScheduling.Api/packages.lock.json
+@@ -86,6 +86,12 @@
+         "dependencies": {
+           "ClinicScheduling.Application": "[0.1.0, )"
+         }
++      },
++      "clinicscheduling.waitlist": {
++        "type": "Project",
++        "dependencies": {
++          "ClinicScheduling.Application": "[0.1.0, )"
++        }
+       }
+     }
+   }
+diff --git a/tests/ClinicScheduling.IntegrationTests/packages.lock.json b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+index 753fd40..7176785 100644
+--- a/tests/ClinicScheduling.IntegrationTests/packages.lock.json
++++ b/tests/ClinicScheduling.IntegrationTests/packages.lock.json
+@@ -468,6 +468,7 @@
+         "dependencies": {
+           "ClinicScheduling.Application": "[0.1.0, )",
+           "ClinicScheduling.Infrastructure": "[0.1.0, )",
++          "ClinicScheduling.Waitlist": "[0.1.0, )",
+           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.12, )"
+         }
+       },
+@@ -492,6 +493,12 @@
+           "Microsoft.Extensions.Options.ConfigurationExtensions": "[10.0.12, )"
+         }
+       },
++      "clinicscheduling.waitlist": {
++        "type": "Project",
++        "dependencies": {
++          "ClinicScheduling.Application": "[0.1.0, )"
++        }
++      },
+       "Microsoft.AspNetCore.Authentication.JwtBearer": {
+         "type": "CentralTransitive",
+         "requested": "[10.0.12, )",

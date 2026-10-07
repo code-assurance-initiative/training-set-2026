@@ -1,0 +1,31 @@
+@using HarbourLane.Bookings.Web.Security
+
+<nav class="site-nav" aria-label="Main">
+    <ul class="nav-list">
+        <li><NavLink href="" Match="NavLinkMatch.All">Home</NavLink></li>
+        <li><NavLink href="rooms">Rooms</NavLink></li>
+        <li><NavLink href="calendar">Calendar</NavLink></li>
+        <AuthorizeView>
+            <Authorized>
+                <li><NavLink href="bookings">My bookings</NavLink></li>
+                <li><NavLink href="settings">Settings</NavLink></li>
+            </Authorized>
+        </AuthorizeView>
+        <AuthorizeView Policy="@AuthorizationPolicies.FacilitiesStaff">
+            <Authorized>
+                <li><a href="Admin">Staff area</a></li>
+            </Authorized>
+        </AuthorizeView>
+    </ul>
+    <AuthorizeView>
+        <Authorized>
+            <form action="account/logout" method="post" class="sign-out">
+                <AntiforgeryToken />
+                <button type="submit" class="link-button">Sign out @context.User.Identity?.Name</button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <a class="sign-in" href="account/login">Sign in</a>
+        </NotAuthorized>
+    </AuthorizeView>
+</nav>

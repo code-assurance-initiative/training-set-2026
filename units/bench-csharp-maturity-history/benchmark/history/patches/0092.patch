@@ -1,0 +1,54 @@
+From 2efc5c0c8188e6625179b78292fafbff14c8aaf2 Mon Sep 17 00:00:00 2001
+From: Priya Castellan <priya.castellan@example.invalid>
+Date: Tue, 14 Jul 2026 14:50:17 +0200
+Subject: feat(policy): expose the free-cancellation deadline
+
+---
+ .../Policies/CancellationPolicy.cs                    | 11 ++++++++++-
+ .../Policies/CancellationPolicyTests.cs               |  6 ++++++
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+index 94d038e..662590d 100644
+--- a/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
++++ b/src/ClinicScheduling.Domain/Policies/CancellationPolicy.cs
+@@ -24,7 +24,7 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+             return CancellationDecision.Free(ClinicInitiated);
+         }
+ 
+-        if (at <= appointment.Time.Start - options.FreeCancellationWindow)
++        if (!IsLate(appointment, at))
+         {
+             return CancellationDecision.Free(FreeCancellation);
+         }
+@@ -52,6 +52,15 @@ public sealed class CancellationPolicy(CancellationPolicyOptions options)
+         return strikes.Count(s => s >= since) >= options.StrikesBeforeDeposit;
+     }
+ 
++    /// <summary>The latest moment the appointment can still be cancelled free of charge.</summary>
++    public DateTimeOffset FreeCancellationDeadline(Appointment appointment)
++    {
++        ArgumentNullException.ThrowIfNull(appointment);
++        return appointment.Time.Start - options.FreeCancellationWindow;
++    }
++
++    private bool IsLate(Appointment appointment, DateTimeOffset at) => at > FreeCancellationDeadline(appointment);
++
+     private decimal Scaled(decimal fee, Appointment appointment) =>
+         appointment.IsTelehealth ? fee * options.TelehealthFeeFactor : fee;
+ }
+diff --git a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+index c4bc593..26a2011 100644
+--- a/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
++++ b/tests/ClinicScheduling.UnitTests/Policies/CancellationPolicyTests.cs
+@@ -69,4 +69,10 @@ public sealed class CancellationPolicyTests
+         Assert.False(_policy.RequiresDeposit([now.AddDays(-10)], now));
+         Assert.True(_policy.RequiresDeposit([now.AddDays(-10), now.AddDays(-100)], now));
+     }
++
++    [Fact]
++    public void TheFreeCancellationDeadlineIsADayBefore()
++    {
++        Assert.Equal(Start.AddHours(-24), _policy.FreeCancellationDeadline(Booked()));
++    }
+ }

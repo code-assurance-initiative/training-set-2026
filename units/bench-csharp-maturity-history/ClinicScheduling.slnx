@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ClinicScheduling.Domain/ClinicScheduling.Domain.csproj" />
+    <Project Path="src/ClinicScheduling.Application/ClinicScheduling.Application.csproj" />
+    <Project Path="src/ClinicScheduling.Infrastructure/ClinicScheduling.Infrastructure.csproj" />
+    <Project Path="src/ClinicScheduling.Api/ClinicScheduling.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ClinicScheduling.UnitTests/ClinicScheduling.UnitTests.csproj" />
+    <Project Path="tests/ClinicScheduling.IntegrationTests/ClinicScheduling.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

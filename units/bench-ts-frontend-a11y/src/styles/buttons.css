@@ -1,0 +1,66 @@
+.button {
+  display: inline-block;
+  padding: 0.55rem 1.1rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.button:focus-visible,
+.icon-button:focus-visible,
+.link-button:focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+
+.button--primary {
+  color: #ffffff;
+  background-color: #1d4ed8;
+}
+
+.button--secondary {
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  background-color: #ffffff;
+}
+
+.button:disabled {
+  color: #9ca3af;
+  background-color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+.button--small {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.icon-button {
+  display: inline-flex;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  color: #1d4ed8;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.icon {
+  display: block;
+  fill: currentColor;
+}

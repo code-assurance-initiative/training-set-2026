@@ -1,0 +1,2120 @@
+{
+  "schema": "https://github.com/code-assurance-initiative/scanner-benchmark/schema/answer-key.schema.json",
+  "schemaVersion": "1.2",
+  "repo": "code-assurance-initiative/bench-ts-frontend-a11y",
+  "keyVersion": "1.1.0",
+  "languages": [
+    "typescript"
+  ],
+  "theme": "Frontend quality and accessibility of a small React 19 + TypeScript single-page library catalogue",
+  "lineTolerance": 3,
+  "entries": [
+    {
+      "id": "A11Y-001",
+      "label": "must-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/features/item/ItemDetailDialog.tsx",
+      "lines": [
+        55,
+        55
+      ],
+      "rationale": "The cover image in the item-detail dialog is an <img> with no alt (and no aria-label/aria-labelledby): a screen reader announces the file name or nothing, and the cover is the only place the edition is shown. It is content, not decoration."
+    },
+    {
+      "id": "A11Y-002",
+      "label": "must-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/features/events/StorytimeRecording.tsx",
+      "lines": [
+        11,
+        11
+      ],
+      "rationale": "A recorded storytime session — speech is the whole content — played in a <video controls> with no captions <track>: deaf and hard-of-hearing visitors get nothing (WCAG 1.2.2). The component accepts no caption URL either."
+    },
+    {
+      "id": "A11Y-003",
+      "label": "must-fire",
+      "concept": "form-control-without-label",
+      "file": "src/components/ToastRegion.tsx",
+      "lines": [
+        12,
+        18
+      ],
+      "rationale": "The toast dismiss <button> contains only an inline <svg> (aria-hidden) and has no text, aria-label or aria-labelledby: it has no accessible name, so assistive tech announces just 'button'."
+    },
+    {
+      "id": "A11Y-004",
+      "label": "must-fire",
+      "concept": "form-control-without-label",
+      "file": "src/features/loans/LoansPage.tsx",
+      "lines": [
+        222,
+        229
+      ],
+      "rationale": "The loans filter <input> is named only by its placeholder: no <label>, no aria-label/aria-labelledby. A placeholder is not a label (it vanishes on input and is not reliably announced)."
+    },
+    {
+      "id": "A11Y-005",
+      "label": "must-fire",
+      "concept": "page-structure-violation",
+      "file": "index.html",
+      "lines": [
+        2,
+        2
+      ],
+      "rationale": "The document element is <html> with no lang attribute, so assistive tech cannot choose the pronunciation rules for the page (WCAG 3.1.1). React renders into this one shell; nothing sets the language at run time."
+    },
+    {
+      "id": "A11Y-006",
+      "label": "must-fire",
+      "concept": "page-structure-violation",
+      "file": "src/features/settings/SettingsPage.tsx",
+      "lines": [
+        40,
+        40
+      ],
+      "rationale": "The settings page's outline goes from its <h1> straight to <h3> section headings within one component render: the h2 level is skipped, so heading navigation presents a broken outline (WCAG 1.3.1)."
+    },
+    {
+      "id": "A11Y-007",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/gallery/Gallery.tsx",
+      "lines": [
+        50,
+        55
+      ],
+      "rationale": "Each gallery thumbnail is a <div> with an onClick that opens the photo, but no role, no tabIndex and no key handler, and no other control performs the action: keyboard users cannot open a photo at all (WCAG 2.1.1)."
+    },
+    {
+      "id": "A11Y-008",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/search/SearchBar.tsx",
+      "lines": [
+        35,
+        42
+      ],
+      "rationale": "The search field carries tabIndex={1}: a positive tabindex pulls it ahead of the skip link and the site navigation in the tab order and fights the DOM order on every other page (WCAG 2.4.3)."
+    },
+    {
+      "id": "A11Y-009",
+      "label": "must-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/search/SearchBar.tsx",
+      "lines": [
+        69,
+        76
+      ],
+      "rationale": "'Clear recent searches' is an <a href=\"#\"> whose onClick performs an action: a button dressed as a link — announced as a link, activated by Enter only (not Space), and a no-op jump to the top without script."
+    },
+    {
+      "id": "A11Y-010",
+      "label": "must-fire",
+      "concept": "modal-focus-not-managed",
+      "file": "src/features/item/ItemDetailDialog.tsx",
+      "lines": [
+        45,
+        45
+      ],
+      "rationale": "A hand-rolled modal: a <div role=\"dialog\"> rendered over the page with no aria-modal, no initial focus move into the dialog, no focus containment, no Escape handler and no focus return to the result that opened it. Keyboard focus stays behind the overlay and Tab walks the obscured page; the only exit is a close button the keyboard user has to find by tabbing past the whole page (WCAG 2.4.3). v1.1.0: relabelled from non-keyboard-accessible-interaction to the precise concept, same site."
+    },
+    {
+      "id": "A11Y-011",
+      "label": "must-fire",
+      "concept": "invalid-aria-usage",
+      "file": "src/features/settings/SettingsPage.tsx",
+      "lines": [
+        45,
+        52
+      ],
+      "rationale": "The 'Compact result list' toggle is a focusable role=\"switch\" with click and key handlers but no aria-checked: the switch role requires aria-checked, so its on/off state is never exposed (only a CSS class changes) (WCAG 4.1.2)."
+    },
+    {
+      "id": "A11Y-012",
+      "label": "must-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/styles/catalogue.css",
+      "lines": [
+        29,
+        34
+      ],
+      "rationale": "Result metadata (author, year, shelf mark) is normal-size body text in #9e9e9e on #ffffff — a contrast ratio of about 2.7:1, below the 4.5:1 AA minimum for normal text (WCAG 1.4.3)."
+    },
+    {
+      "id": "A11Y-013",
+      "label": "must-fire",
+      "concept": "autoplay-media-without-control",
+      "file": "src/features/home/HomePage.tsx",
+      "lines": [
+        9,
+        17
+      ],
+      "rationale": "The home-page hero is a looping video that starts automatically on load and runs indefinitely with no control to pause or stop it (no controls attribute, no pause button) and no prefers-reduced-motion handling: moving content that starts automatically and lasts more than five seconds must be pausable (WCAG 2.2.2). It is muted, so WCAG 1.4.2 (audio) does not apply; the defect is the unstoppable automatic playback. v1.1.0: relabelled from the umbrella visual-and-motion-safety to the precise concept, same site."
+    },
+    {
+      "id": "A11Y-014",
+      "label": "must-fire",
+      "concept": "motion-without-reduced-motion",
+      "file": "src/styles/loading.css",
+      "lines": [
+        1,
+        29
+      ],
+      "rationale": "The skeleton-loader shimmer is an infinite @keyframes animation with no prefers-reduced-motion guard (and the app has no global reduced-motion reset), so users who asked the OS for reduced motion still get it (WCAG 2.3.3). v1.1.0: relabelled from the umbrella visual-and-motion-safety to its child concept, same site."
+    },
+    {
+      "id": "A11Y-015",
+      "label": "must-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/styles/search.css",
+      "lines": [
+        18,
+        20
+      ],
+      "rationale": "The search input removes its focus outline (outline: none on :focus) and no :focus / :focus-visible rule replaces it, so keyboard users lose the focus indicator on the page's main control (WCAG 2.4.7). v1.1.0: relabelled from the umbrella visual-and-motion-safety to its child concept, same site."
+    },
+    {
+      "id": "A11Y-016",
+      "label": "must-fire",
+      "concept": "cross-site-scripting",
+      "cwe": "CWE-79",
+      "file": "src/features/item/ItemDetailDialog.tsx",
+      "lines": [
+        62,
+        65
+      ],
+      "rationale": "The item summary comes from the catalogue API (imported from partner MARC records) and is rendered with dangerouslySetInnerHTML without sanitising: any script-bearing markup in a record runs in the visitor's session."
+    },
+    {
+      "id": "A11Y-017",
+      "label": "must-fire",
+      "concept": "oversized-source-file",
+      "file": "src/features/loans/LoansPage.tsx",
+      "rationale": "A 'kitchen-sink' module: the loans page, its table, row, renewal panel, fines summary, CSV export and their helpers in one file of about 550 lines (nearly 500 non-blank) that every loans change touches. Each part is a separate responsibility."
+    },
+    {
+      "id": "A11Y-018",
+      "label": "must-fire",
+      "concept": "accessibility-checks-in-ci",
+      "rationale": "Nothing enforces accessibility: the lint configuration carries no accessibility rule set, no test asserts accessibility with an automated checker, and CI runs neither. Every plant in this repository would be caught by such a check."
+    },
+    {
+      "id": "A11Y-019",
+      "label": "must-fire",
+      "concept": "alt-text-quality",
+      "file": "src/features/home/HomePage.tsx",
+      "lines": [
+        35,
+        41
+      ],
+      "rationale": "The reading-room photo's alt text is its camera file name ('IMG_2041.jpg'): a filename is not a text equivalent of the image (WCAG 1.1.1)."
+    },
+    {
+      "id": "A11Y-020",
+      "label": "must-fire",
+      "concept": "link-and-button-text-quality",
+      "file": "src/features/home/HomePage.tsx",
+      "lines": [
+        56,
+        56
+      ],
+      "rationale": "The opening-hours link reads 'Click here': out of context (a links list, a screen reader's link navigation) it says nothing about its destination (WCAG 2.4.4)."
+    },
+    {
+      "id": "A11Y-021",
+      "label": "must-fire",
+      "concept": "react-index-as-key",
+      "file": "src/features/reading-list/ReadingListPage.tsx",
+      "lines": [
+        161,
+        163
+      ],
+      "rationale": "The reading list can be reordered (Move up / Move down), filtered (Hide finished books) and shortened (Remove), and each row owns state (the note draft in its <input>), yet rows are keyed by their array index. After a move, a removal or a filter change React keeps each row's state and DOM at its POSITION, so a half-typed note jumps to a different book and 'Save note' then writes it onto that book."
+    },
+    {
+      "id": "A11Y-022",
+      "label": "must-fire",
+      "concept": "react-hook-missing-dependency",
+      "file": "src/features/gallery/Gallery.tsx",
+      "lines": [
+        20,
+        34
+      ],
+      "rationale": "The arrow-key handler reads activeIndex, but the effect lists only viewerOpen, so the listener is installed once when the viewer opens and keeps the activeIndex of that moment (a stale closure). The first arrow press works; every later press computes from the photo first opened, so the viewer is stuck one step away (and after the Next/Previous buttons the arrows jump back). The one-press test passes."
+    },
+    {
+      "id": "A11Y-023",
+      "label": "must-fire",
+      "concept": "react-state-mutation",
+      "file": "src/features/reading-list/useReadingList.ts",
+      "lines": [
+        43,
+        49
+      ],
+      "rationale": "markFinished finds the entry object in the current state array and assigns entry.finished = true in place, then copies the array. The previous state (and the render that holds it) is changed retroactively; any consumer that compares entries by reference (a memoised row, a previous/next comparison) misses the change. It only appears to work because the array copy forces a re-render. The other updates of this hook produce new objects."
+    },
+    {
+      "id": "A11Y-024",
+      "label": "must-fire",
+      "concept": "form-error-not-associated",
+      "file": "src/features/reading-list/ReadingListPage.tsx",
+      "lines": [
+        141,
+        142
+      ],
+      "rationale": "Submitting the add-a-book form without a title shows 'Enter the title of the book.' under the Title field, but the message is not tied to the field: the shared TextField has no error slot, so the message is rendered after it with no aria-describedby / aria-errormessage pointing at it, the input is not marked aria-invalid, and the message is not a live region. Focus stays on the submit button and a screen-reader user hears nothing about why nothing was added (WCAG 3.3.1, 1.3.1)."
+    },
+    {
+      "id": "TRP-001",
+      "label": "must-not-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/features/gallery/Gallery.tsx",
+      "lines": [
+        40,
+        45
+      ],
+      "rationale": "A purely decorative ornament image with alt=\"\" and role=\"presentation\": the empty alt is the correct text alternative for decoration (WCAG H67)."
+    },
+    {
+      "id": "TRP-002",
+      "label": "must-not-fire",
+      "concept": "missing-text-alternative",
+      "file": "src/features/home/HomePage.tsx",
+      "lines": [
+        9,
+        17
+      ],
+      "rationale": "The hero background video is muted, has no controls and no audio track to caption: captions are owed for synchronised audio, and muted decorative footage has none. (The same element IS a motion plant, A11Y-013 — a different concept.)"
+    },
+    {
+      "id": "TRP-003",
+      "label": "must-not-fire",
+      "concept": "form-control-without-label",
+      "file": "src/features/item/ItemDetailDialog.tsx",
+      "lines": [
+        46,
+        50
+      ],
+      "rationale": "An icon-only close button with aria-label=\"Close\" and an aria-hidden svg: the aria-label is its accessible name."
+    },
+    {
+      "id": "TRP-004",
+      "label": "must-not-fire",
+      "concept": "form-control-without-label",
+      "file": "src/features/search/SearchBar.tsx",
+      "lines": [
+        32,
+        42
+      ],
+      "rationale": "The search field is labelled by a <label htmlFor> whose text is visually hidden with the clip pattern (.visually-hidden), not display:none: the label is in the accessibility tree and names the input."
+    },
+    {
+      "id": "TRP-005",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/search/ResultCard.tsx",
+      "lines": [
+        24,
+        24
+      ],
+      "rationale": "The result card's onClick is a pointer convenience: the card holds a real <button> ('View details') that performs the identical action, so keyboard and assistive-tech users have a proper control."
+    },
+    {
+      "id": "TRP-006",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/search/FilterChip.tsx",
+      "lines": [
+        19,
+        27
+      ],
+      "rationale": "A custom checkbox chip with role=\"checkbox\", aria-checked, tabIndex={0} and an onKeyDown handler for Space and Enter: focusable, operable and announced — the ARIA authoring pattern done right."
+    },
+    {
+      "id": "TRP-007",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/components/SiteHeader.tsx",
+      "lines": [
+        11,
+        11
+      ],
+      "rationale": "A skip link with href=\"#main-content\": a real in-page fragment target (the <main> id), not a placeholder href."
+    },
+    {
+      "id": "TRP-008",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/borrow/BorrowDialog.tsx",
+      "lines": [
+        35,
+        41
+      ],
+      "rationale": "The borrow form uses the native <dialog> element opened with showModal(): the browser moves focus in, makes the page behind inert, closes on Escape and exposes it as modal. Its onClick only closes on a backdrop click (target === the dialog) — an optional pointer convenience beside Escape and the Cancel button."
+    },
+    {
+      "id": "TRP-009",
+      "label": "must-not-fire",
+      "concept": "non-keyboard-accessible-interaction",
+      "file": "src/features/search/ResultList.tsx",
+      "lines": [
+        38,
+        40
+      ],
+      "rationale": "'Load more results' is a native <button> styled as a text link — the native element instead of a div, keyboard-operable by construction."
+    },
+    {
+      "id": "TRP-010",
+      "label": "must-not-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/styles/hero.css",
+      "lines": [
+        9,
+        17
+      ],
+      "rationale": "The hero title is #ffffff on #2f8f9d at 2.25rem/700 (36px bold): about 3.8:1 — below the 4.5:1 normal-text minimum but above the 3:1 AA minimum for large text (WCAG 1.4.3), and the same rule sets the large size."
+    },
+    {
+      "id": "TRP-011",
+      "label": "must-not-fire",
+      "concept": "visual-and-motion-safety",
+      "file": "src/styles/buttons.css",
+      "lines": [
+        33,
+        37
+      ],
+      "rationale": "A disabled button's greyed-out text: WCAG 1.4.3 exempts inactive user-interface components from the contrast minimum, and the reduced contrast is the conventional 'disabled' affordance."
+    },
+    {
+      "id": "TRP-012",
+      "label": "must-not-fire",
+      "concept": "motion-without-reduced-motion",
+      "file": "src/styles/toast.css",
+      "lines": [
+        10,
+        25
+      ],
+      "rationale": "The toast slide-in animation is declared only inside @media (prefers-reduced-motion: no-preference): users who ask for reduced motion get none. v1.1.0: relabelled from the umbrella to its child concept (the look-alike of A11Y-014), same site."
+    },
+    {
+      "id": "TRP-013",
+      "label": "must-not-fire",
+      "concept": "focus-outline-removed",
+      "file": "src/styles/buttons.css",
+      "lines": [
+        11,
+        20
+      ],
+      "rationale": "Buttons drop the default outline only for :focus:not(:focus-visible) and draw a high-contrast :focus-visible ring instead: keyboard focus stays clearly visible (the recommended pattern). v1.1.0: relabelled from the umbrella to its child concept (the look-alike of A11Y-015), same site."
+    },
+    {
+      "id": "TRP-014",
+      "label": "must-not-fire",
+      "concept": "page-structure-violation",
+      "file": "src/features/search/ResultCard.tsx",
+      "lines": [
+        25,
+        25
+      ],
+      "rationale": "The result card's title is an <h3> at the root of its component: it renders under the result list's <h2>, so the page outline is h1 → h2 → h3 with no skip. Judging a component's first heading in isolation would be wrong."
+    },
+    {
+      "id": "TRP-015",
+      "label": "must-not-fire",
+      "concept": "cross-site-scripting",
+      "cwe": "CWE-79",
+      "file": "src/features/news/NoticeBanner.tsx",
+      "lines": [
+        38,
+        38
+      ],
+      "rationale": "The library notice (staff-authored rich text from the CMS) is rendered with dangerouslySetInnerHTML only after DOMPurify.sanitize with an explicit allow-list of tags and attributes: script, event handlers and javascript: URLs are stripped."
+    },
+    {
+      "id": "TRP-016",
+      "label": "must-not-fire",
+      "concept": "oversized-source-file",
+      "file": "src/catalogue/subjectHeadings.ts",
+      "rationale": "A long but trivial data module: the subject-heading vocabulary used by the browse facet: about 500 lines of {code, label, broader, related} literals and no logic. Its length is the vocabulary's; splitting it would add files without adding clarity."
+    },
+    {
+      "id": "TRP-017",
+      "label": "must-not-fire",
+      "concept": "invalid-aria-usage",
+      "file": "src/components/IconButton.tsx",
+      "lines": [
+        20,
+        20
+      ],
+      "rationale": "aria-hidden=\"true\" on the decorative <svg> inside a named button: the svg is not focusable (the button is), so hiding the duplicate icon from assistive tech is correct."
+    },
+    {
+      "id": "TRP-018",
+      "label": "must-not-fire",
+      "concept": "react-index-as-key",
+      "file": "src/features/reading-list/ReadingListPage.tsx",
+      "lines": [
+        180,
+        182
+      ],
+      "rationale": "The reading tips are a module-level constant tuple of three strings rendered as plain text: never reordered, filtered or edited, and the <li> holds no state. An index key is the documented acceptable case for such a static list."
+    },
+    {
+      "id": "TRP-019",
+      "label": "must-not-fire",
+      "concept": "react-hook-missing-dependency",
+      "file": "src/features/reading-list/ReadingListPage.tsx",
+      "lines": [
+        116,
+        119
+      ],
+      "rationale": "The memoised visible list reads entries and hideFinished and lists both: the dependency array is complete, so the filter follows both the list and the checkbox."
+    },
+    {
+      "id": "TRP-020",
+      "label": "must-not-fire",
+      "concept": "react-state-mutation",
+      "file": "src/features/reading-list/useReadingList.ts",
+      "lines": [
+        23,
+        37
+      ],
+      "rationale": "move() calls splice twice, but on `next`, a fresh copy of the current array made just before, inside a functional state update that returns the copy: the state array itself is never mutated (the immutable reorder idiom)."
+    },
+    {
+      "id": "TRP-021",
+      "label": "must-not-fire",
+      "concept": "form-error-not-associated",
+      "file": "src/features/borrow/BorrowForm.tsx",
+      "lines": [
+        60,
+        75
+      ],
+      "rationale": "The card-number error is associated with its field: the input carries aria-invalid while the error shows and aria-describedby lists the hint and the error's id, so assistive technology announces the error with the field."
+    },
+    {
+      "id": "TRP-022",
+      "label": "must-not-fire",
+      "concept": "modal-focus-not-managed",
+      "file": "src/features/borrow/BorrowDialog.tsx",
+      "lines": [
+        16,
+        41
+      ],
+      "rationale": "The borrow dialog is a native <dialog> opened with showModal(): the browser moves focus into it, makes the page behind inert (focus cannot leave), closes it on Escape and returns focus to the previously focused control on close. Focus management is done by the platform, so the absence of hand-written focus code is not a defect."
+    },
+    {
+      "id": "CLN-001",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".editorconfig",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-002",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".gitattributes",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-003",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".github/dependabot.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-004",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".github/workflows/ci.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-005",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".github/workflows/codeql.yml",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-006",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".gitignore",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-007",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".nvmrc",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-008",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".prettierignore",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-009",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": ".prettierrc.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-010",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "CHANGELOG.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-011",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "README.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-012",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "SECURITY.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-013",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "docs/adr/0001-spa-with-path-routing.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-014",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "docs/adr/0002-catalogue-client-interface.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-015",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "docs/architecture.md",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-016",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "eslint.config.js",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-017",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "package.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-018",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "public/favicon.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-019",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "public/icons.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-020",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "public/images/divider-waves.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-021",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "public/images/logo.svg",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-022",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/App.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-023",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/api/catalogueClient.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-024",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/api/demoClient.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-025",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/api/types.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-026",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/catalogue/format.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-027",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/components/AppLink.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-028",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/context/catalogueClient.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-029",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/context/settings.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-030",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/context/toasts.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-031",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/borrow/BorrowForm.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-032",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/borrow/borrowValidation.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-033",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/events/EventsPage.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-034",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/events/upcomingEvents.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-035",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/gallery/galleryPhotos.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-036",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/home/openingHours.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-037",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/search/ResultSkeleton.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-038",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/search/SearchPage.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-039",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/search/useSearch.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-040",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/main.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-041",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/routing.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-042",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/base.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-043",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/dialog.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-044",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/gallery.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-045",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/header.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-046",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/loans.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-047",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/settings.css",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-048",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/useRoute.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-049",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/App.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-050",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/BorrowDialog.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-051",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/Gallery.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-052",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/ItemDetailDialog.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-053",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/LoansPage.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-054",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/NoticeBanner.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-055",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/SearchPage.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-056",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/SettingsPage.test.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-057",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/borrowValidation.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-058",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/catalogueClient.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-059",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/demoClient.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-060",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/format.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-061",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/routing.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-062",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/settings.test.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-063",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/setup.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-064",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/support/renderWithProviders.tsx",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-065",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tsconfig.json",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-066",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "vite.config.ts",
+      "rationale": "No planted defect and no trap for the repository's themed concepts: every image, control, heading, interaction, ARIA attribute, colour pair and animation here is correct, no markup is injected unsanitised, and the file is small."
+    },
+    {
+      "id": "CLN-067",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/features/reading-list/readingList.ts",
+      "rationale": "The reading-list model and its browser storage: no markup, no hooks, nothing of the themed concepts. (v1.1.0)"
+    },
+    {
+      "id": "CLN-068",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/styles/reading-list.css",
+      "rationale": "Layout of the reading list: colours only from the base tokens (all AA), no animation, no outline rule. (v1.1.0)"
+    },
+    {
+      "id": "CLN-069",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "tests/ReadingListPage.test.tsx",
+      "rationale": "Tests of the reading list page. (v1.1.0)"
+    },
+    {
+      "id": "CLN-070",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/components/CheckboxField.tsx",
+      "rationale": "A checkbox with a programmatically associated label (useId + htmlFor); no error, no state of its own. (v1.1.0)"
+    },
+    {
+      "id": "CLN-071",
+      "label": "clean",
+      "concepts": [
+        "missing-text-alternative",
+        "form-control-without-label",
+        "page-structure-violation",
+        "non-keyboard-accessible-interaction",
+        "invalid-aria-usage",
+        "visual-and-motion-safety",
+        "cross-site-scripting",
+        "oversized-source-file",
+        "modal-focus-not-managed",
+        "autoplay-media-without-control",
+        "react-index-as-key",
+        "react-hook-missing-dependency",
+        "react-state-mutation",
+        "form-error-not-associated"
+      ],
+      "file": "src/components/TextField.tsx",
+      "rationale": "A text input under a programmatically associated label (useId + htmlFor); it renders no error message, so it has none to associate. (v1.1.0)"
+    },
+    {
+      "id": "BND-001",
+      "label": "score-band",
+      "concept": "accessibility-checks-in-ci",
+      "band": [
+        0,
+        20
+      ],
+      "rationale": "No accessibility lint rule set, no automated accessibility assertion in tests, nothing in CI: the bottom rung of any enforcement ladder."
+    },
+    {
+      "id": "BND-002",
+      "label": "score-band",
+      "concept": "untyped-javascript-share",
+      "band": [
+        90,
+        100
+      ],
+      "rationale": "Every source and test file is TypeScript under `strict`; the only JavaScript file is the ESLint flat config."
+    },
+    {
+      "id": "BND-003",
+      "label": "score-band",
+      "concept": "alt-text-quality",
+      "band": [
+        50,
+        90
+      ],
+      "rationale": "Model-judged. Of the images with a static, non-empty alt, all but one carry a meaningful description; the reading-room photo's alt is its file name (A11Y-019). Expected around 75; wide band for judge variance."
+    },
+    {
+      "id": "BND-004",
+      "label": "score-band",
+      "concept": "link-and-button-text-quality",
+      "band": [
+        70,
+        100
+      ],
+      "rationale": "Model-judged. Link and button texts state their purpose ('View details', 'Renew all eligible loans', …); one 'Click here' link (A11Y-020) among a few dozen. Wide band for judge variance."
+    },
+    {
+      "id": "BND-005",
+      "label": "score-band",
+      "concept": "heading-and-label-text-quality",
+      "band": [
+        80,
+        100
+      ],
+      "rationale": "Model-judged. Every heading and form label names its section or field ('Loan reminders', 'Library card number', 'Days before the due date', …); none is a placeholder."
+    }
+  ]
+}

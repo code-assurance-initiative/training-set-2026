@@ -1,0 +1,47 @@
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.switch {
+  position: relative;
+  width: 3rem;
+  height: 1.6rem;
+  border: 2px solid #4b5563;
+  border-radius: 999px;
+  background-color: #e5e7eb;
+  cursor: pointer;
+}
+
+.switch--on {
+  border-color: #1d4ed8;
+  background-color: #1d4ed8;
+}
+
+.switch:focus-visible {
+  outline: 3px solid #b45309;
+  outline-offset: 2px;
+}
+
+.switch__thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+
+.switch--on .switch__thumb {
+  left: 1.45rem;
+}
+
+.radio {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-weight: 400;
+}

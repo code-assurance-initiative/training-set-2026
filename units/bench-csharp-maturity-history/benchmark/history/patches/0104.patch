@@ -1,0 +1,23 @@
+From 276b4cc63dfea4e1cc0008e29e990fa7fbbca133 Mon Sep 17 00:00:00 2001
+From: Noor Haddley <noor.haddley@example.invalid>
+Date: Thu, 13 Aug 2026 14:35:53 +0200
+Subject: fix(availability): count the daily cap in the practitioner's time
+ zone
+
+---
+ src/ClinicScheduling.Domain/Availability/SlotFinder.cs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+index b409344..a81e49e 100644
+--- a/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
++++ b/src/ClinicScheduling.Domain/Availability/SlotFinder.cs
+@@ -51,7 +51,7 @@ public sealed class SlotFinder(IHolidayCalendar holidays, TimeProvider time)
+                 continue;
+             }
+ 
+-            var bookedThatDay = booked.Count(b => DateOnly.FromDateTime(b.Start.UtcDateTime) == day);
++            var bookedThatDay = booked.Count(b => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(b.Start, schedule.TimeZone).DateTime) == day);
+             if (bookedThatDay >= schedule.MaxAppointmentsPerDay)
+             {
+                 continue;
