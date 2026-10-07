@@ -127,3 +127,14 @@ scripted history, scored at integration level); every other family names the the
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
+
+## Notes on links frozen inside units
+
+- `bench-csharp-tests` (v1.0.0) skips one test with the reason "tracked in
+  https://github.com/code-assurance-initiative/bench-csharp-tests/issues/1". The unit's own repository was retired when
+  this set was created; the issue was transferred to this repository and now lives at
+  [training-set-2026#1](https://github.com/code-assurance-initiative/training-set-2026/issues/1). The frozen code is not
+  edited (that would change the unit); the next key version of the unit should point at the new address. Trap TRP-003
+  ("skip with a reason and a tracked issue") holds either way: the reason itself names the bug.
+- Each unit's frozen `benchmark/README.md` may say `git clone github.com/code-assurance-initiative/<unit>`; use
+  `tools/materialize.sh <unit>` instead — it reproduces the same commits and tags from `units/<unit>.bundle`.
